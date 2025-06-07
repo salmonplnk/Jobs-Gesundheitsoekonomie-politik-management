@@ -13,7 +13,7 @@ for a in soup.select("a.teaser-link")[:3]:          # <—  CSS-Selector an BAG 
     jobs.append({"title": title, "url": url, "location": loc, "pensum": "–"})
 
 out["bag"] = jobs
-with open("site/jobs-data.json", "w", encoding="utf-8") as f:
+with open("jobs-data.json", "w", encoding="utf-8") as f:
     json.dump(out, f, ensure_ascii=False, indent=2)
 
 print("OK – jobs-data.json geschrieben")
