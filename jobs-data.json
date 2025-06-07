@@ -1,3 +1,33 @@
 {
-  "bag": []
+  "bag": [
+    {
+      "title": "HR-Fachperson Recruiting",
+      "url": "https://www.example-bag.ch/jobs/123",
+      "location": "Bern",
+      "pensum": "80-100 %"
+    },
+    {
+      "title": "Sachbearbeiter/in Impfprogramm",
+      "url": "https://www.example-bag.ch/jobs/124",
+      "location": "Liebefeld",
+      "pensum": "60 %"
+    },
+    {
+      "title": "Epidemiologe/in",
+      "url": "https://www.example-bag.ch/jobs/125",
+      "location": "Bern",
+      "pensum": "80–100 %"
+    }
+  ],
+
+  "obsan": [
+    {
+      "title": "Data Scientist Gesundheit",
+      "url": "https://www.obsan.admin.ch/jobs/77",
+      "location": "Neuchâtel",
+      "pensum": "80 %"
+    }
+  ],
+
+  "... weitere IDs ...": []
 }
