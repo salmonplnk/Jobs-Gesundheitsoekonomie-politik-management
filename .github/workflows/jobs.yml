@@ -1,0 +1,28 @@
+name: update-jobs-json
+on:
+  schedule:
+    - cron: "0 7,12 * * *"   # 09:00 & 14:00 MEZ
+  workflow_dispatch:
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests beautifulsoup4 lxml
+      - run: python update_jobs.py
+
+      - name: Commit & push
+        run: |
+          git config user.name  "jobs-bot"
+          git config user.email "bot@example.com"
+          if [[ `git status --porcelain` ]]; then
+            git add site/jobs-data.json
+            git commit -m "update jobs-data"
+            git push
+          fi
