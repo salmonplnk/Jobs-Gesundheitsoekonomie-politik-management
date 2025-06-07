@@ -4,9 +4,14 @@ Automatischer Job-Crawler für Schweizer Gesundheits­portale.
 Speichert pro Quelle max. 3 aktuelle Angebote in jobs-data.json.
 """
 
-import json, re, requests, datetime
-from bs4 import BeautifulSoup
+import json
+import re
+import datetime
 from collections import defaultdict
+from urllib.parse import urljoin
+
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 # --------  HIER DEINE SEITEN EINTRAGEN  ----------
 SOURCES = [
@@ -30,30 +35,39 @@ out = defaultdict(list)
 
 def clean(txt): return re.sub(r"\s+", " ", txt).strip()
 
-for id_, url, sel_link, sel_loc, sel_pen in SOURCES:
-    try:
-        html = requests.get(url, headers=HEADERS, timeout=30).text
-        soup = BeautifulSoup(html, "lxml")
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    context = browser.new_context(extra_http_headers=HEADERS, ignore_https_errors=True)
+    page = context.new_page()
 
-        links = soup.select(sel_link)[:3]   # max. 3
-        for a in links:
-            title = clean(a.get_text())
-            href  = a.get("href", "")
-            if href and not href.startswith("http"):
-                href = requests.compat.urljoin(url, href)
+    for id_, url, sel_link, sel_loc, sel_pen in SOURCES:
+        try:
+            page.goto(url, timeout=30000)
+            page.wait_for_load_state("networkidle")
+            html = page.content()
+            soup = BeautifulSoup(html, "lxml")
 
-            loc = clean(a.select_one(sel_loc).get_text()) if sel_loc and a.select_one(sel_loc) else ""
-            pen = clean(a.select_one(sel_pen).get_text()) if sel_pen and a.select_one(sel_pen) else "–"
+            links = soup.select(sel_link)[:3]   # max. 3
+            for a in links:
+                title = clean(a.get_text())
+                href = a.get("href", "")
+                if href and not href.startswith("http"):
+                    href = urljoin(url, href)
 
-            out[id_].append({
-                "title": title or "Job",
-                "url":   href,
-                "location": loc,
-                "pensum": pen,
-            })
-        print(f"✓ {id_}: {len(out[id_])} Einträge")
-    except Exception as e:
-        print(f"⚠️ {id_}: {e}")
+                loc = clean(a.select_one(sel_loc).get_text()) if sel_loc and a.select_one(sel_loc) else ""
+                pen = clean(a.select_one(sel_pen).get_text()) if sel_pen and a.select_one(sel_pen) else "–"
+
+                out[id_].append({
+                    "title": title or "Job",
+                    "url": href,
+                    "location": loc,
+                    "pensum": pen,
+                })
+            print(f"✓ {id_}: {len(out[id_])} Einträge")
+        except Exception as e:
+            print(f"⚠️ {id_}: {e}")
+
+    browser.close()
 
 # JSON schreiben
 with open("jobs-data.json", "w", encoding="utf-8") as f:
