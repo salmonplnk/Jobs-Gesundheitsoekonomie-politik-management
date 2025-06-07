@@ -292,12 +292,11 @@ function show(li, e) {
 }
 function hide() { hideT = setTimeout(() => tp.style.display = 'none', 180); }
 
-document.addEventListener('mousemove', e => tp.style.display === 'flex' && pos(e));
 document.addEventListener('mouseover', e => {
-  const li = e.target.closest('.item');
-  if (li) show(li, e);
+ const li = e.target.closest('.item');
+  if (li) show(li, e);                    // pos(e) wird nur hier aufgerufen
 });
-document.addEventListener('mouseout', e => {
+document.addEventListener('mouseout',  e => {
   const to = e.relatedTarget;
   if (!to || (!to.closest('.item') && !to.closest('.tooltip'))) hide();
 });
