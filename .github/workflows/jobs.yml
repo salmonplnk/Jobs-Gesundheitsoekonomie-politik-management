@@ -22,7 +22,7 @@ jobs:
           git config user.name  "jobs-bot"
           git config user.email "bot@example.com"
           if [[ `git status --porcelain` ]]; then
-            git add site/jobs-data.json
+            git add jobs-data.json
             git commit -m "update jobs-data"
             git push
           fi
