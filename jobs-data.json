@@ -19,6 +19,7 @@
       "pensum": "–"
     }
   ],
+  "bsv": [],
   "obsan": [],
   "gfs": [],
   "lungenliga": [],
@@ -26,6 +27,86 @@
     {
       "title": "Junior Mitarbeiter:in Marketing",
       "url": "https://link.ostendis.com/publication/junior-mitarbeiter-in-marketing/e3q0adislkrvbtdypqte4qbxsqpts6qaszernbqontu37lwkaur4wy7ktz0vs2nk",
+      "location": "",
+      "pensum": "–"
+    }
+  ],
+  "swissmedic": [
+    {
+      "title": "Business Analyst - Bereichskoordinator Digitale Transformation m/w (80-100%)",
+      "url": "https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs/business-analyst-rod.html",
+      "location": "",
+      "pensum": "–"
+    },
+    {
+      "title": "Regulatory Associate (60%)",
+      "url": "https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs/regulatory-associate-tam.html",
+      "location": "",
+      "pensum": "–"
+    },
+    {
+      "title": "IT Service Manager/in (80-100%)",
+      "url": "https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs/it-service-manager-in.html",
+      "location": "",
+      "pensum": "–"
+    }
+  ],
+  "kssg": [
+    {
+      "title": "Gruppenleiter/-in 80-100%",
+      "url": "https://jobs.h-och.ch/job/St_-Gallen-Gruppenleiter-in-80-100/1191570901/",
+      "location": "St. Gallen",
+      "pensum": "–"
+    },
+    {
+      "title": "Arztsekretär/in mit Springerfunktion 80%",
+      "url": "https://jobs.h-och.ch/job/Rorschach-Arztsekret%C3%A4rin-mit-Springerfunktion-80/1201629201/",
+      "location": "Rorschach",
+      "pensum": "–"
+    },
+    {
+      "title": "Medical Service Engineer 100%",
+      "url": "https://jobs.h-och.ch/job/St_-Gallen-Medical-Service-Engineer-100/1191740601/",
+      "location": "St. Gallen",
+      "pensum": "–"
+    }
+  ],
+  "css": [
+    {
+      "title": "Praktikant/in CEO-Office 60-100%",
+      "url": "https://jobs.css.ch/offene-stellen/praktikant-in-ceo-office/07177369-15e2-4ac8-ac79-ca2453c01676",
+      "location": "Luzern / hybrid",
+      "pensum": "–"
+    },
+    {
+      "title": "Linux System Engineer 80-100%",
+      "url": "https://jobs.css.ch/offene-stellen/linux-system-engineer/da02883d-7240-40b3-9f19-d008da922acc",
+      "location": "Luzern / hybrid",
+      "pensum": "–"
+    },
+    {
+      "title": "Sachbearbeiter/in Inkasso & Prämienverbilligung 80-100%",
+      "url": "https://jobs.css.ch/offene-stellen/sachbearbeiter-in-inkasso-praemienverbilligung/168d72bd-fc25-48b9-96a0-3cb5cb16754d",
+      "location": "Root / hybrid",
+      "pensum": "–"
+    }
+  ],
+  "usz": [
+    {
+      "title": "PflegePflegefachperson oder Radiologiefachperson für das Katheterlabor der Angiologie 80-100%BereichAngiologie",
+      "url": "https://jobs.usz.ch/offene-stellen/pflegefachperson-oder-radiologiefachperson-fur-das-katheterlabor-der-angiologie-80-100/ec1056f8-b47e-4fc2-a213-1aec924a9673",
+      "location": "",
+      "pensum": "–"
+    },
+    {
+      "title": "FaGe/​MPAMPA / FaGe für die ambulante Geburtshilfe 60 - 80%BereichAmbulante Medizin",
+      "url": "https://jobs.usz.ch/offene-stellen/mpa-fage-fur-die-ambulante-geburtshilfe-60-80/42ba26c2-95cf-4290-af88-ea45e9477a12",
+      "location": "",
+      "pensum": "–"
+    },
+    {
+      "title": "PflegePflegefachperson Funktionsraum der Endokrinologie, Diabetesberatung und Klinische Ernährung 20-40%BereichEndokrinologie, Diabetologie und Klinische Ernährung",
+      "url": "https://jobs.usz.ch/offene-stellen/pflegefachperson-funktionsraum-der-endokrinologie-diabetesberatung-und-klinische-ernahrung-20-40/31ba01fa-2dd4-4ff9-ab07-5654f38bb546",
       "location": "",
       "pensum": "–"
     }

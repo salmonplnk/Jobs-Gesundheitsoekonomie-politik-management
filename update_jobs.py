@@ -1,4 +1,3 @@
-"""
 Automatischer Job-Crawler für Schweizer Gesundheits­portale.
 Speichert pro Quelle max. 3 aktuelle Angebote in jobs-data.json.
 """
@@ -24,6 +23,13 @@ SOURCES = [
         None,
         None,
     ),
+    (
+        "bsv",
+        "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083356&limit=20#/shortlist",
+        "a.job-list-item",
+        None,
+        None,
+    ),
     ("obsan", "https://www.obsan.admin.ch/de/das-obsan/offene-stellen",
               "div.view-content a", None,             None),
     ("gfs",   "https://gesundheitsfoerderung.ch/stiftung/stellenangebote",
@@ -41,6 +47,34 @@ SOURCES = [
         "a.title[href^=\"https://link.ostendis.com\"]",
         "span.job-place",
         "span.pensum",
+    ),
+    (
+        "swissmedic",
+        "https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs.html",
+        "div.mod-teaser a",
+        None,
+        None,
+    ),
+    (
+        "kssg",
+        "https://jobs.h-och.ch/search/",
+        "a.jobTitle-link",
+        "span.jobLocation",
+        None,
+    ),
+    (
+        "css",
+        "https://jobs.css.ch/",
+        "div#jobs-list a.job-title",
+        "span.place-of-work",
+        None,
+    ),
+    (
+        "usz",
+        "https://jobs.usz.ch/?lang=de",
+        "a.job__link",
+        None,
+        None,
     ),
     # … weitere Zeilen nach gleichem Muster …
 ]
@@ -77,6 +111,55 @@ def fetch_lungenliga():
         jobs.append({"title": title or "Job", "url": href, "location": "", "pensum": "-"})
     return jobs
 
+def fetch_kssg(url: str):
+    r = requests.get(url, headers=HEADERS, timeout=30)
+    r.raise_for_status()
+    soup = BeautifulSoup(r.text, "lxml")
+    jobs = []
+    for row in soup.select("tr.data-row")[:3]:
+        a = row.select_one("a.jobTitle-link")
+        if not a:
+            continue
+        title = clean(a.get_text())
+        href = a.get("href", "")
+        if href and not href.startswith("http"):
+            href = urljoin(url, href)
+        loc_el = row.select_one("span.jobLocation")
+        loc = clean(loc_el.get_text()) if loc_el else ""
+        jobs.append({"title": title or "Job", "url": href, "location": loc, "pensum": "–"})
+    return jobs
+
+def fetch_css(url: str):
+    r = requests.get(url, headers=HEADERS, timeout=30)
+    r.raise_for_status()
+    soup = BeautifulSoup(r.text, "lxml")
+    jobs = []
+    for div in soup.select("div#jobs-list div.job")[:3]:
+        a = div.select_one("a.job-title")
+        if not a:
+            continue
+        title = clean(a.get("title") or a.get_text())
+        href = a.get("href", "")
+        if href and not href.startswith("http"):
+            href = urljoin(url, href)
+        loc_el = div.select_one("span.place-of-work")
+        loc = clean(loc_el.get_text()) if loc_el else ""
+        jobs.append({"title": title or "Job", "url": href, "location": loc, "pensum": "–"})
+    return jobs
+
+def fetch_usz(page, url: str):
+    page.goto(url, timeout=30000)
+    page.wait_for_load_state("networkidle")
+    soup = BeautifulSoup(page.content(), "lxml")
+    jobs = []
+    for a in soup.select("a.job__link")[:3]:
+        title = clean(a.get_text())
+        href = a.get("href", "")
+        if href and not href.startswith("http"):
+            href = urljoin(url, href)
+        jobs.append({"title": title or "Job", "url": href, "location": "", "pensum": "–"})
+    return jobs
+
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     context = browser.new_context(extra_http_headers=HEADERS, ignore_https_errors=True)
@@ -88,9 +171,21 @@ with sync_playwright() as p:
                 out[id_].extend(fetch_lungenliga())
                 print(f"✓ {id_}: {len(out[id_])} Einträge")
                 continue
-
+            if id_ == "kssg":
+                out[id_].extend(fetch_kssg(url))
+                print(f"✓ {id_}: {len(out[id_])} Einträge")
+                continue
+            if id_ == "css":
+                out[id_].extend(fetch_css(url))
+                print(f"✓ {id_}: {len(out[id_])} Einträge")
+                continue
+            
             page.goto(url, timeout=30000)
             page.wait_for_load_state("networkidle")
+            if id_ == "usz":
+                out[id_].extend(fetch_usz(page, url))
+                print(f"✓ {id_}: {len(out[id_])} Einträge")
+                continue
             html = page.content()
             soup = BeautifulSoup(html, "lxml")
 
@@ -115,9 +210,3 @@ with sync_playwright() as p:
             print(f"⚠️ {id_}: {e}")
 
     browser.close()
-
-# JSON schreiben
-with open("jobs-data.json", "w", encoding="utf-8") as f:
-    json.dump(out, f, ensure_ascii=False, indent=2)
-
-print(f"jobs-data.json aktualisiert ({datetime.datetime.now():%d.%m.%Y %H:%M})")

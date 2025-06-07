@@ -40,7 +40,7 @@
 
  /* Tooltip */
  .tooltip{position:absolute;z-index:50;max-width:300px;background:var(--card);color:var(--text);
-          border-radius:.9rem;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:1rem;font-size:.9rem;
+ border-radius:.9rem;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:1rem;font-size:.9rem;
           line-height:1.4;display:none;flex-direction:column;gap:.45rem;}
  .tooltip h3{margin:.1rem 0 .5rem;font-size:.95rem;font-weight:600;color:var(--accent);}
  .tooltip ul{margin:.25rem 0 0 1rem;padding:0;} .tooltip ul li{list-style:disc;margin:.2rem 0;}
@@ -65,29 +65,164 @@
   </details>
 </section>
 
-<!-- ##############  ALLE KATEGORIEN (abgekürzt – hier nur 2 Beispiele) ############## -->
+<!-- ##############  ALLE KATEGORIEN ############## -->
 <section class="card"><details>
 <summary>Bund / bundesnahe Institutionen</summary>
 <ul class="links">
-  <li class="item" data-id="bag"    data-desc="Bundesamt für Gesundheit – nationale Gesundheitspolitik.">
+  <li class="item" data-id="bag" data-link="https://www.bag.admin.ch/bag/de/home/das-bag/arbeiten-im-bag/offene-stellen.html"
+      data-desc="Das Bundesamt für Gesundheit (BAG) verantwortet nationale Gesundheitspolitik und Prävention.">
     <span class="star">☆</span><a href="https://www.bag.admin.ch/bag/de/home/das-bag/arbeiten-im-bag/offene-stellen.html" target="_blank">Bundesamt für Gesundheit (BAG)</a></li>
-  <li class="item" data-id="obsan"  data-desc="Gesundheitsobservatorium – Analysen & Kennzahlen.">
+  <li class="item" data-id="bsv" data-link="https://www.bsv.admin.ch/bsv/de/home/bsv/arbeitenimbsv.html"
+      data-desc="Das Bundesamt für Sozialversicherungen gestaltet und überwacht AHV, IV, EL, BVG usw.">
+    <span class="star">☆</span><a href="https://www.bsv.admin.ch/bsv/de/home/bsv/arbeitenimbsv.html" target="_blank">Bundesamt für Sozialversicherungen (BSV)</a></li>
+  <li class="item" data-id="kvg" data-link="https://www.kvg.org/jobs/"
+      data-desc="Gemeinsame Einrichtung KVG – Durchführung der obligatorischen Krankenversicherung.">
+    <span class="star">☆</span><a href="https://www.kvg.org/jobs/" target="_blank">Gemeinsame Einrichtung KVG</a></li>
+  <li class="item" data-id="obsan" data-link="https://www.obsan.admin.ch/de/das-obsan/offene-stellen"
+      data-desc="Das Schweizerische Gesundheitsobservatorium analysiert und publiziert Gesundheitsdaten.">
     <span class="star">☆</span><a href="https://www.obsan.admin.ch/de/das-obsan/offene-stellen" target="_blank">Gesundheits­observatorium Obsan</a></li>
-  <!-- … alle weiteren Bundesstellen hier … -->
+  <li class="item" data-id="swissmedic" data-link="https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs.html"
+      data-desc="Swissmedic – nationale Zulassungs- und Aufsichtsbehörde für Heilmittel.">
+    <span class="star">☆</span><a href="https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs.html" target="_blank">Swissmedic</a></li>
+</ul></details></section>
+
+<section class="card"><details>
+<summary>Kantonale Verwaltungen (A–Z, ohne TI &amp; VD)</summary>
+<ul class="links">
+  <li class="item" data-id="ar" data-link="https://ar.ch/verwaltung/departement-finanzen/personalamt/freie-stellen/"
+      data-desc="Kanton Appenzell Ausserrhoden – Verwaltung & Gesundheit.">
+    <span class="star">☆</span><a href="https://ar.ch/verwaltung/departement-finanzen/personalamt/freie-stellen/" target="_blank">Appenzell Ausserrhoden</a></li>
+  <li class="item" data-id="ai" data-link="https://www.ai.ch/themen/arbeiten-bei-der-kantonalen-verwaltung/offene-stellen-1"
+      data-desc="Kanton Appenzell Innerrhoden – Verwaltung & Gesundheitswesen.">
+    <span class="star">☆</span><a href="https://www.ai.ch/themen/arbeiten-bei-der-kantonalen-verwaltung/offene-stellen-1" target="_blank">Appenzell Innerrhoden</a></li>
+  <li class="item" data-id="bl" data-link="https://www.baselland.ch/politik-und-behorden/direktionen/finanz-und-kirchendirektion/personalamt/jobs/offene-stellen/"
+      data-desc="Kanton Basel-Landschaft – Personalamt & Gesundheitsdirektion.">
+    <span class="star">☆</span><a href="https://www.baselland.ch/politik-und-behorden/direktionen/finanz-und-kirchendirektion/personalamt/jobs/offene-stellen/" target="_blank">Basel-Landschaft</a></li>
+  <li class="item" data-id="bs" data-link="https://www.bs.ch/themen/arbeit-und-steuern/stellenbesetzung-arbeitslosigkeit/offene-stellen/offene-stellen-beim-kanton-basel-stadt"
+      data-desc="Kanton Basel-Stadt – Stellenportal aller Departemente.">
+    <span class="star">☆</span><a href="https://www.bs.ch/themen/arbeit-und-steuern/stellenbesetzung-arbeitslosigkeit/offene-stellen/offene-stellen-beim-kanton-basel-stadt" target="_blank">Basel-Stadt</a></li>
+  <li class="item" data-id="be" data-link="https://www.gsi.be.ch/de/start/ueber-uns/offene-stellen.html"
+      data-desc="Gesundheits-, Sozial- und Integrationsdirektion des Kantons Bern.">
+    <span class="star">☆</span><a href="https://www.gsi.be.ch/de/start/ueber-uns/offene-stellen.html" target="_blank">Bern – GSI</a></li>
+  <li class="item" data-id="lu" data-link="https://stellen.lu.ch/"
+      data-desc="Kanton Luzern – zentrales Stellenportal.">
+    <span class="star">☆</span><a href="https://stellen.lu.ch/" target="_blank">Luzern</a></li>
+  <li class="item" data-id="sz" data-link="https://www.sz.ch/services/offene-stellen.html/8756-8761-10387"
+      data-desc="Kanton Schwyz – Offene Stellen Verwaltung & Spitäler.">
+    <span class="star">☆</span><a href="https://www.sz.ch/services/offene-stellen.html/8756-8761-10387" target="_blank">Schwyz</a></li>
+  <li class="item" data-id="so" data-link="https://karriere.so.ch/stellenmarkt/offene-stellen/"
+      data-desc="Kanton Solothurn – zentraler Stellenmarkt.">
+    <span class="star">☆</span><a href="https://karriere.so.ch/stellenmarkt/offene-stellen/" target="_blank">Solothurn</a></li>
+  <li class="item" data-id="sg" data-link="https://www.sg.ch/ueber-den-kanton-st-gallen/arbeitgeber-kanton-stgallen/stellenportal.html"
+      data-desc="Kanton St. Gallen – offizielles Stellenportal.">
+    <span class="star">☆</span><a href="https://www.sg.ch/ueber-den-kanton-st-gallen/arbeitgeber-kanton-stgallen/stellenportal.html" target="_blank">St. Gallen</a></li>
+  <li class="item" data-id="ur" data-link="https://www.ur.ch/stellen"
+      data-desc="Kanton Uri – Offene Stellen.">
+    <span class="star">☆</span><a href="https://www.ur.ch/stellen" target="_blank">Uri</a></li>
+  <li class="item" data-id="zh" data-link="https://www.zh.ch/de/arbeiten-beim-kanton.html#offene-stellen"
+      data-desc="Kanton Zürich – Gesundheitsdirektion & Gesamtverwaltung.">
+    <span class="star">☆</span><a href="https://www.zh.ch/de/arbeiten-beim-kanton.html#offene-stellen" target="_blank">Zürich</a></li>
+</ul></details></section>
+
+<section class="card"><details>
+<summary>Versicherungen</summary>
+<ul class="links">
+  <li class="item" data-id="css" data-link="https://jobs.css.ch/"
+      data-desc="CSS – grosse Schweizer Krankenkasse mit Sitz in Luzern.">
+    <span class="star">☆</span><a href="https://jobs.css.ch/" target="_blank">CSS Versicherung</a></li>
+  <li class="item" data-id="helvetia" data-link="https://jobs.helvetia.com/"
+      data-desc="Helvetia – Allbranchen-Versicherer mit Gesundheits-Zusatzangeboten.">
+    <span class="star">☆</span><a href="https://jobs.helvetia.com/" target="_blank">Helvetia</a></li>
+  <li class="item" data-id="kpt" data-link="https://www.kpt.ch/de/ueber-kpt/arbeiten-bei-der-kpt/offene-stellen"
+      data-desc="KPT – digitale Krankenkasse aus Bern.">
+    <span class="star">☆</span><a href="https://www.kpt.ch/de/ueber-kpt/arbeiten-bei-der-kpt/offene-stellen" target="_blank">KPT Krankenkasse</a></li>
+  <li class="item" data-id="sanitas" data-link="https://www.sanitas.com/de/ueber-sanitas/arbeiten-bei-sanitas/offene-stellen.html"
+      data-desc="Sanitas – Krankenversicherung mit Fokus auf eHealth-Services.">
+    <span class="star">☆</span><a href="https://www.sanitas.com/de/ueber-sanitas/arbeiten-bei-sanitas/offene-stellen.html" target="_blank">Sanitas</a></li>
+  <li class="item" data-id="swica" data-link="https://www.swica.ch/de/kampagnen/intern/jobs/freie-stellen"
+      data-desc="SWICA – Gesundheitsorganisation & Versicherer.">
+    <span class="star">☆</span><a href="https://www.swica.ch/de/kampagnen/intern/jobs/freie-stellen" target="_blank">SWICA</a></li>
+</ul></details></section>
+
+<section class="card"><details>
+<summary>Branchen-/Tarif­organisationen</summary>
+<ul class="links">
+  <li class="item" data-id="fmh" data-link="https://www.fmh.ch/ueber-die-fmh/offene-stellen.cfm"
+      data-desc="FMH – Dachverband der Schweizer Ärztinnen und Ärzte.">
+    <span class="star">☆</span><a href="https://www.fmh.ch/ueber-die-fmh/offene-stellen.cfm" target="_blank">FMH Ärzteverband</a></li>
+  <li class="item" data-id="hplus" data-link="https://www.hplus.ch/de/"
+      data-desc="H+ – Spitzenverband der Schweizer Spitäler & Kliniken.">
+    <span class="star">☆</span><a href="https://www.hplus.ch/de/" target="_blank">H+ Die Spitäler der Schweiz</a></li>
+  <li class="item" data-id="oaat" data-link="https://oaat-otma.ch/ueber-uns/offene-stellen"
+      data-desc="OAAT – Tariforganisation ambulante Arzttarife.">
+    <span class="star">☆</span><a href="https://oaat-otma.ch/ueber-uns/offene-stellen" target="_blank">OAAT</a></li>
+</ul></details></section>
+
+<section class="card"><details>
+<summary>Leistungserbringer (Spitäler / Kliniken)</summary>
+<ul class="links">
+  <li class="item" data-id="kssg" data-link="https://jobs.kssg.ch/"
+      data-desc="Health Ostschweiz / Kantonsspital St. Gallen – Maximalversorger.">
+    <span class="star">☆</span><a href="https://jobs.kssg.ch/" target="_blank">Kantonsspital St. Gallen (HOS)</a></li>
+  <li class="item" data-id="hirslanden" data-link="https://careers.hirslanden.ch/"
+      data-desc="Hirslanden – grösste Privatklinikgruppe CH.">
+    <span class="star">☆</span><a href="https://careers.hirslanden.ch/" target="_blank">Hirslanden Gruppe</a></li>
+  <li class="item" data-id="insel" data-link="https://www.jobs.insel.ch/"
+      data-desc="Insel Gruppe Bern – Universitätsspital-Verbund.">
+    <span class="star">☆</span><a href="https://www.jobs.insel.ch/" target="_blank">Insel Gruppe Bern</a></li>
+  <li class="item" data-id="ksa" data-link="https://jobs.ksa.ch/"
+      data-desc="Kantonsspital Aarau – Zentrumsspital.">
+    <span class="star">☆</span><a href="https://jobs.ksa.ch/" target="_blank">Kantonsspital Aarau</a></li>
+  <li class="item" data-id="mannedorf" data-link="https://www.spitalmaennedorf.ch/karriere/jobs-bewerbung/"
+      data-desc="Spital Männedorf – Regionalspital am Zürichsee.">
+    <span class="star">☆</span><a href="https://www.spitalmaennedorf.ch/karriere/jobs-bewerbung/" target="_blank">Spital Männedorf</a></li>
+  <li class="item" data-id="stgag" data-link="https://www.stgag.ch/jobs/"
+      data-desc="Spital Thurgau AG – Spitäler Frauenfeld & Münsterlingen.">
+    <span class="star">☆</span><a href="https://www.stgag.ch/jobs/" target="_blank">Spital Thurgau AG</a></li>
+  <li class="item" data-id="smn" data-link="https://www.swissmedical.net/en/career/job-offers"
+      data-desc="Swiss Medical Network – Privatklinikgruppe.">
+    <span class="star">☆</span><a href="https://www.swissmedical.net/en/career/job-offers" target="_blank">Swiss Medical Network</a></li>
+  <li class="item" data-id="usz" data-link="https://www.usz.ch/en/jobs/open-positions/"
+      data-desc="USZ – UniversitätsSpital Zürich, Höchstversorger.">
+    <span class="star">☆</span><a href="https://www.usz.ch/en/jobs/open-positions/" target="_blank">UniversitätsSpital Zürich</a></li>
+</ul></details></section>
+
+<section class="card"><details>
+<summary>Beratung / Forschung</summary>
+<ul class="links">
+  <li class="item" data-id="careum" data-link="https://careum.ch/ueber-uns/jobs"
+      data-desc="Careum Stiftung – Bildung & Forschung Gesundheit.">
+    <span class="star">☆</span><a href="https://careum.ch/ueber-uns/jobs" target="_blank">Careum Stiftung</a></li>
+  <li class="item" data-id="polynomics" data-link="https://www.linkedin.com/company/polynomics/jobs/"
+      data-desc="Polynomics – Gesundheitsökonomische Beratung.">
+    <span class="star">☆</span><a href="https://www.linkedin.com/company/polynomics/jobs/" target="_blank">Polynomics</a></li>
+  <li class="item" data-id="sotomo" data-link="https://sotomo.ch/site/jobs/"
+      data-desc="Sotomo – Sozial- und Politikforschung.">
+    <span class="star">☆</span><a href="https://sotomo.ch/site/jobs/" target="_blank">Sotomo</a></li>
+  <li class="item" data-id="swisstph" data-link="https://jobs.swisstph.ch/Jobs/All"
+      data-desc="Swiss TPH – Global-Health-Institut.">
+    <span class="star">☆</span><a href="https://jobs.swisstph.ch/Jobs/All" target="_blank">Swiss TPH</a></li>
+  <li class="item" data-id="unilu" data-link="https://www.unilu.ch/universitaet/personal/personaldienst/offene-stellen/"
+      data-desc="Universität Luzern – Fakultät Gesundheitswissenschaften.">
+    <span class="star">☆</span><a href="https://www.unilu.ch/universitaet/personal/personaldienst/offene-stellen/" target="_blank">Uni Luzern FGW</a></li>
+  <li class="item" data-id="zhaw" data-link="https://www.zhaw.ch/de/jobs/offene-stellen"
+      data-desc="ZHAW Departement Gesundheit – FH-Jobs Pflege, Ergo, Physio.">
+    <span class="star">☆</span><a href="https://www.zhaw.ch/de/jobs/offene-stellen" target="_blank">ZHAW Gesundheit</a></li>
 </ul></details></section>
 
 <section class="card"><details>
 <summary>Stiftungen / Non-Profits</summary>
 <ul class="links">
-  <li class="item" data-id="lungenliga" data-desc="Lungenliga Schweiz – Vorsorge, Beratung und Forschung bei Atemwegserkrankungen.">
-    <span class="star">☆</span><a href="https://www.lungenliga.ch/ueber-uns/jobs" target="_blank">Lungenliga Schweiz</a></li>
-  <li class="item" data-id="gfs" data-desc="Gesundheitsförderung Schweiz – Nationale Stiftung für Prävention.">
+  <li class="item" data-id="gfs" data-link="https://gesundheitsfoerderung.ch/stiftung/stellenangebote"
+      data-desc="Gesundheitsförderung Schweiz – nationale Stiftung für Prävention & BGF.">
     <span class="star">☆</span><a href="https://gesundheitsfoerderung.ch/stiftung/stellenangebote" target="_blank">Gesundheitsförderung Schweiz</a></li>
-  <li class="item" data-id="krebsliga" data-desc="Krebsliga Schweiz – Unterstützung und Prävention.">
+  <li class="item" data-id="krebsliga" data-link="https://www.krebsliga.ch/ueber-uns/jobs"
+      data-desc="Krebsliga Schweiz – Non-Profit-Organisation für Krebsprävention & Unterstützung.">
     <span class="star">☆</span><a href="https://www.krebsliga.ch/ueber-uns/jobs" target="_blank">Krebsliga Schweiz</a></li>
-  <!-- … weitere Einträge … -->
+  <li class="item" data-id="lungenliga" data-link="https://www.lungenliga.ch/ueber-uns/jobs"
+      data-desc="Lungenliga Schweiz – Hilfe & Prävention bei Atemwegs- und Lungenerkrankungen.">
+    <span class="star">☆</span><a href="https://www.lungenliga.ch/ueber-uns/jobs" target="_blank">Lungenliga Schweiz</a></li>
 </ul></details></section>
-<!-- ##############  ENDE BEISPIEL ############## -->
 </main>
 
 <footer>Favoriten bleiben nur in diesem Browser gespeichert – alle Links ohne Gewähr</footer>
@@ -113,38 +248,3 @@ function renderFav(){ const ids=favIds(); document.getElementById('fav-sec').sty
   document.querySelectorAll('.item').forEach(li=>li.querySelector('.star').classList.toggle('fav',ids.includes(li.dataset.id)));
 }
 document.addEventListener('click',e=>{
-  if(e.target.matches('.star')){ const id=e.target.closest('.item').dataset.id;
-    let ids=favIds(); ids=ids.includes(id)?ids.filter(x=>x!==id):[...ids,id]; saveFav(ids); renderFav(); }
-});
-renderFav();
-
-/* ========== 3. Tooltip mit statischer JSON ========== */
-let JOB_DATA={}; fetch('jobs-data.json').then(r=>r.json()).then(json=>JOB_DATA=json); // gleiche Verzeichnis-Ebene
-
-const tp=document.getElementById('tooltip');
-let hideT;
-function pos(e){const r=tp.getBoundingClientRect();let x=e.pageX+15,y=e.pageY+15;
-  if(x+r.width>innerWidth)x=innerWidth-r.width-12; if(y+r.height>innerHeight)y=e.pageY-r.height-15;
-  tp.style.left=x+'px'; tp.style.top=y+'px';
-}
-function buildJobs(id){
-  const jobs=JOB_DATA[id]||[];
-  if(!jobs.length) return '<em>Keine aktuellen Stellen hinterlegt</em>';
-  return '<ul>'+jobs.map(j=>`<li><a href="${j.url}" target="_blank">${j.title}</a><br><small>${j.location} · ${j.pensum}</small></li>`).join('')+'</ul>';
-}
-function show(li,e){
-  clearTimeout(hideT);
-  const id=li.dataset.id;
-  tp.innerHTML=`<h3>${li.querySelector('a').textContent}</h3><p>${li.dataset.desc}</p>${buildJobs(id)}`;
-  tp.style.display='flex'; pos(e);
-}
-function hide(){hideT=setTimeout(()=>tp.style.display='none',180);}
-document.addEventListener('mousemove',e=>tp.style.display==='flex'&&pos(e));
-document.addEventListener('mouseover',e=>{ const li=e.target.closest('.item'); if(li){show(li,e);} });
-document.addEventListener('mouseout',e=>{
-  const to=e.relatedTarget; if(!to||(!to.closest('.item') && !to.closest('.tooltip')))hide();
-});
-tp.addEventListener('mouseover',()=>clearTimeout(hideT)); tp.addEventListener('mouseout',hide);
-</script>
-</body>
-</html>
