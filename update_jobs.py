@@ -16,8 +16,11 @@ from playwright.sync_api import sync_playwright
 # --------  HIER DEINE SEITEN EINTRAGEN  ----------
 SOURCES = [
     # id, url, selector (Job-Link), optional selector Ort & Pensum
-    ("bag",   "https://www.bag.admin.ch/bag/de/home/das-bag/arbeiten-im-bag/offene-stellen.html",
-              "a.teaser-link",      "span.location",  "span.employment"),
+    ("bag",
+     "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083353&limit=20#/shortlist",
+     "a.job-list-item",
+     None,
+     None),
     ("obsan", "https://www.obsan.admin.ch/de/das-obsan/offene-stellen",
               "div.view-content a", None,             None),
     ("gfs",   "https://gesundheitsfoerderung.ch/stiftung/stellenangebote",
