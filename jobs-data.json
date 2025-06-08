@@ -53,6 +53,12 @@
   ],
   "kssg": [
     {
+      "title": "Dipl. Pflegefachfrau/-mann 40-60%",
+      "url": "https://jobs.h-och.ch/job/Uznach-Dipl_-Pflegefachfrau-mann-40-60/1181233201/",
+      "location": "Uznach",
+      "pensum": "–"
+    },
+    {
       "title": "Gruppenleiter/-in 80-100%",
       "url": "https://jobs.h-och.ch/job/St_-Gallen-Gruppenleiter-in-80-100/1191570901/",
       "location": "St. Gallen",
@@ -62,12 +68,6 @@
       "title": "Arztsekretär/in mit Springerfunktion 80%",
       "url": "https://jobs.h-och.ch/job/Rorschach-Arztsekret%C3%A4rin-mit-Springerfunktion-80/1201629201/",
       "location": "Rorschach",
-      "pensum": "–"
-    },
-    {
-      "title": "Medical Service Engineer 100%",
-      "url": "https://jobs.h-och.ch/job/St_-Gallen-Medical-Service-Engineer-100/1191740601/",
-      "location": "St. Gallen",
       "pensum": "–"
     }
   ],
@@ -108,6 +108,475 @@
       "title": "PflegePflegefachperson Funktionsraum der Endokrinologie, Diabetesberatung und Klinische Ernährung 20-40%BereichEndokrinologie, Diabetologie und Klinische Ernährung",
       "url": "https://jobs.usz.ch/offene-stellen/pflegefachperson-funktionsraum-der-endokrinologie-diabetesberatung-und-klinische-ernahrung-20-40/31ba01fa-2dd4-4ff9-ab07-5654f38bb546",
       "location": "",
+      "pensum": "–"
+    }
+  ],
+  "ai": [
+    {
+      "title": "Newsletter",
+      "url": "https://www.ai.ch/aktuelles/newsletter",
+      "location": "AI",
+      "pensum": "–"
+    },
+    {
+      "title": "Medien",
+      "url": "https://www.ai.ch/medien",
+      "location": "AI",
+      "pensum": "–"
+    },
+    {
+      "title": "Offene Stellen",
+      "url": "https://www.ai.ch/themen/arbeiten-bei-der-kantonalen-verwaltung/offene-stellen-1",
+      "location": "AI",
+      "pensum": "–"
+    }
+  ],
+  "ar": [
+    {
+      "title": "Hauptnavigation",
+      "url": "https://ar.ch/verwaltung/departement-finanzen/personalamt/freie-stellen/#MainNavigation",
+      "location": "AR",
+      "pensum": "–"
+    },
+    {
+      "title": "Inhalt",
+      "url": "https://ar.ch/verwaltung/departement-finanzen/personalamt/freie-stellen/#Content",
+      "location": "AR",
+      "pensum": "–"
+    },
+    {
+      "title": "Kontakt",
+      "url": "https://ar.ch/verwaltung/departement-finanzen/personalamt/freie-stellen/kontakt/",
+      "location": "AR",
+      "pensum": "–"
+    }
+  ],
+  "be": [
+    {
+      "title": "Direkt zum Inhalt",
+      "url": "https://www.gef.be.ch/de/start/ueber-das-amt/stellenangebote.html/#main",
+      "location": "BE",
+      "pensum": "–"
+    },
+    {
+      "title": "skiplink.toNavigation",
+      "url": "https://www.gef.be.ch/de/start/ueber-das-amt/stellenangebote.html/#navigation",
+      "location": "BE",
+      "pensum": "–"
+    },
+    {
+      "title": "Direkt zur Suche",
+      "url": "https://www.gef.be.ch/de/start/ueber-das-amt/stellenangebote.html/#openSearch",
+      "location": "BE",
+      "pensum": "–"
+    }
+  ],
+  "bl": [
+    {
+      "title": "Cloudflare",
+      "url": "https://www.cloudflare.com/5xx-error-landing",
+      "location": "BL",
+      "pensum": "–"
+    }
+  ],
+  "bs": [
+    {
+      "title": "Direkt zum Inhalt springen",
+      "url": "https://www.gesundheit.bs.ch/ueber-uns/offene-stellen.html/#main",
+      "location": "BS",
+      "pensum": "–"
+    },
+    {
+      "title": "Herausgeber/Éditeur/Editore/Publisher: Kanton Basel-Stadt (Dieser Link führt zur Startseite)",
+      "url": "https://www.gesundheit.bs.ch/ueber-uns/offene-stellen.html/",
+      "location": "BS",
+      "pensum": "–"
+    },
+    {
+      "title": "ePortal Externer Link, wird in einem neuen Tab oder Fenster geöffnet",
+      "url": "https://ekonto.egov.bs.ch",
+      "location": "BS",
+      "pensum": "–"
+    }
+  ],
+  "fr": [
+    {
+      "title": "Datenschutzbestimmungen und Cookies",
+      "url": "https://www.fr.ch/de/gesundheit/gesundheitswesen/stellenangebote/de/datenschutzbestimmungen",
+      "location": "FR",
+      "pensum": "–"
+    },
+    {
+      "title": "Startseite",
+      "url": "https://www.fr.ch/de/gesundheit/gesundheitswesen/stellenangebote/de",
+      "location": "FR",
+      "pensum": "–"
+    },
+    {
+      "title": "Navigation",
+      "url": "https://www.fr.ch/de/gesundheit/gesundheitswesen/stellenangebote/de/seite-nicht-gefunden#nav",
+      "location": "FR",
+      "pensum": "–"
+    }
+  ],
+  "ge": [
+    {
+      "title": "Aller au contenu principal",
+      "url": "https://www.ge.ch/domaine/sante/emploi/#main-content",
+      "location": "GE",
+      "pensum": "–"
+    },
+    {
+      "title": "ge.ch",
+      "url": "https://www.ge.ch/domaine/sante/emploi/",
+      "location": "GE",
+      "pensum": "–"
+    },
+    {
+      "title": "Connexion",
+      "url": "https://www.ge.ch/connexion",
+      "location": "GE",
+      "pensum": "–"
+    }
+  ],
+  "gl": [
+    {
+      "title": "Navigation",
+      "url": "https://www.gl.ch/verwaltung/gesundheitsdirektion/offene-stellen.html/#mainnav",
+      "location": "GL",
+      "pensum": "–"
+    },
+    {
+      "title": "Inhalt",
+      "url": "https://www.gl.ch/verwaltung/gesundheitsdirektion/offene-stellen.html/#main",
+      "location": "GL",
+      "pensum": "–"
+    },
+    {
+      "title": "Suche",
+      "url": "https://www.gl.ch/verwaltung/gesundheitsdirektion/offene-stellen.html/#search-input",
+      "location": "GL",
+      "pensum": "–"
+    }
+  ],
+  "gr": [
+    {
+      "title": "Springe zum Seiteninhalt",
+      "url": "https://www.gr.ch/DE/institutionen/verwaltung/dvs/gdk/Seiten/OffeneStellen.aspx/#MainContent",
+      "location": "GR",
+      "pensum": "–"
+    },
+    {
+      "title": "Springe zur Navigation",
+      "url": "https://www.gr.ch/DE/institutionen/verwaltung/dvs/gdk/Seiten/OffeneStellen.aspx/#MainNavigation",
+      "location": "GR",
+      "pensum": "–"
+    },
+    {
+      "title": "Kanton Graubünden Chantun Grischun Cantone dei Grigioni",
+      "url": "https://www.gr.ch/DE/institutionen/verwaltung/dvs/gdk/Seiten/OffeneStellen.aspx/DE",
+      "location": "GR",
+      "pensum": "–"
+    }
+  ],
+  "ju": [
+    {
+      "title": "FRANÇAIS",
+      "url": "https://www.jura.ch/DIRECT/DSAS/Offres-d-emploi.html/#fr",
+      "location": "JU",
+      "pensum": "–"
+    },
+    {
+      "title": "ENGLISH",
+      "url": "https://www.jura.ch/DIRECT/DSAS/Offres-d-emploi.html/#en",
+      "location": "JU",
+      "pensum": "–"
+    },
+    {
+      "title": "DEUTSCH",
+      "url": "https://www.jura.ch/DIRECT/DSAS/Offres-d-emploi.html/#de",
+      "location": "JU",
+      "pensum": "–"
+    }
+  ],
+  "lu": [
+    {
+      "title": "Direkt zur Startseite springen",
+      "url": "https://lu.ch/verwaltung/gesundheits-und-sozialdepartement/stellenangebote/",
+      "location": "LU",
+      "pensum": "–"
+    },
+    {
+      "title": "Direkt zur Navigation springen",
+      "url": "https://lu.ch/verwaltung/gesundheits-und-sozialdepartement/stellenangebote/#mainNav",
+      "location": "LU",
+      "pensum": "–"
+    },
+    {
+      "title": "Direkt zum Inhalt springen",
+      "url": "https://lu.ch/verwaltung/gesundheits-und-sozialdepartement/stellenangebote/#mainContent",
+      "location": "LU",
+      "pensum": "–"
+    }
+  ],
+  "ne": [
+    {
+      "title": "THÈMES",
+      "url": "https://www.ne.ch/autorites/DFS/SAN/Pages/emplois.aspx/#",
+      "location": "NE",
+      "pensum": "–"
+    },
+    {
+      "title": "AUTORITÉS",
+      "url": "https://www.ne.ch/autorites/DFS/SAN/Pages/emplois.aspx/#",
+      "location": "NE",
+      "pensum": "–"
+    },
+    {
+      "title": "PARTICULIERS",
+      "url": "https://www.ne.ch/autorites/DFS/SAN/Pages/emplois.aspx/#",
+      "location": "NE",
+      "pensum": "–"
+    }
+  ],
+  "nw": [
+    {
+      "title": "zur Startseite",
+      "url": "https://www.nw.ch/gesundheitsamt/_rtr/home",
+      "location": "NW",
+      "pensum": "–"
+    },
+    {
+      "title": "Direkt zur Hauptnavigation",
+      "url": "https://www.nw.ch/gesundheitsamt/#icms-navbar",
+      "location": "NW",
+      "pensum": "–"
+    },
+    {
+      "title": "Direkt zum Inhalt",
+      "url": "https://www.nw.ch/gesundheitsamt/#maincontent",
+      "location": "NW",
+      "pensum": "–"
+    }
+  ],
+  "ow": [
+    {
+      "title": "zur Startseite",
+      "url": "https://www.ow.ch/verwaltung/gesundheitsamt/_rtr/home",
+      "location": "OW",
+      "pensum": "–"
+    },
+    {
+      "title": "Direkt zur Hauptnavigation",
+      "url": "https://www.ow.ch/verwaltung/gesundheitsamt/#icms-navbar",
+      "location": "OW",
+      "pensum": "–"
+    },
+    {
+      "title": "Direkt zum Inhalt",
+      "url": "https://www.ow.ch/verwaltung/gesundheitsamt/#maincontent",
+      "location": "OW",
+      "pensum": "–"
+    }
+  ],
+  "sg": [],
+  "sh": [
+    {
+      "title": "Dienststellen",
+      "url": "https://sh.ch/Behoerden/Verwaltung/Gesundheitsamt/Offene-Stellen.html/javascript:;",
+      "location": "SH",
+      "pensum": "–"
+    },
+    {
+      "title": "Häufig gesucht",
+      "url": "https://sh.ch/Behoerden/Verwaltung/Gesundheitsamt/Offene-Stellen.html/javascript:;",
+      "location": "SH",
+      "pensum": "–"
+    },
+    {
+      "title": "Ukraine",
+      "url": "https://sh.ch/Behoerden/Verwaltung/Gesundheitsamt/Offene-Stellen.html/javascript:;",
+      "location": "SH",
+      "pensum": "–"
+    }
+  ],
+  "so": [
+    {
+      "title": "Startseite",
+      "url": "https://so.ch/verwaltung/departement-des-innern/amt-fuer-gesundheit/offene-stellen/",
+      "location": "SO",
+      "pensum": "–"
+    },
+    {
+      "title": "Hauptnavigation",
+      "url": "https://so.ch/verwaltung/departement-des-innern/amt-fuer-gesundheit/offene-stellen/#MainNavigation",
+      "location": "SO",
+      "pensum": "–"
+    },
+    {
+      "title": "Inhalt",
+      "url": "https://so.ch/verwaltung/departement-des-innern/amt-fuer-gesundheit/offene-stellen/#Content",
+      "location": "SO",
+      "pensum": "–"
+    }
+  ],
+  "sz": [
+    {
+      "title": "Navigation",
+      "url": "https://www.sz.ch/verwaltung/gesundheitsdepartement/gesundheitsamt/offene-stellen.html/#mainnav",
+      "location": "SZ",
+      "pensum": "–"
+    },
+    {
+      "title": "Inhalt",
+      "url": "https://www.sz.ch/verwaltung/gesundheitsdepartement/gesundheitsamt/offene-stellen.html/#main",
+      "location": "SZ",
+      "pensum": "–"
+    },
+    {
+      "title": "Suche",
+      "url": "https://www.sz.ch/verwaltung/gesundheitsdepartement/gesundheitsamt/offene-stellen.html/#search-input",
+      "location": "SZ",
+      "pensum": "–"
+    }
+  ],
+  "tg": [
+    {
+      "title": "Direkt zum Inhalt springen",
+      "url": "https://www.tg.ch/gesundheit.html/1331/#content",
+      "location": "TG",
+      "pensum": "–"
+    },
+    {
+      "title": "Startseite tg.ch",
+      "url": "https://www.tg.ch",
+      "location": "TG",
+      "pensum": "–"
+    },
+    {
+      "title": "Porträt",
+      "url": "https://www.tg.ch/gesundheit.html/1331/portrait.html/16",
+      "location": "TG",
+      "pensum": "–"
+    }
+  ],
+  "ti": [
+    {
+      "title": "Repubblica e Cantone Ticino",
+      "url": "https://www4.ti.ch/",
+      "location": "TI",
+      "pensum": "–"
+    },
+    {
+      "title": "www.ti.ch",
+      "url": "https://www4.ti.ch/",
+      "location": "TI",
+      "pensum": "–"
+    },
+    {
+      "title": "Repubblica e Cantone Ticino",
+      "url": "https://www4.ti.ch/",
+      "location": "TI",
+      "pensum": "–"
+    }
+  ],
+  "ur": [
+    {
+      "title": "zur Startseite",
+      "url": "https://www.ur.ch/themen/910/14172/_rtr/home",
+      "location": "UR",
+      "pensum": "–"
+    },
+    {
+      "title": "Direkt zur Hauptnavigation",
+      "url": "https://www.ur.ch/themen/910/14172/#icms-navbar",
+      "location": "UR",
+      "pensum": "–"
+    },
+    {
+      "title": "Direkt zum Inhalt",
+      "url": "https://www.ur.ch/themen/910/14172/#maincontent",
+      "location": "UR",
+      "pensum": "–"
+    }
+  ],
+  "vd": [
+    {
+      "title": "Pour en savoir plus sur comment les désactiver, ainsi que sur notre politique en matière de protection des données.",
+      "url": "https://www.vd.ch/themes/sante/offres-demploi/cha/bic/mentions-legales",
+      "location": "VD",
+      "pensum": "–"
+    },
+    {
+      "title": "ACCUEIL",
+      "url": "https://www.vd.ch/themes/sante/offres-demploi/",
+      "location": "VD",
+      "pensum": "–"
+    },
+    {
+      "title": "PAGE DE CONTACT",
+      "url": "https://www.vd.ch/themes/sante/offres-demploi/formulaire-de-contact",
+      "location": "VD",
+      "pensum": "–"
+    }
+  ],
+  "vs": [
+    {
+      "title": "Zum Hauptinhalt springen",
+      "url": "https://www.vs.ch/de/web/ssp/offres-d-emploi/#main-content",
+      "location": "VS",
+      "pensum": "–"
+    },
+    {
+      "title": "STARTSEITE",
+      "url": "https://www.vs.ch/de/web/ssp/offres-d-emploi/web/guest",
+      "location": "VS",
+      "pensum": "–"
+    },
+    {
+      "title": "ORGANISATION",
+      "url": "https://www.vs.ch/de/web/ssp/offres-d-emploi/web/organisation",
+      "location": "VS",
+      "pensum": "–"
+    }
+  ],
+  "zg": [
+    {
+      "title": "Erste Schritte bei Arbeitslosigkeit ... Stellenangebote aus der ganzen Schweiz. In Berufen mit schweizweiter Arbeitslosigkeit von mindestens 5 Prozent müssen Arbeitgeber offene S ...",
+      "url": "https://www.zg.ch/behoerden/gesundheitsdirektion/stellenangebote/de/wirtschaft-arbeit/stellensuchende/erste-schritte-arbeitslosigkeit",
+      "location": "ZG",
+      "pensum": "–"
+    },
+    {
+      "title": "Abstimmungsergebnisse 14. Dezember 2023 Vormittag ... 9.5: Postulat der FDP-Fraktion betreffend Förderung attraktiver Lehrstellenangebote in gewerblichen Berufen (Vorlage 3433) Erheblicherklärung 1. Mehr... FDP-Fraktion betreffend Marketing und Erhöhung des Images der attraktiven Lehrstellenangebote und Berufsbilder in gewerblichen Berufen (Vorlage 3434) Abschreibung ...",
+      "url": "https://www.zg.ch/behoerden/gesundheitsdirektion/stellenangebote/de/dam/jcr:b31aafde-8056-46d5-b97a-38a4306ace19/2023-12-14-Vormittag-Kantonsrat_DEF.xlsx",
+      "location": "ZG",
+      "pensum": "–"
+    },
+    {
+      "title": "Kurzprotokoll 14. Dezember 2023 3433 - Postulat der FDP-Fraktion betreffend Förderung attraktiver Lehrstellenangebote in gewerblichen Berufen KR: Erheblicherklärung. 9.6. 3434 -... betreffend Marketing und Erhöhung des Images der attraktiven Lehrstellenangebote und Berufsbilder in gewerblichen Berufen KR: Erheblicherklärung und ...",
+      "url": "https://www.zg.ch/behoerden/gesundheitsdirektion/stellenangebote/de/dam/jcr:79b3513b-5d2b-4db2-8cb4-0d6452038623/Kurzprotokoll_2023-12-14.pdf",
+      "location": "ZG",
+      "pensum": "–"
+    }
+  ],
+  "zh": [
+    {
+      "title": "Startseite",
+      "url": "https://www.gd.zh.ch/internet/gesundheitsdirektion/gd/de/ueber-uns/stellen.html/de.html",
+      "location": "ZH",
+      "pensum": "–"
+    },
+    {
+      "title": "Navigation",
+      "url": "https://www.gd.zh.ch/internet/gesundheitsdirektion/gd/de/ueber-uns/stellen.html/#navigation",
+      "location": "ZH",
+      "pensum": "–"
+    },
+    {
+      "title": "Inhalt",
+      "url": "https://www.gd.zh.ch/internet/gesundheitsdirektion/gd/de/ueber-uns/stellen.html/#main",
+      "location": "ZH",
       "pensum": "–"
     }
   ]
