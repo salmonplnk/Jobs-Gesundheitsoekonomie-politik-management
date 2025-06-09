@@ -1,90 +1,94 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Schweizer Gesundheits-Jobs – Favoriten & Tooltips</title>
 
-<!-- ========== STYLES ========== -->
-<style>
-:root{--bg:#f6f9fc;--card:#ffffffee;--text:#16212d;--accent:#0b83d9;--muted:#64748b;}
-body.dark{--bg:#1b1e23;--card:#24272dcc;--text:#e8eaee;--accent:#46a0ff;--muted:#8c9bab;}
+  <footer>Favoriten bleiben nur in diesem Browser gespeichert – alle Links ohne Gewähr</footer>
 
-body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-     background:var(--bg);color:var(--text);transition:.3s;}
+  <!-- Tooltip -->
+  <div id="tooltip" class="tooltip" role="dialog" aria-live="polite"></div>
 
-header{padding:2rem 1rem 1rem;text-align:center;
-       background:linear-gradient(120deg,var(--accent),#4bc4ff);color:#fff;}
+  <!-- ========== SCRIPT ========== -->
+  <script>
+    /* Dark-Mode */
+    const dm = document.getElementById('toggle');
+    dm.checked = localStorage.getItem('darkMode') === '1';
+    document.body.classList.toggle('dark', dm.checked);
+    dm.addEventListener('change', () => {
+      localStorage.setItem('darkMode', dm.checked ? '1' : '0');
+      document.body.classList.toggle('dark', dm.checked);
+    });
 
-h1{margin:0;font-size:clamp(1.6rem,4vw,2.6rem);}
-header p{opacity:.85;margin:.4rem 0;font-size:.9rem}
+    /* Favoriten */
+    const LS = 'favJobs';
+    const favUl = document.getElementById('fav-list');
+    const favSec = document.getElementById('fav-sec');
+    const getFav = () => JSON.parse(localStorage.getItem(LS) || '[]');
+    const saveFav = ids => localStorage.setItem(LS, JSON.stringify(ids));
 
-/* ======== Dark-/Light-Schalter (prominent) ======== */
-#toggle{position:fixed;top:1rem;right:1rem;width:60px;height:60px;opacity:0;
-        cursor:pointer;z-index:1001}
-#toggle+label{position:fixed;top:1rem;right:1rem;width:60px;height:60px;
-              border-radius:50%;background:var(--card);
-              backdrop-filter:blur(6px);box-shadow:0 3px 14px rgba(0,0,0,.15);
-              display:flex;align-items:center;justify-content:center;
-              transition:.4s transform,.4s background}
-body.dark #toggle+label{background:#2b2f37}
-#toggle+label svg{width:28px;height:28px;fill:var(--accent);
-                  transition:.4s transform}
-#toggle:checked+label svg{transform:rotate(180deg)}
+    function renderFav() {
+      const ids = getFav();
+      favSec.style.display = ids.length ? '' : 'none';
+      favUl.innerHTML = '';
+      ids.forEach(id => {
+        const src = document.querySelector('.item[data-id="'+id+'"]');
+        if (src) favUl.appendChild(src.cloneNode(true));
+      });
+      document.querySelectorAll('.item').forEach(li =>
+        li.querySelector('.star').classList.toggle('fav', ids.includes(li.dataset.id)));
+    }
+    document.addEventListener('DOMContentLoaded', renderFav);
 
-/* ======== Layout ======== */
-main{max-width:960px;margin:-3rem auto 3rem;padding:0 1rem}
-section.card{background:var(--card);border-radius:1rem;padding:1rem 1.25rem;
-             margin-top:2rem;box-shadow:0 4px 12px rgba(0,0,0,.08);
-             backdrop-filter:blur(6px)}
-details{border-bottom:1px solid rgba(0,0,0,.05)}
-details:last-child{border:none}
-summary{cursor:pointer;font-size:1.1rem;padding:.7rem 0;list-style:none;position:relative}
-summary::after{content:'';position:absolute;right:0;top:50%;width:.55rem;height:.55rem;
-               border:2px solid var(--accent);border-left:none;border-top:none;
-               transform:translateY(-50%) rotate(45deg);transition:.35s}
-details[open] summary::after{transform:translateY(-50%) rotate(-135deg)}
+    document.addEventListener('click', e => {
+      if (!e.target.matches('.star')) return;
+      e.preventDefault();
+      const id = e.target.closest('.item').dataset.id;
+      let ids = getFav();
+      ids = ids.includes(id) ? ids.filter(x => x!==id) : [...ids, id];
+      saveFav(ids); renderFav();
+    });
 
-ul.links{list-style:none;margin:0 0 1rem;padding-left:0;display:flex;flex-direction:column;gap:.45rem}
-li.item{display:flex;align-items:center;gap:.6rem;position:relative}
-a{color:var(--accent);text-decoration:none;font-weight:500}
-a:hover{text-decoration:underline}
-.star{font-size:1.15rem;cursor:pointer;color:var(--muted);user-select:none;transition:.2s}
-.star.fav{color:var(--accent)}
+    /* Tooltip nur für BAG & USZ */
+    let JOB_DATA = {};
+    fetch('jobs-data.json').then(r => r.json()).then(j => JOB_DATA = j);
 
-/* Tooltip */
-.tooltip{position:absolute;z-index:50;max-width:300px;background:var(--card);color:var(--text);
-         border-radius:.9rem;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:1rem;font-size:.9rem;
-         line-height:1.4;display:none;flex-direction:column;gap:.45rem}
-.tooltip h3{margin:.1rem 0 .5rem;font-size:.95rem;font-weight:600;color:var(--accent)}
-.tooltip ul{margin:.25rem 0 0 1rem;padding:0}
-.tooltip ul li{list-style:disc;margin:.2rem 0}
+    const tp = document.getElementById('tooltip');
+    let hideT;
 
-footer{text-align:center;font-size:.85rem;color:var(--muted);margin-top:3rem}
-</style>
-</head>
+    function pos(e){
+      const r = tp.getBoundingClientRect();
+      let x = e.pageX + 15, y = e.pageY + 15;
+      if(x + r.width  > innerWidth)  x = innerWidth  - r.width  - 12;
+      if(y + r.height > innerHeight) y = e.pageY - r.height - 15;
+      tp.style.left = x + 'px'; tp.style.top  = y + 'px';
+    }
 
-<body>
-<!-- Toggle-Checkbox + Label -->
-<input type="checkbox" id="toggle" aria-label="Farbschema wechseln">
-<label for="toggle">
-  <svg viewBox="0 0 24 24">
-    <path d="M12 2a1 1 0 0 1 1 1v1.07a8 8 0 0 1 8 8h1.07a1 1 0 0 1 0 2H21a8 8 0 0 1-8 8v1.07a1 1 0 0 1-2 0V21a8 8 0 0 1-8-8H2.93a1 1 0 0 1 0-2H3a8 8 0 0 1 8-8V3a1 1 0 0 1 1-1z"/>
-  </svg>
-</label>
+    function buildJobs(id){
+      const jobs = JOB_DATA[id] || [];
+      if(!jobs.length) return '<em>Keine aktuellen Stellen</em>';
+      return '<ul>' + jobs.map(j =>
+        `<li><a href="${j.url}" target="_blank">${j.title}</a><br><small>${j.location} · ${j.pensum}</small></li>`
+      ).join('') + '</ul>';
+    }
 
-<header>
-  <h1>Job-Links im Schweizer Gesundheits-Ökosystem</h1>
-  <p>Favoriten per ⭐ speichern – Tooltip erscheint nur bei BAG & USZ</p>
-</header>
+    function show(li,e){
+      const id = li.dataset.id;
+      if(id !== 'bag' && id !== 'usz') return;  // Beschränkung
+      clearTimeout(hideT);
+      tp.innerHTML = `<h3>${li.querySelector('a').textContent}</h3><p>${li.dataset.desc}</p>${buildJobs(id)}`;
+      tp.style.display = 'flex'; pos(e);
+    }
+    function hide(){ hideT = setTimeout(() => tp.style.display = 'none', 150); }
 
-<main>
-  <!-- ========== Favoritenbereich ========== -->
-  <section class="card" id="fav-sec" style="display:none">
-    <details open><summary>⭐ Meine Favoriten</summary>
-      <ul class="links" id="fav-list"></ul>
-    </details>
-  </section>
+    document.addEventListener('mouseover', e => {
+      const li = e.target.closest('.item');
+      if(li) show(li, e);
+    });
+    document.addEventListener('mouseout', e => {
+      const to = e.relatedTarget;
+      if(!to || (!to.closest('.item') && !to.closest('.tooltip'))) hide();
+    });
+    tp.addEventListener('mouseover', () => clearTimeout(hideT));
+    tp.addEventListener('mouseout', hide);
+  </script>
+</body>
+</html>
 
     <!-- ========= 1) Bund / Bundesnahe ========= -->
     <section class="card"><details>
@@ -314,94 +318,95 @@ footer{text-align:center;font-size:.85rem;color:var(--muted);margin-top:3rem}
       <span class="star">☆</span><a href="https://jobs.proinfirmis.ch/de" target="_blank">Pro Infirmis</a></li>
   </ul>
 </details></section>
-
-
   </main>
 
-  <!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Schweizer Gesundheits-Jobs – Favoriten & Tooltips</title>
+  <footer>Favoriten bleiben nur in diesem Browser gespeichert – alle Links ohne Gewähr</footer>
 
-<!-- ========== STYLES ========== -->
-<style>
-:root{--bg:#f6f9fc;--card:#ffffffee;--text:#16212d;--accent:#0b83d9;--muted:#64748b;}
-body.dark{--bg:#1b1e23;--card:#24272dcc;--text:#e8eaee;--accent:#46a0ff;--muted:#8c9bab;}
+  <!-- Tooltip -->
+  <div id="tooltip" class="tooltip" role="dialog" aria-live="polite"></div>
 
-body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-     background:var(--bg);color:var(--text);transition:.3s;}
+  <!-- ========== SCRIPT ========== -->
+  <script>
+    /* Dark-Mode */
+    const dm = document.getElementById('toggle');
+    dm.checked = localStorage.getItem('darkMode') === '1';
+    document.body.classList.toggle('dark', dm.checked);
+    dm.addEventListener('change', () => {
+      localStorage.setItem('darkMode', dm.checked ? '1' : '0');
+      document.body.classList.toggle('dark', dm.checked);
+    });
 
-header{padding:2rem 1rem 1rem;text-align:center;
-       background:linear-gradient(120deg,var(--accent),#4bc4ff);color:#fff;}
+    /* Favoriten */
+    const LS = 'favJobs';
+    const favUl = document.getElementById('fav-list');
+    const favSec = document.getElementById('fav-sec');
+    const getFav = () => JSON.parse(localStorage.getItem(LS) || '[]');
+    const saveFav = ids => localStorage.setItem(LS, JSON.stringify(ids));
 
-h1{margin:0;font-size:clamp(1.6rem,4vw,2.6rem);}
-header p{opacity:.85;margin:.4rem 0;font-size:.9rem}
+    function renderFav() {
+      const ids = getFav();
+      favSec.style.display = ids.length ? '' : 'none';
+      favUl.innerHTML = '';
+      ids.forEach(id => {
+        const src = document.querySelector('.item[data-id="'+id+'"]');
+        if (src) favUl.appendChild(src.cloneNode(true));
+      });
+      document.querySelectorAll('.item').forEach(li =>
+        li.querySelector('.star').classList.toggle('fav', ids.includes(li.dataset.id)));
+    }
+    document.addEventListener('DOMContentLoaded', renderFav);
 
-/* ======== Dark-/Light-Schalter (prominent) ======== */
-#toggle{position:fixed;top:1rem;right:1rem;width:60px;height:60px;opacity:0;
-        cursor:pointer;z-index:1001}
-#toggle+label{position:fixed;top:1rem;right:1rem;width:60px;height:60px;
-              border-radius:50%;background:var(--card);
-              backdrop-filter:blur(6px);box-shadow:0 3px 14px rgba(0,0,0,.15);
-              display:flex;align-items:center;justify-content:center;
-              transition:.4s transform,.4s background}
-body.dark #toggle+label{background:#2b2f37}
-#toggle+label svg{width:28px;height:28px;fill:var(--accent);
-                  transition:.4s transform}
-#toggle:checked+label svg{transform:rotate(180deg)}
+    document.addEventListener('click', e => {
+      if (!e.target.matches('.star')) return;
+      e.preventDefault();
+      const id = e.target.closest('.item').dataset.id;
+      let ids = getFav();
+      ids = ids.includes(id) ? ids.filter(x => x!==id) : [...ids, id];
+      saveFav(ids); renderFav();
+    });
 
-/* ======== Layout ======== */
-main{max-width:960px;margin:-3rem auto 3rem;padding:0 1rem}
-section.card{background:var(--card);border-radius:1rem;padding:1rem 1.25rem;
-             margin-top:2rem;box-shadow:0 4px 12px rgba(0,0,0,.08);
-             backdrop-filter:blur(6px)}
-details{border-bottom:1px solid rgba(0,0,0,.05)}
-details:last-child{border:none}
-summary{cursor:pointer;font-size:1.1rem;padding:.7rem 0;list-style:none;position:relative}
-summary::after{content:'';position:absolute;right:0;top:50%;width:.55rem;height:.55rem;
-               border:2px solid var(--accent);border-left:none;border-top:none;
-               transform:translateY(-50%) rotate(45deg);transition:.35s}
-details[open] summary::after{transform:translateY(-50%) rotate(-135deg)}
+    /* Tooltip nur für BAG & USZ */
+    let JOB_DATA = {};
+    fetch('jobs-data.json').then(r => r.json()).then(j => JOB_DATA = j);
 
-ul.links{list-style:none;margin:0 0 1rem;padding-left:0;display:flex;flex-direction:column;gap:.45rem}
-li.item{display:flex;align-items:center;gap:.6rem;position:relative}
-a{color:var(--accent);text-decoration:none;font-weight:500}
-a:hover{text-decoration:underline}
-.star{font-size:1.15rem;cursor:pointer;color:var(--muted);user-select:none;transition:.2s}
-.star.fav{color:var(--accent)}
+    const tp = document.getElementById('tooltip');
+    let hideT;
 
-/* Tooltip */
-.tooltip{position:absolute;z-index:50;max-width:300px;background:var(--card);color:var(--text);
-         border-radius:.9rem;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:1rem;font-size:.9rem;
-         line-height:1.4;display:none;flex-direction:column;gap:.45rem}
-.tooltip h3{margin:.1rem 0 .5rem;font-size:.95rem;font-weight:600;color:var(--accent)}
-.tooltip ul{margin:.25rem 0 0 1rem;padding:0}
-.tooltip ul li{list-style:disc;margin:.2rem 0}
+    function pos(e){
+      const r = tp.getBoundingClientRect();
+      let x = e.pageX + 15, y = e.pageY + 15;
+      if(x + r.width  > innerWidth)  x = innerWidth  - r.width  - 12;
+      if(y + r.height > innerHeight) y = e.pageY - r.height - 15;
+      tp.style.left = x + 'px'; tp.style.top  = y + 'px';
+    }
 
-footer{text-align:center;font-size:.85rem;color:var(--muted);margin-top:3rem}
-</style>
-</head>
+    function buildJobs(id){
+      const jobs = JOB_DATA[id] || [];
+      if(!jobs.length) return '<em>Keine aktuellen Stellen</em>';
+      return '<ul>' + jobs.map(j =>
+        `<li><a href="${j.url}" target="_blank">${j.title}</a><br><small>${j.location} · ${j.pensum}</small></li>`
+      ).join('') + '</ul>';
+    }
 
-<body>
-<!-- Toggle-Checkbox + Label -->
-<input type="checkbox" id="toggle" aria-label="Farbschema wechseln">
-<label for="toggle">
-  <svg viewBox="0 0 24 24">
-    <path d="M12 2a1 1 0 0 1 1 1v1.07a8 8 0 0 1 8 8h1.07a1 1 0 0 1 0 2H21a8 8 0 0 1-8 8v1.07a1 1 0 0 1-2 0V21a8 8 0 0 1-8-8H2.93a1 1 0 0 1 0-2H3a8 8 0 0 1 8-8V3a1 1 0 0 1 1-1z"/>
-  </svg>
-</label>
+    function show(li,e){
+      const id = li.dataset.id;
+      if(id !== 'bag' && id !== 'usz') return;  // Beschränkung
+      clearTimeout(hideT);
+      tp.innerHTML = `<h3>${li.querySelector('a').textContent}</h3><p>${li.dataset.desc}</p>${buildJobs(id)}`;
+      tp.style.display = 'flex'; pos(e);
+    }
+    function hide(){ hideT = setTimeout(() => tp.style.display = 'none', 150); }
 
-<header>
-  <h1>Job-Links im Schweizer Gesundheits-Ökosystem</h1>
-  <p>Favoriten per ⭐ speichern – Tooltip erscheint nur bei BAG & USZ</p>
-</header>
-
-<main>
-  <!-- ========== Favoritenbereich ========== -->
-  <section class="card" id="fav-sec" style="display:none">
-    <details open><summary>⭐ Meine Favoriten</summary>
-      <ul class="links" id="fav-list"></ul>
-    </details>
-  </section>
+    document.addEventListener('mouseover', e => {
+      const li = e.target.closest('.item');
+      if(li) show(li, e);
+    });
+    document.addEventListener('mouseout', e => {
+      const to = e.relatedTarget;
+      if(!to || (!to.closest('.item') && !to.closest('.tooltip'))) hide();
+    });
+    tp.addEventListener('mouseover', () => clearTimeout(hideT));
+    tp.addEventListener('mouseout', hide);
+  </script>
+</body>
+</html>
