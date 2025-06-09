@@ -1,293 +1,66 @@
 {
   "bag": [
     {
-      "title": "Sektionsleiter/-in Rechtsbereich Strafverfahren",
-      "url": "https://jobs.admin.ch/offene-stellen/sektionsleiter-in-rechtsbereich-strafverfahren/706ddf77-254b-46be-ba71-965db94ca3fe",
+      "title": "Offene Stellen",
+      "url": "https://www.bag.admin.ch/bag/de/home/das-bag/arbeiten-im-bag/offene-stellen.html",
       "location": "",
-      "pensum": "–"
-    },
-    {
-      "title": "Wissenschaftliche/-r Mitarbeiter-/in Kompetenzzentrum Versorgungssicherheit",
-      "url": "https://jobs.admin.ch/offene-stellen/wissenschaftliche-r-mitarbeiter-in-kompetenzzentrum-versorgungssicherheit/9c7eeebc-582e-47d5-8b07-c17a87a28baf",
-      "location": "",
-      "pensum": "–"
-    },
-    {
-      "title": "ICT Architekt/-in",
-      "url": "https://jobs.admin.ch/offene-stellen/ict-architekt-in/acb79f10-e9f1-4fc0-82ed-d607cf9e5f28",
-      "location": "",
-      "pensum": "–"
+      "pensum": ""
     }
   ],
-  "bsv": [],
-  "obsan": [],
-  "gfs": [],
-  "lungenliga": [],
-  "krebsliga": [
+  "bsv": [
     {
-      "title": "Junior Mitarbeiter:in Marketing",
-      "url": "https://link.ostendis.com/publication/junior-mitarbeiter-in-marketing/e3q0adislkrvbtdypqte4qbxsqpts6qaszernbqontu37lwkaur4wy7ktz0vs2nk",
+      "title": "Offene Stellen",
+      "url": "https://www.bsv.admin.ch/bsv/de/home/bsv/arbeitenimbsv.html",
       "location": "",
-      "pensum": "–"
+      "pensum": ""
+    }
+  ],
+  "kvg": [
+    {
+      "title": "",
+      "url": "https://www.kvg.org/jobs/",
+      "location": "",
+      "pensum": ""
+    },
+    {
+      "title": "",
+      "url": "https://www.kvg.org/fr/jobs/",
+      "location": "",
+      "pensum": ""
+    },
+    {
+      "title": "",
+      "url": "https://www.kvg.org/it/jobs/",
+      "location": "",
+      "pensum": ""
+    }
+  ],
+  "obsan": [
+    {
+      "title": "de",
+      "url": "https://www.obsan.admin.ch/de/das-obsan/offene-stellen",
+      "location": "",
+      "pensum": ""
+    },
+    {
+      "title": "fr",
+      "url": "https://www.obsan.admin.ch/fr/lobsan/offres-demploi",
+      "location": "",
+      "pensum": ""
+    },
+    {
+      "title": "de",
+      "url": "https://www.obsan.admin.ch/de/das-obsan/offene-stellen",
+      "location": "",
+      "pensum": ""
     }
   ],
   "swissmedic": [
     {
-      "title": "Business Analyst - Bereichskoordinator Digitale Transformation m/w (80-100%)",
-      "url": "https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs/business-analyst-rod.html",
-      "location": "",
-      "pensum": "–"
-    },
-    {
-      "title": "Regulatory Associate (60%)",
-      "url": "https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs/regulatory-associate-tam.html",
-      "location": "",
-      "pensum": "–"
-    },
-    {
-      "title": "IT Service Manager/in (80-100%)",
-      "url": "https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs/it-service-manager-in.html",
-      "location": "",
-      "pensum": "–"
-    }
-  ],
-  "kssg": [
-    {
-      "title": "Dipl. Pflegefachfrau/-mann 40-60%",
-      "url": "https://jobs.h-och.ch/job/Uznach-Dipl_-Pflegefachfrau-mann-40-60/1181233201/",
-      "location": "",
-      "pensum": "–"
-    },
-    {
-      "title": "Dipl. Pflegefachfrau/-mann 40-60%",
-      "url": "https://jobs.h-och.ch/job/Uznach-Dipl_-Pflegefachfrau-mann-40-60/1181233201/",
-      "location": "",
-      "pensum": "–"
-    },
-    {
-      "title": "Gruppenleiter/-in 80-100%",
-      "url": "https://jobs.h-och.ch/job/St_-Gallen-Gruppenleiter-in-80-100/1191570901/",
-      "location": "",
-      "pensum": "–"
-    }
-  ],
-  "css": [
-    {
-      "title": "Praktikant/in CEO-Office 60-100%",
-      "url": "https://jobs.css.ch/offene-stellen/praktikant-in-ceo-office/07177369-15e2-4ac8-ac79-ca2453c01676",
-      "location": "",
-      "pensum": "–"
-    },
-    {
-      "title": "Linux System Engineer 80-100%",
-      "url": "https://jobs.css.ch/offene-stellen/linux-system-engineer/da02883d-7240-40b3-9f19-d008da922acc",
-      "location": "",
-      "pensum": "–"
-    },
-    {
-      "title": "Sachbearbeiter/in Inkasso & Prämienverbilligung 80-100%",
-      "url": "https://jobs.css.ch/offene-stellen/sachbearbeiter-in-inkasso-praemienverbilligung/168d72bd-fc25-48b9-96a0-3cb5cb16754d",
-      "location": "",
-      "pensum": "–"
-    }
-  ],
-  "usz": [
-    {
-      "title": "PflegePflegefachperson oder Radiologiefachperson für das Katheterlabor der Angiologie 80-100%BereichAngiologie",
-      "url": "https://jobs.usz.ch/offene-stellen/pflegefachperson-oder-radiologiefachperson-fur-das-katheterlabor-der-angiologie-80-100/ec1056f8-b47e-4fc2-a213-1aec924a9673",
-      "location": "ZH",
-      "pensum": "–"
-    },
-    {
-      "title": "FaGe/​MPAMPA / FaGe für die ambulante Geburtshilfe 60 - 80%BereichAmbulante Medizin",
-      "url": "https://jobs.usz.ch/offene-stellen/mpa-fage-fur-die-ambulante-geburtshilfe-60-80/42ba26c2-95cf-4290-af88-ea45e9477a12",
-      "location": "ZH",
-      "pensum": "–"
-    },
-    {
-      "title": "PflegePflegefachperson Funktionsraum der Endokrinologie, Diabetesberatung und Klinische Ernährung 20-40%BereichEndokrinologie, Diabetologie und Klinische Ernährung",
-      "url": "https://jobs.usz.ch/offene-stellen/pflegefachperson-funktionsraum-der-endokrinologie-diabetesberatung-und-klinische-ernahrung-20-40/31ba01fa-2dd4-4ff9-ab07-5654f38bb546",
-      "location": "ZH",
-      "pensum": "–"
-    }
-  ],
-  "ai": [
-    {
       "title": "Offene Stellen",
-      "url": "https://www.ai.ch/themen/arbeiten-bei-der-kantonalen-verwaltung/offene-stellen-1",
-      "location": "AI",
-      "pensum": "–"
-    },
-    {
-      "title": "Strassenunterhaltsmitarbeiterin oder Strassenunterhaltsmitarbeiter 80-100%",
-      "url": "https://www.ai.ch/themen/arbeiten-bei-der-kantonalen-verwaltung/offene-stellen-1/jobs_listing/10044",
-      "location": "AI",
-      "pensum": "–"
-    },
-    {
-      "title": "Sachbearbeiterin oder Sachbearbeiter Registerführung 50%",
-      "url": "https://www.ai.ch/themen/arbeiten-bei-der-kantonalen-verwaltung/offene-stellen-1/jobs_listing/10455",
-      "location": "AI",
-      "pensum": "–"
+      "url": "https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs.html",
+      "location": "",
+      "pensum": ""
     }
-  ],
-  "ar": [
-    {
-      "title": "Freie Stellen",
-      "url": "https://ar.ch/verwaltung/departement-finanzen/personalamt/freie-stellen/",
-      "location": "AR",
-      "pensum": "–"
-    },
-    {
-      "title": "Weitere Informationen darstellen",
-      "url": "https://ar.ch/verwaltung/departement-finanzen/personalamt/freie-stellen/",
-      "location": "AR",
-      "pensum": "–"
-    },
-    {
-      "title": "Vermittler und Schlichtungsstellen",
-      "url": "https://ar.ch/gerichte/vermittler-und-schlichtungsstellen/",
-      "location": "AR",
-      "pensum": "–"
-    }
-  ],
-  "be": [],
-  "bl": [
-    {
-      "title": "Jobs Gemeinden und Institutionen",
-      "url": "https://www.baselland.ch/politik-und-behorden/direktionen/finanz-und-kirchendirektion/personalamt/jobs/offene-stellen/jobs-gemeinden-und-institutionen",
-      "location": "BL",
-      "pensum": "–"
-    }
-  ],
-  "bs": [
-    {
-      "title": "Stellenbesetzung & Arbeitslosigkeit",
-      "url": "https://www.bs.ch/themen/arbeit-und-steuern/stellenbesetzung-arbeitslosigkeit",
-      "location": "BS",
-      "pensum": "–"
-    },
-    {
-      "title": "Offene Stellen",
-      "url": "https://www.bs.ch/themen/arbeit-und-steuern/stellenbesetzung-arbeitslosigkeit/offene-stellen",
-      "location": "BS",
-      "pensum": "–"
-    },
-    {
-      "title": "Zurück zu Offene Stellen",
-      "url": "https://www.bs.ch/themen/arbeit-und-steuern/stellenbesetzung-arbeitslosigkeit/offene-stellen",
-      "location": "BS",
-      "pensum": "–"
-    }
-  ],
-  "fr": [],
-  "ge": [],
-  "gl": [],
-  "gr": [],
-  "ju": [],
-  "lu": [
-    {
-      "title": "Offene Stellen",
-      "url": "https://stellen.lu.ch/#sectionDE9DE584831F48C6A30A4EF5742EA0C0",
-      "location": "LU",
-      "pensum": "–"
-    },
-    {
-      "title": "Zu den Jobs",
-      "url": "https://stellen.lu.ch/offene_stellen",
-      "location": "LU",
-      "pensum": "–"
-    }
-  ],
-  "ne": [],
-  "nw": [],
-  "ow": [],
-  "sg": [
-    {
-      "title": "Über den Kanton St.Gallen Offene Stellen in der Kantonsverwaltung",
-      "url": "https://www.sg.ch/ueber-den-kanton-st-gallen/arbeitgeber-kanton-stgallen/stellenportal.html",
-      "location": "SG",
-      "pensum": "–"
-    },
-    {
-      "title": "Stellenportal",
-      "url": "https://www.sg.ch/ueber-den-kanton-st-gallen/arbeitgeber-kanton-stgallen/stellenportal.html",
-      "location": "SG",
-      "pensum": "–"
-    },
-    {
-      "title": "Wahlen der kantonalen Gerichte",
-      "url": "https://www.sg.ch/ueber-den-kanton-st-gallen/arbeitgeber-kanton-stgallen/stellenportal/wahlen-richterstellen.html",
-      "location": "SG",
-      "pensum": "–"
-    }
-  ],
-  "sh": [],
-  "so": [
-    {
-      "title": "Stellenmarkt Menu ausklappen",
-      "url": "https://karriere.so.ch/stellenmarkt/offene-stellen/",
-      "location": "SO",
-      "pensum": "–"
-    },
-    {
-      "title": "Offene Stellen",
-      "url": "https://karriere.so.ch/stellenmarkt/offene-stellen/",
-      "location": "SO",
-      "pensum": "–"
-    },
-    {
-      "title": "Bewerbung",
-      "url": "https://karriere.so.ch/stellenmarkt/bewerbung/",
-      "location": "SO",
-      "pensum": "–"
-    }
-  ],
-  "sz": [
-    {
-      "title": "Verkehrsbehinderungen",
-      "url": "https://www.sz.ch/behoerden/verwaltung/baudepartement/tiefbauamt/baustellen.html/8756-8758-8802-9276-9290-10050",
-      "location": "SZ",
-      "pensum": "–"
-    },
-    {
-      "title": "Offene Stellen",
-      "url": "https://www.sz.ch/behoerden/verwaltung/finanzdepartement/personalamt/stellenmarkt.html/8756-8758-8802-10332-10539-11062",
-      "location": "SZ",
-      "pensum": "–"
-    },
-    {
-      "title": "Stelleninserate",
-      "url": "https://www.sz.ch/behoerden/verwaltung/finanzdepartement/personalamt/stellenmarkt.html/8756-8758-8802-10332-10539-11062",
-      "location": "SZ",
-      "pensum": "–"
-    }
-  ],
-  "tg": [],
-  "ti": [],
-  "ur": [
-    {
-      "title": "Arbeitslosigkeit und Stellensuche",
-      "url": "https://www.ur.ch/arbeit/1453",
-      "location": "UR",
-      "pensum": "–"
-    },
-    {
-      "title": "Lehrstellen bei der Kantonsverwaltung",
-      "url": "https://www.ur.ch/arbeit/1304",
-      "location": "UR",
-      "pensum": "–"
-    },
-    {
-      "title": "Beratungsstellen (Soziales)",
-      "url": "https://www.ur.ch/familiesoziales/1157",
-      "location": "UR",
-      "pensum": "–"
-    }
-  ],
-  "vd": [],
-  "vs": [],
-  "zg": [],
-  "zh": [],
-  "ag": []
+  ]
 }
