@@ -1,8 +1,20 @@
 {
   "bag": [
     {
-      "title": "Offene Stellen",
-      "url": "https://www.bag.admin.ch/bag/de/home/das-bag/arbeiten-im-bag/offene-stellen.html",
+      "title": "Sektionsleiter/-in Rechtsbereich Strafverfahren",
+      "url": "https://jobs.admin.ch/offene-stellen/sektionsleiter-in-rechtsbereich-strafverfahren/706ddf77-254b-46be-ba71-965db94ca3fe",
+      "location": "",
+      "pensum": ""
+    },
+    {
+      "title": "Wissenschaftliche/-r Mitarbeiter-/in Kompetenzzentrum Versorgungssicherheit",
+      "url": "https://jobs.admin.ch/offene-stellen/wissenschaftliche-r-mitarbeiter-in-kompetenzzentrum-versorgungssicherheit/9c7eeebc-582e-47d5-8b07-c17a87a28baf",
+      "location": "",
+      "pensum": ""
+    },
+    {
+      "title": "ICT Architekt/-in",
+      "url": "https://jobs.admin.ch/offene-stellen/ict-architekt-in/acb79f10-e9f1-4fc0-82ed-d607cf9e5f28",
       "location": "",
       "pensum": ""
     }
@@ -10,46 +22,22 @@
   "bsv": [
     {
       "title": "Offene Stellen",
-      "url": "https://www.bsv.admin.ch/bsv/de/home/bsv/arbeitenimbsv.html",
+      "url": "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083356&limit=20#/shortlist",
       "location": "",
       "pensum": ""
     }
   ],
   "kvg": [
     {
-      "title": "",
+      "title": "Offene Stellen",
       "url": "https://www.kvg.org/jobs/",
-      "location": "",
-      "pensum": ""
-    },
-    {
-      "title": "",
-      "url": "https://www.kvg.org/fr/jobs/",
-      "location": "",
-      "pensum": ""
-    },
-    {
-      "title": "",
-      "url": "https://www.kvg.org/it/jobs/",
       "location": "",
       "pensum": ""
     }
   ],
   "obsan": [
     {
-      "title": "de",
-      "url": "https://www.obsan.admin.ch/de/das-obsan/offene-stellen",
-      "location": "",
-      "pensum": ""
-    },
-    {
-      "title": "fr",
-      "url": "https://www.obsan.admin.ch/fr/lobsan/offres-demploi",
-      "location": "",
-      "pensum": ""
-    },
-    {
-      "title": "de",
+      "title": "Offene Stellen",
       "url": "https://www.obsan.admin.ch/de/das-obsan/offene-stellen",
       "location": "",
       "pensum": ""
@@ -60,6 +48,14 @@
       "title": "Offene Stellen",
       "url": "https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs.html",
       "location": "",
+      "pensum": ""
+    }
+  ],
+  "usz": [
+    {
+      "title": "FaGe/​MPAMPA / FaGe für die ambulante Geburtshilfe 60 - 80%BereichAmbulante Medizin",
+      "url": "https://jobs.usz.ch/offene-stellen/mpa-fage-fur-die-ambulante-geburtshilfe-60-80/42ba26c2-95cf-4290-af88-ea45e9477a12",
+      "location": "ZH",
       "pensum": ""
     }
   ]
