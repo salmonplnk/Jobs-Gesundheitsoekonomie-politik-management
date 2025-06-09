@@ -1,165 +1,156 @@
-#!/usr/bin/env python3
-"""
-Automatischer Job-Crawler für Schweizer Gesundheits-Portale
+# update_jobs.py
+"""Job-Crawler für zwei ausgewählte Portale: BAG und USZ.
 
-* Feste Quellen (Bundesämter, Stiftungen, Spitäler, Versicherer …)
-* Kantons-Gesundheits­direktionen (AR AI BE BL BS LU SG SO SZ UR ZH)
-* Speichert pro Quelle/Kanton max. 3 Jobs in jobs-data.json
+Merkmale
+---------
+* **BAG**: Rendertes HTML aus dem Stellenportal (jobs.admin.ch) via Playwright → BS4.
+* **USZ**: Spezial-Fetcher mit Playwright, Seite dynamisch geparst.
+* Filter: POS/NEG-Regex + Mindestlänge verhindern irrelevante Links.
+* Pro Quelle max. 3 Jobs, sonst Fallback-Link.
+* Logging und Fehlerbehandlung.
+
+Pakete
+------
+```bash
+pip install playwright beautifulsoup4 requests lxml
+playwright install chromium
+```
+
+Aufruf
+------
+```bash
+python update_jobs.py
+```
 """
-import json, re, datetime
-from collections import defaultdict
+from __future__ import annotations
+import json, logging, re, sys
+from pathlib import Path
+from typing import List
 from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Page, sync_playwright
 
 # ---------------------------------------------------------------------------
-# 1) FESTE QUELLEN
+# Konfiguration
 # ---------------------------------------------------------------------------
-SOURCES = [
-    ("bag",  "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083353&limit=20#/shortlist",
-             "a.job-list-item", None, None),
-    ("bsv",  "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083356&limit=20#/shortlist",
-             "a.job-list-item", None, None),
-    ("obsan","https://www.obsan.admin.ch/de/das-obsan/offene-stellen",
-             "div.view-content a", None, None),
-    ("gfs",  "https://gesundheitsfoerderung.ch/stiftung/stellenangebote",
-             "div.job-listing a", "span.jobplace", "span.scope"),
-    ("lungenliga","https://www.lungenliga.ch/ueber-uns/jobs",
-             None, None, None),
-    ("krebsliga","https://www.krebsliga.ch/ueber-uns/jobs",
-             "a.title[href^=\"https://link.ostendis.com\"]", "span.job-place", "span.pensum"),
-    ("swissmedic","https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs.html",
-             "div.mod-teaser a", None, None),
-    ("kssg","https://jobs.h-och.ch/search/",
-             "a.jobTitle-link","span.jobLocation",None),
-    ("css", "https://jobs.css.ch/",
-             "div#jobs-list a.job-title","span.place-of-work",None),
-    ("usz","https://jobs.usz.ch/?lang=de",
-             "a.job__link",None,None),
-]
+OUT_FILE = Path("jobs-data.json")
+LOG_FILE = Path("update_jobs.log")
+HEADERS  = {"User-Agent": "Mozilla/5.0 (compatible; JobBot/3.0)"}
+
+POS = re.compile(r"(job|stelle|emploi|praktikum|\d+%|teilzeit|vollzeit)", re.I)
+NEG = re.compile(r"(kontakt|service|impressum|pdf|lehr|abo|newsletter|publikation)", re.I)
+PERCENT = re.compile(r"\b(\d{1,3}\s*%)(?:\s*-\s*(\d{1,3}\s*%))?", re.I)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.FileHandler(LOG_FILE, "w", "utf-8"), logging.StreamHandler(sys.stdout)],
+)
 
 # ---------------------------------------------------------------------------
-# 2) KANTONSPORTALE + Selektoren
+# Hilfsfunktionen
 # ---------------------------------------------------------------------------
-KANTONE = {
-    "AR": "https://ar.ch/verwaltung/departement-finanzen/personalamt/freie-stellen/",
-    "AI": "https://www.ai.ch/themen/arbeiten-bei-der-kantonalen-verwaltung/offene-stellen-1",
-    "BE": "https://www.gsi.be.ch/de/start/ueber-uns/offene-stellen.html",
-    "BL": "https://www.baselland.ch/politik-und-behorden/direktionen/finanz-und-kirchendirektion/personalamt/jobs/offene-stellen/",
-    "BS": "https://www.bs.ch/themen/arbeit-und-steuern/stellenbesetzung-arbeitslosigkeit/offene-stellen/offene-stellen-beim-kanton-basel-stadt",
-    "LU": "https://stellen.lu.ch/",
-    "SG": "https://www.sg.ch/ueber-den-kanton-st-gallen/arbeitgeber-kanton-stgallen/stellenportal.html",
-    "SO": "https://karriere.so.ch/stellenmarkt/offene-stellen/",
-    "SZ": "https://www.sz.ch/services/offene-stellen.html/8756-8761-10387",
-    "UR": "https://www.ur.ch/stellen",
-    "ZH": None,  # eigenes Solique-Portal
-}
 
-KANTON_FILTERS = {
-    "AR": {"selector": "table tbody tr a[href*='stellenportal/']"},
-    "AI": {"selector": "li.views-row a[href*='/stellenangebot/']"},
-    "BE": {"selector": "iframe >> article a.teaser-job__link"},
-    "BL": {"selector": "a.pua-job-listing__link"},
-    "BS": {"selector": "table.jobtable tbody tr td:first-child a"},
-    "LU": {"selector": "a.card[href^='/job/']"},
-    "SG": {"selector": "a[href*='umantis.com']"},
-    "SO": {"selector": "tr.job a[href*='details']"},
-    "SZ": {"selector": "div#onlineContainer a[href*='/offene-stellen/']"},
-    "UR": {"selector": "div#view-content a[href*='/stellenangebot/']"},
-    "ZH": {"url": "https://live.solique.ch/KTZH/de/ORG60/",
-           "selector": "a[href*='/KTZH/de/ORG60/']"},
-}
+def clean(txt: str | None) -> str:
+    return re.sub(r"\s+", " ", txt or "").strip()
+
+
+def want(title: str, href: str) -> bool:
+    if len(title) < 6 or NEG.search(title) or NEG.search(href):
+        return False
+    return bool(POS.search(title) or POS.search(href))
+
+
+def extract_percent(text: str) -> str:
+    m = PERCENT.search(text)
+    if not m:
+        return ""
+    return f"{m.group(1)}-{m.group(2)}" if m.group(2) else m.group(1)
+
+
+def row(title: str, url: str, location: str = "", pensum: str = "") -> dict:
+    return {"title": clean(title), "url": url, "location": clean(location), "pensum": clean(pensum)}
 
 # ---------------------------------------------------------------------------
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; JobBot/1.0)"}
-out: defaultdict[list] = defaultdict(list)
-clean = lambda t: re.sub(r"\s+", " ", t or "").strip()
-
-# ---------------- Spezial-Fetcher (vereinfacht) -----------------------------
-def fetch_usz(page, url: str):
-    page.goto(url, timeout=60000)
-    page.wait_for_load_state("networkidle")
+# Fetcher für USZ
+# ---------------------------------------------------------------------------
+def fetch_usz(page: Page, url: str) -> List[dict]:
+    logging.info("[usz] Fetching via Playwright → %s", url)
+    try:
+        page.goto(url, timeout=60000, wait_until="networkidle")
+    except Exception as e:
+        logging.error("[usz] Navigation-Error: %s", e)
+        return []
+    # Seite vollständig laden
     soup = BeautifulSoup(page.content(), "lxml")
-    jobs=[]
+    jobs = []
     for a in soup.select("a.job__link")[:3]:
-        jobs.append({"title": clean(a.get_text()),
-                     "url": urljoin(url, a["href"]),
-                     "location":"ZH","pensum":"–"})
+        title = clean(a.get_text())
+        href  = a.get("href", "")
+        if href.startswith("/"):
+            href = urljoin(url, href)
+        if want(title, href):
+            jobs.append(row(title, href, "ZH", ""))
     return jobs
 
 # ---------------------------------------------------------------------------
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    page    = browser.new_page(extra_http_headers=HEADERS)
+# Scraping für BAG
+# ---------------------------------------------------------------------------
+def fetch_bag(page: Page, url: str) -> List[dict]:
+    logging.info("[bag] Fetching via Playwright → %s", url)
+    try:
+        page.goto(url, timeout=60000, wait_until="networkidle")
+        page.wait_for_selector("a.job-list-item", timeout=20000)
+    except Exception as e:
+        logging.error("[bag] Page-Error: %s", e)
+        return []
+    # Parsed rendered HTML
+    soup = BeautifulSoup(page.content(), "lxml")
+    jobs = []
+    for a in soup.select("a.job-list-item")[:3]:
+        title = clean(a.get_text())
+        href  = a.get("href", "")
+        if href.startswith("/"):
+            href = urljoin(url, href)
+        if want(title, href):
+            jobs.append(row(title, href, "", extract_percent(title)))
+    return jobs
 
-    # ---------------- 3) FESTE QUELLEN --------------------------------------
-    for id_, url, sel_link, *_ in SOURCES:
-        try:
-            page.goto(url, timeout=60000)
-            page.wait_for_load_state("networkidle")
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+def main() -> None:
+    results = {}
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        page = browser.new_page(extra_http_headers=HEADERS)
 
-            if id_ == "usz":
-                out[id_]=fetch_usz(page,url); print(f"✓ {id_}: {len(out[id_])} Jobs"); continue
+        # BAG
+        bag_url = "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083353&limit=20#/shortlist"
+        bag_jobs = fetch_bag(page, bag_url)
+        results["bag"] = bag_jobs or [row("Offene Stellen", bag_url)]
+        logging.info("[bag] %d Job(s)", len(results["bag"]))
 
-            soup = BeautifulSoup(page.content(), "lxml")
-            for a in soup.select(sel_link)[:3]:
-                title = clean(a.get_text())
-                href  = a.get("href","")
-                if href and not href.startswith("http"):
-                    href = urljoin(url, href)
-                out[id_].append({"title": title, "url": href,
-                                 "location":"", "pensum":"–"})
-            print(f"✓ {id_}: {len(out[id_])} Jobs")
-        except Exception as e:
-            print(f"⚠️ {id_}: {e}")
+        # USZ
+        usz_url = "https://jobs.usz.ch/?lang=de"
+        usz_jobs = fetch_usz(page, usz_url)
+        results["usz"] = usz_jobs or [row("Offene Stellen", usz_url)]
+        logging.info("[usz] %d Job(s)", len(results["usz"]))
 
-    # ---------------- 4) KANTONSPORTALE -------------------------------------
-    positive = re.compile(r"(stellen|job|vac|emploi|bewerb)", re.I)
-    negative = re.compile(r"(lehr|praktik|kontakt|publikation|service|abo)", re.I)
+        browser.close()
 
-    for kt, base_url in KANTONE.items():
-        cfg       = KANTON_FILTERS.get(kt, {})
-        target    = cfg.get("url", base_url)
-        selector  = cfg.get("selector")
-        jobs      = []
-        try:
-            page.goto(target, timeout=60000)
-            page.wait_for_load_state("networkidle")
-
-            soup = BeautifulSoup(page.content(), "lxml")
-
-            links = soup.select(selector) if selector else []
-            if not links:  # Fallback-Heuristik
-                links = [
-                    a for a in soup.find_all("a", href=True)
-                    if (positive.search(a["href"]) or positive.search(a.get_text()))
-                    and not negative.search(a["href"])
-                ]
-
-            for a in links[:3]:
-                title = clean(a.get_text())
-                href  = a["href"]
-                if href and not href.startswith("http"):
-                    href = urljoin(target, href)
-                if len(title) >= 6:
-                    jobs.append({"title": title, "url": href,
-                                 "location": kt, "pensum": "–"})
-            out[kt.lower()] = jobs
-            print(f"✓ {kt}: {len(jobs)} Jobs")
-        except Exception as e:
-            print(f"⚠️ {kt}: {e}")
-            out[kt.lower()] = []
-
-# ---------------- 5) JSON speichern -----------------------------------------
-try:
-    existing = json.load(open("jobs-data.json", encoding="utf-8"))
-except FileNotFoundError:
+    # JSON speichern
     existing = {}
-existing.update(out)
-json.dump(existing, open("jobs-data.json", "w", encoding="utf-8"),
-          ensure_ascii=False, indent=2)
+    if OUT_FILE.exists():
+        try:
+            existing = json.loads(OUT_FILE.read_text(encoding="utf-8"))
+        except:
+            pass
+    existing.update(results)
+    OUT_FILE.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
+    logging.info("jobs-data.json aktualisiert → %s", OUT_FILE.resolve())
 
-print("✅ jobs-data.json aktualisiert –",
-      datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
+if __name__ == "__main__":
+    main()
