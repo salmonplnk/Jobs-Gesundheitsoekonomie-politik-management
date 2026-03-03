@@ -83,7 +83,6 @@ def fetch_usz(page: Page, url: str) -> List[dict]:
     except Exception as e:
         logging.error("[usz] Navigation-Error: %s", e)
         return []
-    # Seite vollständig laden
     soup = BeautifulSoup(page.content(), "lxml")
     jobs = []
     for a in soup.select("a.job__link")[:3]:
@@ -106,7 +105,6 @@ def fetch_bag(page: Page, url: str) -> List[dict]:
     except Exception as e:
         logging.error("[bag] Page-Error: %s", e)
         return []
-    # Parsed rendered HTML
     soup = BeautifulSoup(page.content(), "lxml")
     jobs = []
     for a in soup.select("a.job-list-item")[:3]:
@@ -119,6 +117,86 @@ def fetch_bag(page: Page, url: str) -> List[dict]:
     return jobs
 
 # ---------------------------------------------------------------------------
+# Fetcher für Insel Gruppe
+# ---------------------------------------------------------------------------
+def fetch_insel(page: Page, url: str) -> List[dict]:
+    logging.info("[insel] Fetching via Playwright → %s", url)
+    try:
+        page.goto(url, timeout=60000, wait_until="networkidle")
+    except Exception as e:
+        logging.error("[insel] Navigation-Error: %s", e)
+        return []
+    soup = BeautifulSoup(page.content(), "lxml")
+    jobs = []
+    for a in soup.select("a[data-qa='job-list-item']")[:3]:
+        title = clean(a.get_text())
+        href  = a.get("href", "")
+        if href and not href.startswith("http"):
+            href = urljoin(url, href)
+        if want(title, href):
+            jobs.append(row(title, href, "BE", ""))
+    return jobs
+
+# ---------------------------------------------------------------------------
+# Fetcher für CSS
+# ---------------------------------------------------------------------------
+def fetch_css(page: Page, url: str) -> List[dict]:
+    logging.info("[css] Fetching via Playwright → %s", url)
+    try:
+        page.goto(url, timeout=60000, wait_until="networkidle")
+    except Exception as e:
+        logging.error("[css] Navigation-Error: %s", e)
+        return []
+    soup = BeautifulSoup(page.content(), "lxml")
+    jobs = []
+    for a in soup.select("a.job-link, a[class*='job']")[:3]:
+        title = clean(a.get_text())
+        href  = a.get("href", "")
+        if href and not href.startswith("http"):
+            href = urljoin(url, href)
+        if want(title, href):
+            jobs.append(row(title, href, "LU", ""))
+    return jobs
+
+# ---------------------------------------------------------------------------
+# Generic Fetcher mit Requests
+# ---------------------------------------------------------------------------
+def fetch_generic(source: str, url: str) -> List[dict]:
+    """Generic fetcher für Websites mit statischem HTML"""
+    logging.info("[%s] Fetching via Requests → %s", source, url)
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=15)
+        resp.encoding = "utf-8"
+        soup = BeautifulSoup(resp.text, "lxml")
+        jobs = []
+
+        # Try multiple common job selectors
+        selectors = [
+            "a.job-link", "a.job_link", "a[data-qa='job-link']",
+            "a.job-title", "a[class*='position']", "a[class*='job']",
+            ".job-item a", ".job a[href*='job']"
+        ]
+
+        for selector in selectors:
+            for a in soup.select(selector)[:3]:
+                title = clean(a.get_text())
+                href  = a.get("href", "")
+                if href and title and len(title) > 5:
+                    if not href.startswith("http"):
+                        href = urljoin(url, href)
+                    if want(title, href):
+                        jobs.append(row(title, href, "", ""))
+                        if len(jobs) >= 3:
+                            break
+            if jobs:
+                break
+
+        return jobs
+    except Exception as e:
+        logging.error("[%s] Error: %s", source, e)
+        return []
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
@@ -127,19 +205,39 @@ def main() -> None:
         browser = pw.chromium.launch(headless=True)
         page = browser.new_page(extra_http_headers=HEADERS)
 
-        # BAG
-        bag_url = "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083353&limit=20#/shortlist"
-        bag_jobs = fetch_bag(page, bag_url)
-        results["bag"] = bag_jobs or [row("Offene Stellen", bag_url)]
-        logging.info("[bag] %d Job(s)", len(results["bag"]))
+        # Browser-basierte Scraper (JavaScript-Heavy Sites)
+        browser_sources = {
+            "bag": ("https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083353&limit=20#/shortlist", fetch_bag),
+            "usz": ("https://jobs.usz.ch/?lang=de", fetch_usz),
+            "insel": ("https://www.jobs.insel.ch/", fetch_insel),
+            "css": ("https://jobs.css.ch/", fetch_css),
+        }
 
-        # USZ
-        usz_url = "https://jobs.usz.ch/?lang=de"
-        usz_jobs = fetch_usz(page, usz_url)
-        results["usz"] = usz_jobs or [row("Offene Stellen", usz_url)]
-        logging.info("[usz] %d Job(s)", len(results["usz"]))
+        for source_id, (url, fetcher) in browser_sources.items():
+            jobs = fetcher(page, url)
+            results[source_id] = jobs or [row("Offene Stellen", url)]
+            logging.info("[%s] %d Job(s)", source_id, len(results[source_id]))
 
         browser.close()
+
+    # Request-basierte Scraper (Static HTML)
+    request_sources = {
+        "sanitas": "https://www.sanitas.com/de/ueber-sanitas/arbeiten-bei-sanitas/offene-stellen.html",
+        "swica": "https://www.swica.ch/de/kampagnen/intern/jobs/freie-stellen",
+        "kpt": "https://www.kpt.ch/de/ueber-kpt/arbeiten-bei-der-kpt/offene-stellen",
+        "careum": "https://careum.ch/ueber-uns/jobs",
+        "swisstph": "https://jobs.swisstph.ch/Jobs/All",
+        "zhaw": "https://www.zhaw.ch/de/jobs/offene-stellen",
+        "concordia": "https://www.concordia.ch/de/ueber-uns/jobs/offene-stellen.html",
+        "spitex": "https://www.spitex.ch/Jobs/PgiA1/",
+        "hirslanden": "https://careers.hirslanden.ch/",
+        "usb": "https://www.unispital-basel.ch/jobs-und-karriere/Jobs",
+    }
+
+    for source_id, url in request_sources.items():
+        jobs = fetch_generic(source_id, url)
+        results[source_id] = jobs or [row("Offene Stellen", url)]
+        logging.info("[%s] %d Job(s)", source_id, len(results[source_id]))
 
     # JSON speichern
     existing = {}
@@ -150,7 +248,7 @@ def main() -> None:
             pass
     existing.update(results)
     OUT_FILE.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
-    logging.info("jobs-data.json aktualisiert → %s", OUT_FILE.resolve())
+    logging.info("✅ jobs-data.json aktualisiert → %s mit %d Quellen", OUT_FILE.resolve(), len(results))
 
 if __name__ == "__main__":
     main()
