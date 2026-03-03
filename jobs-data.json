@@ -1,86 +1,42 @@
 {
-  "bag": [
+  "swissmedic": [
     {
-      "title": "Sektionsleiter/-in Rechtsbereich Strafverfahren",
-      "url": "https://jobs.admin.ch/offene-stellen/sektionsleiter-in-rechtsbereich-strafverfahren/706ddf77-254b-46be-ba71-965db94ca3fe",
+      "title": "Cloud Engineer (80–100%)",
+      "url": "https://www.swissmedic.ch/swissmedic/de/home/ueber-uns/jobs.html",
       "location": "Bern",
-      "pensum": "100%"
+      "pensum": "80-100%"
     },
     {
-      "title": "Wissenschaftliche/-r Mitarbeiter-/in Kompetenzzentrum Versorgungssicherheit",
-      "url": "https://jobs.admin.ch/offene-stellen/wissenschaftliche-r-mitarbeiter-in-kompetenzzentrum-versorgungssicherheit/9c7eeebc-582e-47d5-8b07-c17a87a28baf",
+      "title": "Software-Architect (80–100%)",
+      "url": "https://www.swissmedic.ch/swissmedic/de/home/ueber-uns/jobs.html",
       "location": "Bern",
-      "pensum": "80%"
-    },
-    {
-      "title": "ICT Architekt/-in",
-      "url": "https://jobs.admin.ch/offene-stellen/ict-architekt-in/acb79f10-e9f1-4fc0-82ed-d607cf9e5f28",
-      "location": "Bern",
-      "pensum": "100%"
-    }
-  ],
-  "usz": [
-    {
-      "title": "Pflegefachperson HF/FH für Intensivmedizin",
-      "url": "https://jobs.usz.ch/offene-stellen/pflegefachperson-hf-fh-intensivmedizin",
-      "location": "Zürich",
-      "pensum": "90-100%"
-    },
-    {
-      "title": "Krankenschwester/Pfleger Chirurgie",
-      "url": "https://jobs.usz.ch/offene-stellen/krankenschwester-chirurgie",
-      "location": "Zürich",
-      "pensum": "80%"
-    },
-    {
-      "title": "Medizinische Fachperson Labor",
-      "url": "https://jobs.usz.ch/offene-stellen/medizinische-fachperson-labor",
-      "location": "Zürich",
-      "pensum": "100%"
-    }
-  ],
-  "css": [
-    {
-      "title": "Produktmanager/-in Krankenversicherung",
-      "url": "https://jobs.css.ch/produkt-manager-in",
-      "location": "Luzern",
-      "pensum": "100%"
-    },
-    {
-      "title": "Customer Service Specialist",
-      "url": "https://jobs.css.ch/customer-service",
-      "location": "Luzern",
       "pensum": "80-100%"
     }
   ],
-  "insel": [
+  "swisstph": [
     {
-      "title": "Oberarzt/-ärztin Orthopädie",
-      "url": "https://jobs.insel.ch/oberarzt-orthopadie",
-      "location": "Bern",
+      "title": "Praktikant*innen Biologie/Umweltnaturwissenschaften (100%)",
+      "url": "https://jobs.swisstph.ch/Jobs/All",
+      "location": "Basel",
       "pensum": "100%"
     },
     {
-      "title": "Pflege-Fachperson Kardiologie",
-      "url": "https://jobs.insel.ch/pflege-kardiologie",
-      "location": "Bern",
-      "pensum": "90%"
-    }
-  ],
-  "sanitas": [
+      "title": "Responsable de Projet (80–100%)",
+      "url": "https://jobs.swisstph.ch/Jobs/All",
+      "location": "Basel",
+      "pensum": "80-100%"
+    },
     {
-      "title": "Versicherungsmathematiker/-in",
-      "url": "https://www.sanitas.com/jobs/versicherungsmathematiker",
-      "location": "Luzern",
-      "pensum": "100%"
-    }
-  ],
-  "careum": [
-    {
-      "title": "Fachdozent/-in Pflege",
-      "url": "https://careum.ch/jobs/fachdozent-pflege",
-      "location": "Zürich",
+      "title": "Dipl. Biomedizinische*r Analytiker*in HF (80%)",
+      "url": "https://jobs.swisstph.ch/Jobs/All",
+      "location": "Basel",
       "pensum": "80%"
+    },
+    {
+      "title": "Unterassistent*in (100%)",
+      "url": "https://jobs.swisstph.ch/Jobs/All",
+      "location": "Basel",
+      "pensum": "100%"
     }
   ]
 }
