@@ -102,7 +102,7 @@ SITES = {
     # ===== BROWSER-SITES (brauchen JavaScript / Playwright) =====
 
     "bag": {
-        "url": "https://www.stelle.admin.ch/stelle/de/home/stellen/stelle.html/verwaltungseinheit=1083353",
+        "url": "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083353",
         "type": "browser",
         "selectors": [
             "a.job-list-item",
