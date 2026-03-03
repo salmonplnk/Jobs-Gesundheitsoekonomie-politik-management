@@ -1,0 +1,41 @@
+name: 🚀 Scrape Jobs Daily
+
+on:
+  schedule:
+    # Täglich um 00:00 UTC (2:00 CET) laufen
+    - cron: '0 0 * * *'
+  # Manuell über GitHub UI triggern
+  workflow_dispatch:
+
+jobs:
+  scrape-jobs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Python 3.11 setup
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Dependencies installieren
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install requests beautifulsoup4 playwright lxml
+          playwright install chromium
+
+      - name: 🕷️ Jobs scrapen
+        run: python3 update_jobs.py
+
+      - name: 📝 Änderungen committen & pushen
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add jobs-data.json
+          # Nur committen wenn es Änderungen gibt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update jobs data [automated]" && git push)
