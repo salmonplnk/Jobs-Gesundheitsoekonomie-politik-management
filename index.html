@@ -160,6 +160,10 @@
       gap: 1.5rem;
       margin-bottom: 3rem;
     }
+    #favGrid {
+      display: grid;
+      gap: 2rem;
+    }
 
     .org-card {
       background: var(--card);
@@ -414,8 +418,9 @@
       <div id="jobsGrid" class="jobs-grid"></div>
       <div id="jobsEmpty" class="empty" style="display:none;">
         <div class="empty-icon">📋</div>
-        <p>Noch keine Jobs gecrawlt. Der Scraper wurde noch nicht ausgeführt.</p>
-        <p style="font-size:.9rem; color:var(--muted);">Jobs erscheinen hier automatisch nach dem Crawlen.</p>
+        <p><strong>Noch keine Jobs gecrawlt</strong></p>
+        <p style="font-size:.9rem; color:var(--muted);">Um Jobs zu laden, führen Sie aus:<br><code style="background:var(--bg); padding:.2rem .5rem; border-radius:4px;">python3 update_jobs.py</code></p>
+        <p style="font-size:.85rem; color:var(--muted); margin-top:1rem;">Jobs mit Gesundheitsökonomiefokus erscheinen hier automatisch.</p>
       </div>
     </div>
   </main>
@@ -656,14 +661,21 @@
       .then(data => {
         allJobs = [];
         for (const [source, jobs] of Object.entries(data)) {
-          jobs.forEach(job => {
-            allJobs.push({ ...job, source });
-          });
+          if (Array.isArray(jobs)) {
+            jobs.forEach(job => {
+              if (job.title && job.url) {
+                allJobs.push({ ...job, source });
+              }
+            });
+          }
         }
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleDateString('de-CH');
         updateStats();
         renderPage();
       })
-      .catch(() => {
+      .catch(e => {
+        console.warn('jobs-data.json nicht gefunden oder ungültig', e);
+        document.getElementById('lastUpdate').textContent = 'nie';
         updateStats();
         renderPage();
       });
@@ -681,7 +693,8 @@
       const filtered = ORGS.filter(org =>
         org.name.toLowerCase().includes(search) ||
         org.desc.toLowerCase().includes(search) ||
-        org.location.toLowerCase().includes(search)
+        org.location.toLowerCase().includes(search) ||
+        org.tags.some(t => t.toLowerCase().includes(search))
       );
 
       const favOrgIds = getFavOrgs();
@@ -694,18 +707,23 @@
       if (hasFavs) {
         document.getElementById('favSection').style.display = 'block';
         let html = '';
+
         if (favOrgs.length > 0) {
-          html += '<h3 style="color:var(--accent); margin:.5rem 0 1rem;">Organisationen</h3>';
-          html += '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1.5rem; margin-bottom:2rem;">';
+          html += '<div style="margin-bottom:2rem;">';
+          html += '<h3 style="color:var(--accent); margin:.5rem 0 1rem;">⭐ Favorite Organisationen (' + favOrgs.length + ')</h3>';
+          html += '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1.5rem;">';
           html += favOrgs.map(renderOrgCard).join('');
-          html += '</div>';
+          html += '</div></div>';
         }
+
         if (favJobs.length > 0) {
-          html += '<h3 style="color:var(--accent); margin:2rem 0 1rem;">Jobs</h3>';
+          html += '<div>';
+          html += '<h3 style="color:var(--accent); margin:.5rem 0 1rem;">⭐ Favorite Jobs (' + favJobs.length + ')</h3>';
           html += '<div style="display:flex; flex-direction:column; gap:1rem;">';
           html += favJobs.map(renderJobCard).join('');
-          html += '</div>';
+          html += '</div></div>';
         }
+
         document.getElementById('favGrid').innerHTML = html;
       } else {
         document.getElementById('favSection').style.display = 'none';
