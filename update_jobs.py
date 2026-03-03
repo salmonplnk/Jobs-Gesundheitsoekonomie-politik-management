@@ -199,6 +199,7 @@ def main():
         "careum": "https://careum.ch/ueber-uns/jobs",
         "concordia": "https://www.concordia.ch/de/ueber-uns/jobs/offene-stellen.html",
         "fmh": "https://www.fmh.ch/ueber-die-fmh/offene-stellen.cfm",
+        "gdk": "https://www.gdk-cds.ch/de/",
     }
 
     for source_id, url in request_sources.items():
