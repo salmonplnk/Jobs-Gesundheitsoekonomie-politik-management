@@ -3,130 +3,369 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>🏥 Schweizer Gesundheits-Jobs | Live Suche & Favoriten</title>
+  <title>💰 Gesundheitsökonomie Jobs Schweiz | Direct Scraping</title>
   <style>
-    :root{
-      --bg:#f0f4f8;--card:#fff;--text:#1a202c;--accent:#0066cc;--accent-light:#e3f2fd;
-      --success:#10b981;--warning:#f59e0b;--danger:#ef4444;--muted:#6b7280;
-      --shadow:0 4px 16px rgba(0,0,0,.08);--shadow-lg:0 20px 40px rgba(0,0,0,.12);
+    :root {
+      --bg: #f5f7fa;
+      --card: #fff;
+      --text: #1a202c;
+      --accent: #1e40af;
+      --accent-light: #dbeafe;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --muted: #6b7280;
+      --shadow: 0 4px 16px rgba(0, 0, 0, .08);
+      --shadow-lg: 0 20px 40px rgba(0, 0, 0, .12);
     }
-    body.dark{
-      --bg:#0f1419;--card:#1e293b;--text:#e2e8f0;--accent:#3b82f6;--accent-light:#1e3a8a;
-      --shadow:0 4px 16px rgba(0,0,0,.3);--shadow-lg:0 20px 40px rgba(0,0,0,.5);
+    body.dark {
+      --bg: #0f1419;
+      --card: #1e293b;
+      --text: #e2e8f0;
+      --accent: #3b82f6;
+      --accent-light: #1e3a8a;
+      --shadow: 0 4px 16px rgba(0, 0, 0, .3);
+      --shadow-lg: 0 20px 40px rgba(0, 0, 0, .5);
     }
-    *{box-sizing:border-box;}
-    html,body{margin:0;padding:0;font-family:'Segoe UI','Roboto',sans-serif;background:var(--bg);color:var(--text);transition:.3s ease;}
-    header{
-      background:linear-gradient(135deg,#0066cc 0%,#0099ff 100%);color:#fff;padding:2.5rem 1rem;
-      text-align:center;position:relative;box-shadow:var(--shadow-lg);
-    }
-    h1{margin:0;font-size:clamp(1.8rem,5vw,2.8rem);font-weight:700;letter-spacing:-.5px;}
-    .header-sub{font-size:1rem;opacity:.9;margin:.5rem 0 0;font-weight:300;}
-    .toggle-group{position:absolute;top:1rem;right:1rem;display:flex;gap:1rem;align-items:center;}
-    #toggle{position:absolute;opacity:0;width:0;height:0;}
-    #toggle+label{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);
-                  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.4s;font-size:1.5rem;}
-    #toggle:checked+label{background:rgba(255,255,255,.3);}
 
-    main{max-width:1200px;margin:0 auto;padding:2rem 1rem;}
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: .3s ease;
+    }
 
-    /* Search Bar */
-    .search-container{
-      background:var(--card);border-radius:12px;padding:1.5rem;margin-bottom:2rem;
-      box-shadow:var(--shadow);position:sticky;top:1rem;z-index:99;
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      color: #fff;
+      padding: 3rem 1rem;
+      text-align: center;
+      position: relative;
+      box-shadow: var(--shadow-lg);
     }
-    .search-inputs{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
-    @media(max-width:768px){.search-inputs{grid-template-columns:1fr;}}
-    input[type="text"],input[type="search"],select{
-      width:100%;padding:.75rem 1rem;border:2px solid #e5e7eb;border-radius:8px;
-      font-size:1rem;background:var(--bg);color:var(--text);transition:.2s;
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
     }
-    input[type="text"]:focus,input[type="search"]:focus,select:focus{
-      outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light);
+    .header-sub {
+      font-size: 1.1rem;
+      opacity: .9;
+      margin: .8rem 0 0;
+      font-weight: 300;
     }
-    .search-button{
-      padding:.75rem 2rem;background:var(--accent);color:#fff;border:none;border-radius:8px;
-      cursor:pointer;font-weight:600;transition:.2s;
-    }
-    .search-button:hover{background:#0052a3;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,102,204,.3);}
 
-    /* Stats Dashboard */
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem;}
-    .stat-card{background:var(--card);padding:1.5rem;border-radius:10px;box-shadow:var(--shadow);text-align:center;
-               border-left:4px solid var(--accent);}
-    .stat-value{font-size:2rem;font-weight:700;color:var(--accent);}
-    .stat-label{font-size:.9rem;color:var(--muted);margin-top:.5rem;text-transform:uppercase;letter-spacing:.5px;}
+    /* Dark Mode */
+    .toggle-group {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    #toggle {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    #toggle + label {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .2);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: .4s;
+      font-size: 1.5rem;
+    }
+    #toggle:checked + label {
+      background: rgba(255, 255, 255, .3);
+    }
 
-    /* Results Section */
-    .results-section{background:var(--card);border-radius:12px;padding:2rem;box-shadow:var(--shadow);}
-    .jobs-grid{display:grid;gap:1rem;}
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
 
-    /* Job Card */
-    .job-card{
-      background:var(--bg);border:2px solid #e5e7eb;border-radius:10px;padding:1.5rem;
-      transition:all .3s ease;cursor:pointer;position:relative;overflow:hidden;
+    /* Search */
+    .search-bar {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
     }
-    .job-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
-                      background:linear-gradient(90deg,var(--accent),#0099ff);opacity:0;transition:.3s;}
-    .job-card:hover{
-      border-color:var(--accent);box-shadow:var(--shadow-lg);transform:translateY(-4px);
+    input[type="search"] {
+      flex: 1;
+      min-width: 200px;
+      padding: .75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: var(--bg);
+      color: var(--text);
+      transition: .2s;
     }
-    .job-card:hover::before{opacity:1;}
-    .job-header{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1rem;}
-    .job-title{font-size:1.1rem;font-weight:600;color:var(--text);margin:0;flex:1;}
-    .job-source{
-      display:inline-block;background:var(--accent-light);color:var(--accent);
-      padding:.25rem .75rem;border-radius:20px;font-size:.85rem;font-weight:600;white-space:nowrap;
+    input[type="search"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
     }
-    body.dark .job-source{background:rgba(59,130,246,.2);}
-    .job-meta{display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0;font-size:.9rem;color:var(--muted);}
-    .job-meta-item{display:flex;align-items:center;gap:.4rem;}
-    .job-link{
-      display:inline-block;color:var(--accent);text-decoration:none;font-weight:600;margin-top:1rem;
-      transition:.2s;border-bottom:2px solid transparent;
-    }
-    .job-link:hover{border-bottom-color:var(--accent);}
 
-    /* Favorites Star */
-    .star-btn{
-      background:none;border:none;font-size:1.5rem;cursor:pointer;transition:.2s;padding:0;
-      color:var(--muted);
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
     }
-    .star-btn:hover{color:#fbbf24;transform:scale(1.2);}
-    .star-btn.fav{color:#fbbf24;}
+    .stat {
+      background: var(--card);
+      padding: 1.5rem;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--accent);
+    }
+    .stat-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .stat-label {
+      font-size: .9rem;
+      color: var(--muted);
+      margin-top: .5rem;
+      text-transform: uppercase;
+    }
 
-    /* Category Sections */
-    .category{background:var(--card);border-radius:12px;margin-bottom:2rem;overflow:hidden;
-              box-shadow:var(--shadow);}
-    .category-header{background:linear-gradient(135deg,var(--accent),#0099ff);color:#fff;
-                     padding:1.5rem;font-size:1.2rem;font-weight:600;cursor:pointer;user-select:none;}
-    .category-header:hover{background:linear-gradient(135deg,#0052a3,#0077cc);}
-    .category-content{padding:1.5rem;display:none;}
-    .category.open .category-content{display:block;}
-    .category-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem;}
+    /* Org Grid */
+    .org-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+    #favGrid {
+      display: grid;
+      gap: 2rem;
+    }
 
-    .org-card{
-      background:var(--bg);border:1px solid #e5e7eb;border-radius:10px;padding:1.25rem;
-      transition:all .3s ease;
+    .org-card {
+      background: var(--card);
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all .3s ease;
+      position: relative;
+      overflow: hidden;
     }
-    .org-card:hover{
-      border-color:var(--accent);box-shadow:var(--shadow);transform:translateY(-2px);
+    .org-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), #60a5fa);
+      opacity: 0;
+      transition: .3s;
     }
-    .org-name{font-weight:600;color:var(--text);margin-bottom:.5rem;font-size:1rem;}
-    .org-desc{font-size:.85rem;color:var(--muted);line-height:1.4;margin-bottom:1rem;}
-    .org-link{color:var(--accent);text-decoration:none;font-size:.9rem;font-weight:500;}
-    .org-link:hover{text-decoration:underline;}
+    .org-card:hover {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-4px);
+    }
+    .org-card:hover::before {
+      opacity: 1;
+    }
+
+    .org-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .org-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    .org-icon {
+      font-size: 2rem;
+    }
+
+    .star-btn {
+      background: none;
+      border: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      transition: .2s;
+      color: var(--muted);
+      padding: 0;
+    }
+    .star-btn:hover {
+      color: #fbbf24;
+      transform: scale(1.15);
+    }
+    .star-btn.fav {
+      color: #fbbf24;
+    }
+
+    .org-desc {
+      font-size: .95rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .org-meta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+      font-size: .85rem;
+    }
+    .tag {
+      background: var(--accent-light);
+      color: var(--accent);
+      padding: .4rem .8rem;
+      border-radius: 16px;
+      font-weight: 600;
+    }
+    body.dark .tag {
+      background: rgba(59, 130, 246, .15);
+    }
+
+    .org-links {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+    .org-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: .6rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: .9rem;
+      transition: .2s;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    .org-btn:hover {
+      background: #1e3a8a;
+      transform: translateY(-2px);
+    }
+    .org-btn.secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+    }
+    .org-btn.secondary:hover {
+      background: var(--accent-light);
+    }
+
+    /* Jobs Section */
+    .jobs-section {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 3rem;
+    }
+    .jobs-section h2 {
+      margin-top: 0;
+      color: var(--accent);
+    }
+
+    .jobs-grid {
+      display: grid;
+      gap: 1rem;
+    }
+    .job-card {
+      background: var(--bg);
+      border-left: 4px solid var(--accent);
+      padding: 1.2rem;
+      border-radius: 6px;
+      transition: .3s;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .job-card:hover {
+      box-shadow: var(--shadow);
+      transform: translateX(4px);
+    }
+    .job-content {
+      flex: 1;
+    }
+    .job-title {
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 .5rem 0;
+      font-size: 1rem;
+    }
+    .job-meta {
+      font-size: .85rem;
+      color: var(--muted);
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .job-org {
+      background: var(--accent-light);
+      color: var(--accent);
+      padding: .3rem .6rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .job-fav {
+      flex-shrink: 0;
+    }
 
     /* Footer */
-    footer{text-align:center;padding:2rem;color:var(--muted);font-size:.9rem;}
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: .9rem;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 3rem;
+    }
 
-    /* No Results */
-    .no-results{text-align:center;padding:3rem 1rem;color:var(--muted);}
-    .no-results-icon{font-size:3rem;margin-bottom:1rem;}
-
-    /* Badge */
-    .badge{display:inline-block;background:var(--warning);color:#fff;padding:.25rem .75rem;
-           border-radius:20px;font-size:.8rem;font-weight:600;}
+    .empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -134,390 +373,65 @@
     <input type="checkbox" id="toggle" aria-label="Dark Mode">
     <label for="toggle">🌙</label>
   </div>
+
   <header>
-    <h1>🏥 Schweizer Gesundheits-Jobs</h1>
-    <p class="header-sub">Live Jobsuche über 40+ Portal-Quellen | Deine Favoriten immer verfügbar</p>
+    <h1>💰 Gesundheitsökonomie Jobs</h1>
+    <p class="header-sub">Direkt aus Schweizer Organisationen • Ökonomen & Analysten gesucht</p>
   </header>
-    <!-- Search & Filter -->
-    <div class="search-container">
-      <div class="search-inputs">
-        <input type="search" id="searchInput" placeholder="🔍 Suche nach Job-Titeln, Organisationen...">
-        <select id="filterCategory">
-          <option value="">📁 Alle Kategorien</option>
-          <option value="bund">Bund / Bundesnahe</option>
-          <option value="kantone">Kantone</option>
-          <option value="versicherungen">Versicherungen</option>
-          <option value="branchen">Branchen-/Tariforganisationen</option>
-          <option value="spitaler">Spitäler / Kliniken</option>
-          <option value="beratung">Beratung / Forschung</option>
-          <option value="stiftungen">Stiftungen / Non-Profits</option>
-          <option value="portale">Job-Portale</option>
-        </select>
-      </div>
-      <button class="search-button" onclick="filterJobs()">🔎 Jobs durchsuchen</button>
+
+  <main>
+    <!-- Search -->
+    <div class="search-bar">
+      <input type="search" id="searchInput" placeholder="🔍 Suche nach Organisation, Job, Stadt...">
+      <button class="org-btn" onclick="filterOrgs()">Suchen</button>
     </div>
 
-    <!-- Stats Dashboard -->
-    <div class="stats-grid" id="statsGrid">
-      <div class="stat-card">
-        <div class="stat-value" id="totalOrgs">42</div>
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="statOrgs">0</div>
         <div class="stat-label">Organisationen</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-value" id="totalJobs">0</div>
+      <div class="stat">
+        <div class="stat-value" id="statJobs">0</div>
         <div class="stat-label">Live Jobs</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-value" id="myFavs">0</div>
-        <div class="stat-label">Meine Favoriten ⭐</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="lastUpdate">Heute</div>
-        <div class="stat-label">Letzte Aktualisierung</div>
+      <div class="stat">
+        <div class="stat-value" id="statFavs">0</div>
+        <div class="stat-label">Favoriten ⭐</div>
       </div>
     </div>
 
-    <!-- Favorites Section -->
-    <div id="favSection" style="display:none;margin-bottom:2rem;">
-      <div class="results-section">
-        <h2 style="margin-top:0;">⭐ Meine Favoriten</h2>
-        <div class="jobs-grid" id="favGrid"></div>
-      </div>
+    <!-- Favorites -->
+    <div id="favSection" style="display:none; margin-bottom:3rem;">
+      <h2 style="color:var(--accent); margin-bottom:1rem;">⭐ Meine Favoriten</h2>
+      <div class="org-grid" id="favGrid"></div>
     </div>
 
-    <!-- Results Section -->
-    <div class="results-section">
-      <h2>📋 Job-Ergebnisse</h2>
-      <div class="jobs-grid" id="jobsGrid"></div>
-      <div id="noResults" class="no-results" style="display:none;">
-        <div class="no-results-icon">🔍</div>
-        <p>Keine Jobs gefunden. Versuchen Sie eine andere Suche.</p>
+    <!-- Organizations -->
+    <h2 style="color:var(--accent); margin-bottom:1rem;">🏢 Gesundheitsökonomie Arbeitgeber</h2>
+    <div class="org-grid" id="orgGrid"></div>
+
+    <!-- Jobs -->
+    <div class="jobs-section">
+      <h2>📋 Aktuelle Job-Angebote (crawled)</h2>
+      <div id="jobsGrid" class="jobs-grid"></div>
+      <div id="jobsEmpty" class="empty" style="display:none;">
+        <div class="empty-icon">📋</div>
+        <p><strong>Noch keine Jobs gecrawlt</strong></p>
+        <p style="font-size:.9rem; color:var(--muted);">Um Jobs zu laden, führen Sie aus:<br><code style="background:var(--bg); padding:.2rem .5rem; border-radius:4px;">python3 update_jobs.py</code></p>
+        <p style="font-size:.85rem; color:var(--muted); margin-top:1rem;">Jobs mit Gesundheitsökonomiefokus erscheinen hier automatisch.</p>
       </div>
     </div>
-
-    <!-- Categories -->
-    <div style="margin-top:3rem;">
-      <h2>🏢 Alle Job-Portale & Organisationen</h2>
-
-      <!-- 1) Bund / Bundesnahe -->
-      <div class="category" data-category="bund">
-        <div class="category-header">Bund / bundesnahe Institutionen</div>
-        <div class="category-content">
-          <div class="category-links">
-            <div class="org-card">
-              <div class="org-name">Bundesamt für Gesundheit (BAG)</div>
-              <div class="org-desc">Nationale Gesundheitspolitik, Prävention und Krisenmgmt.</div>
-              <a href="https://www.bag.admin.ch/bag/de/home/das-bag/arbeiten-im-bag/offene-stellen.html" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Bundesamt für Sozialversicherungen (BSV)</div>
-              <div class="org-desc">AHV, IV, EL, BVG und weitere Sozialversicherungen.</div>
-              <a href="https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083356" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Gemeinsame Einrichtung KVG</div>
-              <div class="org-desc">Durchführung der obligatorischen Krankenversicherung.</div>
-              <a href="https://www.kvg.org/jobs/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Schweizerisches Gesundheitsobservatorium (Obsan)</div>
-              <div class="org-desc">Analysen und Daten zum Schweizer Gesundheitswesen.</div>
-              <a href="https://www.obsan.admin.ch/de/das-obsan/offene-stellen" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Swissmedic</div>
-              <div class="org-desc">Zulassungs- und Aufsichtsbehörde für Heilmittel.</div>
-              <a href="https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs.html" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2) Spitäler / Kliniken -->
-      <div class="category" data-category="spitaler">
-        <div class="category-header">🏥 Leistungserbringer (Spitäler / Kliniken)</div>
-        <div class="category-content">
-          <div class="category-links">
-            <div class="org-card">
-              <div class="org-name">UniversitätsSpital Zürich (USZ)</div>
-              <div class="org-desc">Höchstversorger und Universitätsspital, führend in der Schweiz.</div>
-              <a href="https://jobs.usz.ch/?lang=de" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Universitätsspital Basel (USB)</div>
-              <div class="org-desc">Zentrumsspital der Nordwestschweiz mit internationaler Ausrichtung.</div>
-              <a href="https://www.unispital-basel.ch/jobs-und-karriere/Jobs" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Insel Gruppe Bern</div>
-              <div class="org-desc">Universitätsspital-Verbund mit moderner Infrastruktur.</div>
-              <a href="https://www.jobs.insel.ch/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Kantonsspital St. Gallen</div>
-              <div class="org-desc">Maximalversorger mit Schwerpunkt Forschung.</div>
-              <a href="https://jobs.kssg.ch/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Kantonsspital Aarau</div>
-              <div class="org-desc">Zentrumsspital in der Nordwestschweiz.</div>
-              <a href="https://jobs.ksa.ch/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Kantonsspital Winterthur</div>
-              <div class="org-desc">Zentrum für das Zürcher Unterland.</div>
-              <a href="https://www.ksw.ch/jobs-karriere/jobs/offene-stellen/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Hirslanden Gruppe</div>
-              <div class="org-desc">Grösste Privatklinikgruppe der Schweiz.</div>
-              <a href="https://careers.hirslanden.ch/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Swiss Medical Network</div>
-              <div class="org-desc">Privatklinikgruppe mit hochqualifizierten Fachkräften.</div>
-              <a href="https://www.swissmedical.net/de/karriere/stellenangebote" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Spital Wallis / Hôpital du Valais</div>
-              <div class="org-desc">Zweisprachiges Zentrumsspital.</div>
-              <a href="https://vs.service-now.com/x/hdvi2/hvs-ats-portal/landing/params/language/fr/spref/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3) Spezialisierte Job-Portale -->
-      <div class="category" data-category="portale">
-        <div class="category-header">💼 Spezialisierte Job-Portale & Plattformen</div>
-        <div class="category-content">
-          <div class="category-links">
-            <div class="org-card">
-              <div class="org-name">Sozjobs.ch</div>
-              <div class="org-desc">Das grösste Jobportal für Sozial- & Gesundheitsberufe mit 1.200+ Stellen.</div>
-              <a href="https://www.sozjobs.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Hospital-jobs.ch</div>
-              <div class="org-desc">Recruiting-Plattform für medizinische Berufe in Spitälern & Reha.</div>
-              <a href="https://www.hospital-jobs.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Spitalstellenmarkt.ch</div>
-              <div class="org-desc">Spezialisiertes Portal für Spitäler, Kliniken & Reha-Zentren.</div>
-              <a href="https://www.spitalstellenmarkt.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Praxisstellen.ch</div>
-              <div class="org-desc">Führendes Portal für Praxis-Personal und ambulante Versorgung.</div>
-              <a href="https://www.praxisstellen.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Deinpflegejob.ch</div>
-              <div class="org-desc">Moderne Plattform für Pflegefachkräfte HF mit modernem Design.</div>
-              <a href="https://www.deinpflegejob.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Gesundheitsstellen.ch</div>
-              <div class="org-desc">Spezialisierte Jobplattform für ärztliche und pflegerische Fachkräfte.</div>
-              <a href="https://gesundheitsstellen.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Medtalents.ch</div>
-              <div class="org-desc">Jobplattform für Gesundheits-Fachkräfte (Pflege, Medizin, Therapie).</div>
-              <a href="https://medtalents.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Medespo.ch</div>
-              <div class="org-desc">Healthcare Recruitment mit kostenlosen Career-Services seit 2007.</div>
-              <a href="https://www.medespo.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Langzeit-pflege.ch</div>
-              <div class="org-desc">Portal für Langzeitpflege Ausbildung, Weiterbildung & Jobs.</div>
-              <a href="https://langzeit-pflege.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Healthjobs.ch</div>
-              <div class="org-desc">B2B Recruitment-Plattform für Gesundheitsunternehmen.</div>
-              <a href="https://healthjobs.ch" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4) Versicherungen -->
-      <div class="category" data-category="versicherungen">
-        <div class="category-header">🛡️ Versicherungen</div>
-        <div class="category-content">
-          <div class="category-links">
-            <div class="org-card">
-              <div class="org-name">CSS Versicherung</div>
-              <div class="org-desc">Grosse Schweizer Krankenkasse mit Sitz in Luzern.</div>
-              <a href="https://jobs.css.ch/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Sanitas</div>
-              <div class="org-desc">Krankenversicherung mit Fokus auf eHealth-Services.</div>
-              <a href="https://www.sanitas.com/de/ueber-sanitas/arbeiten-bei-sanitas/offene-stellen.html" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">SWICA</div>
-              <div class="org-desc">Gesundheitsorganisation & Versicherer mit innovativen Lösungen.</div>
-              <a href="https://www.swica.ch/de/kampagnen/intern/jobs/freie-stellen" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Concordia</div>
-              <div class="org-desc">Traditionsreiche Krankenkasse mit starkem Spitalnetz.</div>
-              <a href="https://www.concordia.ch/de/ueber-uns/jobs/offene-stellen.html" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Atupri</div>
-              <div class="org-desc">Digital fokussierte Gesundheitskasse.</div>
-              <a href="https://www.atupri.ch/karriere-jobs" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">KPT Krankenkasse</div>
-              <div class="org-desc">Digitale Krankenkasse aus Bern.</div>
-              <a href="https://www.kpt.ch/de/ueber-kpt/arbeiten-bei-der-kpt/offene-stellen" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Groupe Mutuel</div>
-              <div class="org-desc">Grosser Westschweizer Kranken- & Unfallversicherer.</div>
-              <a href="https://groupemutuel.csod.com/ux/ats/careersite/4/home?c=groupemutuel" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Helvetia</div>
-              <div class="org-desc">Allbranchen-Versicherer mit Gesundheits-Zusatzangeboten.</div>
-              <a href="https://jobs.helvetia.com/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 5) Beratung / Forschung -->
-      <div class="category" data-category="beratung">
-        <div class="category-header">🔬 Beratung / Forschung</div>
-        <div class="category-content">
-          <div class="category-links">
-            <div class="org-card">
-              <div class="org-name">Swiss TPH</div>
-              <div class="org-desc">Global-Health-Institut mit führenden Forschungsprogrammen.</div>
-              <a href="https://jobs.swisstph.ch/Jobs/All" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">ZHAW Departement Gesundheit</div>
-              <div class="org-desc">Fachhochschule mit Schwerpunkt Pflege & Therapien.</div>
-              <a href="https://www.zhaw.ch/de/jobs/offene-stellen" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Careum Stiftung</div>
-              <div class="org-desc">Bildung & Forschung im Gesundheitswesen.</div>
-              <a href="https://careum.ch/ueber-uns/jobs" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Universität Luzern - FGW</div>
-              <div class="org-desc">Fakultät Gesundheitswissenschaften.</div>
-              <a href="https://www.unilu.ch/universitaet/personal/personaldienst/offene-stellen/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Polynomics</div>
-              <div class="org-desc">Gesundheitsökonomische Beratung und Analysen.</div>
-              <a href="https://www.linkedin.com/company/polynomics/jobs/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Sotomo</div>
-              <div class="org-desc">Sozial- & Politikforschung mit Gesundheitsfokus.</div>
-              <a href="https://sotomo.ch/site/jobs/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">DayOne Basel Area</div>
-              <div class="org-desc">Healthcare-Innovation-Hub mit modernem Ansatz.</div>
-              <a href="https://www.dayone.swiss/about-us/careers/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 6) Stiftungen / Non-Profits -->
-      <div class="category" data-category="stiftungen">
-        <div class="category-header">❤️ Stiftungen / Non-Profits</div>
-        <div class="category-content">
-          <div class="category-links">
-            <div class="org-card">
-              <div class="org-name">Schweizerisches Rotes Kreuz (SRK)</div>
-              <div class="org-desc">Humanitäre Hilfe, Pflege und Rettungsdienste.</div>
-              <a href="https://www.redcross.ch/de/arbeiten-beim-srk-sinnvoll-und-herausfordernd" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Gesundheitsförderung Schweiz</div>
-              <div class="org-desc">Stiftung für Prävention & betriebliche Gesundheitsförderung.</div>
-              <a href="https://gesundheitsfoerderung.ch/stiftung/stellenangebote" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Krebsliga Schweiz</div>
-              <div class="org-desc">Krebsprävention, Beratung und Unterstützung.</div>
-              <a href="https://www.krebsliga.ch/ueber-uns/jobs" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Lungenliga Schweiz</div>
-              <div class="org-desc">Hilfe bei Atemwegs- und Lungenerkrankungen.</div>
-              <a href="https://www.lungenliga.ch/ueber-uns/jobs" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Pro Infirmis</div>
-              <div class="org-desc">Fachorganisation für Menschen mit Behinderung.</div>
-              <a href="https://jobs.proinfirmis.ch/de" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Pflegewegweiser</div>
-              <div class="org-desc">Plattform für Pflege-Karrieren und Weiterbildung.</div>
-              <a href="https://pflegewegweiser.ch/karriere/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">Spitex Schweiz</div>
-              <div class="org-desc">Zentrales Stellenportal der Spitex-Organisationen.</div>
-              <a href="https://www.spitex.ch/Jobs/PgiA1/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 7) Branchen-/Tariforganisationen -->
-      <div class="category" data-category="branchen">
-        <div class="category-header">📊 Branchen- / Tariforganisationen</div>
-        <div class="category-content">
-          <div class="category-links">
-            <div class="org-card">
-              <div class="org-name">FMH Ärzteverband</div>
-              <div class="org-desc">Dachverband der Schweizer Ärztinnen und Ärzte.</div>
-              <a href="https://www.fmh.ch/ueber-die-fmh/offene-stellen.cfm" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">H+ Die Spitäler der Schweiz</div>
-              <div class="org-desc">Spitzenverband der Schweizer Spitäler & Kliniken.</div>
-              <a href="https://www.hplus.ch/jobs" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">prio.swiss</div>
-              <div class="org-desc">Verband Schweizer Krankenversicherer.</div>
-              <a href="https://prio.swiss/jobs/" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-            <div class="org-card">
-              <div class="org-name">OAAT</div>
-              <div class="org-desc">Tariforganisation ambulante Arzttarife.</div>
-              <a href="https://oaat-otma.ch/ueber-uns/offene-stellen" target="_blank" class="org-link">→ Zu den Stellenangeboten</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </main>
-  <footer>💡 Alle Links ohne Gewähr | Favoriten werden lokal im Browser gespeichert | Letzte Aktualisierung: heute</footer>
+
+  <footer>
+    💡 Alle Links direkt von Unternehmenswebsites | Nur Gesundheitsökonomie & Management-Positionen<br>
+    Favoriten werden lokal gespeichert | Letzte Aktualisierung: <span id="lastUpdate">heute</span>
+  </footer>
 
   <script>
-    /* Dark Mode */
+    // Dark Mode
     const toggleDark = document.getElementById('toggle');
     toggleDark.checked = localStorage.getItem('darkMode') === '1';
     document.body.classList.toggle('dark', toggleDark.checked);
@@ -526,172 +440,402 @@
       document.body.classList.toggle('dark', toggleDark.checked);
     });
 
-    /* Favoriten */
-    const LS = 'favJobs';
-    const getFav = () => JSON.parse(localStorage.getItem(LS) || '[]');
-    const saveFav = (ids) => localStorage.setItem(LS, JSON.stringify(ids));
+    // Organization Data
+    const ORGS = [
+      {
+        id: 'bag',
+        name: 'Bundesamt für Gesundheit (BAG)',
+        icon: '🏛️',
+        desc: 'Nationale Gesundheitspolitik, Epidemiologie & Health Economics',
+        tags: ['Bund', 'Policy', 'Analysen'],
+        website: 'https://www.bag.admin.ch',
+        jobs: 'https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083353',
+        location: 'Bern'
+      },
+      {
+        id: 'usz',
+        name: 'UniversitätsSpital Zürich (USZ)',
+        icon: '🏥',
+        desc: 'Höchstversorger mit Gesundheitsmanagement & Health Economics Unit',
+        tags: ['Spital', 'Management', 'Research'],
+        website: 'https://www.usz.ch',
+        jobs: 'https://jobs.usz.ch/?lang=de',
+        location: 'Zürich'
+      },
+      {
+        id: 'insel',
+        name: 'Insel Gruppe Bern',
+        icon: '🏥',
+        desc: 'Universitätsspital mit Health Services Management & Controlling',
+        tags: ['Spital', 'Management', 'Controlling'],
+        website: 'https://www.inselgruppe.ch',
+        jobs: 'https://www.jobs.insel.ch',
+        location: 'Bern'
+      },
+      {
+        id: 'css',
+        name: 'CSS Versicherung',
+        icon: '🛡️',
+        desc: 'Krankenkasse mit Krankenversicherungsökonomie & Risk Management',
+        tags: ['Versicherung', 'Risk', 'Analysen'],
+        website: 'https://www.css.ch',
+        jobs: 'https://jobs.css.ch',
+        location: 'Luzern'
+      },
+      {
+        id: 'swica',
+        name: 'SWICA',
+        icon: '🛡️',
+        desc: 'Gesundheitsorganisation mit Versicherungsanalysen & Prävention',
+        tags: ['Versicherung', 'Prävention', 'Analysen'],
+        website: 'https://www.swica.ch',
+        jobs: 'https://www.swica.ch/de/kampagnen/intern/jobs/freie-stellen',
+        location: 'Winterthur'
+      },
+      {
+        id: 'sanitas',
+        name: 'Sanitas Versicherung',
+        icon: '🛡️',
+        desc: 'Krankenversicherung mit Digital Health & Kostenmanagement',
+        tags: ['Versicherung', 'Digital', 'Kosten'],
+        website: 'https://www.sanitas.com',
+        jobs: 'https://www.sanitas.com/de/ueber-sanitas/arbeiten-bei-sanitas',
+        location: 'Basel'
+      },
+      {
+        id: 'concordia',
+        name: 'Concordia Versicherung',
+        icon: '🛡️',
+        desc: 'Krankenversicherung mit Health Economics & Spitalmanagement',
+        tags: ['Versicherung', 'Management'],
+        website: 'https://www.concordia.ch',
+        jobs: 'https://www.concordia.ch/de/ueber-uns/jobs/offene-stellen.html',
+        location: 'St. Gallen'
+      },
+      {
+        id: 'helvetia',
+        name: 'Helvetia Versicherung',
+        icon: '🛡️',
+        desc: 'Allbranchen-Versicherer mit Health Insurance Analytics',
+        tags: ['Versicherung', 'Analysen'],
+        website: 'https://www.helvetia.com',
+        jobs: 'https://jobs.helvetia.com',
+        location: 'St. Gallen'
+      },
+      {
+        id: 'kpt',
+        name: 'KPT Krankenkasse',
+        icon: '🛡️',
+        desc: 'Digital fokussierte Krankenkasse mit Health Tech & Analysen',
+        tags: ['Versicherung', 'Digital', 'Tech'],
+        website: 'https://www.kpt.ch',
+        jobs: 'https://www.kpt.ch/de/ueber-kpt/arbeiten-bei-der-kpt/offene-stellen',
+        location: 'Bern'
+      },
+      {
+        id: 'swissmedic',
+        name: 'Swissmedic',
+        icon: '⚕️',
+        desc: 'Zulassungsbehörde für Heilmittel mit Regulatory Science & Gesundheitsökonomie',
+        tags: ['Bund', 'Regulation', 'Science'],
+        website: 'https://www.swissmedic.ch',
+        jobs: 'https://www.swissmedic.ch/swissmedic/en/home/about-us/jobs.html',
+        location: 'Bern'
+      },
+      {
+        id: 'obsan',
+        name: 'Schweizerisches Gesundheitsobservatorium (Obsan)',
+        icon: '📊',
+        desc: 'Analysen & Daten zum Schweizer Gesundheitswesen & Kosten',
+        tags: ['Bund', 'Analysen', 'Research'],
+        website: 'https://www.obsan.admin.ch',
+        jobs: 'https://www.obsan.admin.ch/de/das-obsan/offene-stellen',
+        location: 'Neuenburg'
+      },
+      {
+        id: 'swisstph',
+        name: 'Swiss Tropical & Public Health Institute',
+        icon: '🔬',
+        desc: 'Global Health mit Health Economics & Policy Research',
+        tags: ['Research', 'Global', 'Policy'],
+        website: 'https://www.swisstph.ch',
+        jobs: 'https://jobs.swisstph.ch/Jobs/All',
+        location: 'Basel'
+      },
+      {
+        id: 'careum',
+        name: 'Careum Stiftung',
+        icon: '🎓',
+        desc: 'Bildung & Forschung im Gesundheitswesen mit Health Management',
+        tags: ['Education', 'Research'],
+        website: 'https://careum.ch',
+        jobs: 'https://careum.ch/ueber-uns/jobs',
+        location: 'Zürich'
+      },
+      {
+        id: 'polynomics',
+        name: 'Polynomics',
+        icon: '💼',
+        desc: 'Gesundheitsökonomische Beratung & Health Policy Analysen',
+        tags: ['Consulting', 'Analysen', 'Policy'],
+        website: 'https://www.polynomics.ch',
+        jobs: 'https://www.polynomics.ch',
+        location: 'Winterthur'
+      },
+      {
+        id: 'sotomo',
+        name: 'Sotomo Forschung',
+        icon: '📈',
+        desc: 'Sozial- & Politikforschung mit Gesundheits- und Kostenanalysen',
+        tags: ['Research', 'Policy'],
+        website: 'https://sotomo.ch',
+        jobs: 'https://sotomo.ch/site/jobs/',
+        location: 'Zürich'
+      },
+      {
+        id: 'hplus',
+        name: 'H+ Die Spitäler der Schweiz',
+        icon: '📋',
+        desc: 'Spitzenverband mit Health Policy & Hospital Management',
+        tags: ['Association', 'Policy', 'Management'],
+        website: 'https://www.hplus.ch',
+        jobs: 'https://www.hplus.ch',
+        location: 'Bern'
+      },
+      {
+        id: 'fmh',
+        name: 'FMH Ärzteverband',
+        icon: '👨‍⚕️',
+        desc: 'Dachverband der Ärzte mit Health Policy & Economics',
+        tags: ['Association', 'Policy'],
+        website: 'https://www.fmh.ch',
+        jobs: 'https://www.fmh.ch/ueber-die-fmh/offene-stellen.cfm',
+        location: 'Bern'
+      },
+      {
+        id: 'prioswiss',
+        name: 'prio.swiss (Versichererverband)',
+        icon: '📊',
+        desc: 'Verband Schweizer Krankenversicherer mit Health Policy',
+        tags: ['Association', 'Policy'],
+        website: 'https://prio.swiss',
+        jobs: 'https://prio.swiss/jobs/',
+        location: 'Bern'
+      },
+      {
+        id: 'unilu',
+        name: 'Universität Luzern - Fakultät Gesundheitswissenschaften',
+        icon: '🎓',
+        desc: 'Hochschule mit Health Economics Master & Forschung',
+        tags: ['Education', 'Research'],
+        website: 'https://www.unilu.ch',
+        jobs: 'https://www.unilu.ch/universitaet/personal/personaldienst/offene-stellen/',
+        location: 'Luzern'
+      },
+      {
+        id: 'zhaw',
+        name: 'ZHAW Departement Gesundheit',
+        icon: '🎓',
+        desc: 'Fachhochschule mit Health Management & Policy Studies',
+        tags: ['Education', 'Management'],
+        website: 'https://www.zhaw.ch',
+        jobs: 'https://www.zhaw.ch/de/jobs/offene-stellen',
+        location: 'Winterthur'
+      }
+    ];
+
+    // Favorites System (Orgs + Jobs)
+    const LS_ORGS = 'favOrgs';
+    const LS_JOBS = 'favJobs';
+
+    const getFavOrgs = () => JSON.parse(localStorage.getItem(LS_ORGS) || '[]');
+    const saveFavOrgs = ids => localStorage.setItem(LS_ORGS, JSON.stringify(ids));
+    const getFavJobs = () => JSON.parse(localStorage.getItem(LS_JOBS) || '[]');
+    const saveFavJobs = ids => localStorage.setItem(LS_JOBS, JSON.stringify(ids));
 
     let allJobs = [];
 
-    function updateStats() {
-      const favs = getFav();
-      document.getElementById('myFavs').textContent = favs.length;
-    }
-
-    /* Load Job Data */
-    let JOB_DATA = {};
+    // Load Data
     fetch('jobs-data.json')
       .then(r => r.json())
-      .then(j => {
-        JOB_DATA = j;
-        updateStats();
-        renderAllJobs();
-      })
-      .catch(() => updateStats());
-
-    /* Render All Jobs (WOW Feature!) */
-    function renderAllJobs() {
-      allJobs = [];
-      for (const [source, jobs] of Object.entries(JOB_DATA)) {
-        jobs.forEach(job => {
-          allJobs.push({ ...job, source });
-        });
-      }
-      document.getElementById('totalJobs').textContent = allJobs.length;
-      filterJobs();
-    }
-
-    /* Advanced Search & Filter (THE WOW FEATURE!) */
-    window.filterJobs = function() {
-      const search = document.getElementById('searchInput').value.toLowerCase();
-      const category = document.getElementById('filterCategory').value;
-
-      let filtered = allJobs;
-
-      // Filter by search text
-      if (search) {
-        filtered = filtered.filter(job =>
-          job.title.toLowerCase().includes(search) ||
-          job.source.toLowerCase().includes(search) ||
-          job.location.toLowerCase().includes(search)
-        );
-      }
-
-      // Filter by category
-      if (category) {
-        filtered = filtered.filter(job => {
-          const sourceMap = {
-            'bund': ['bag', 'bsv', 'kvg', 'obsan', 'swissmedic'],
-            'kantone': ['ar', 'ai', 'be', 'bl', 'bs', 'lu', 'sg', 'so', 'sz', 'ur', 'zh'],
-            'versicherungen': ['atupri', 'concordia', 'css', 'groupemutuel', 'helvetia', 'kpt', 'sanitas', 'swica'],
-            'branchen': ['fmh', 'hplus', 'oaat', 'prio', 'spitex'],
-            'spitaler': ['hirslanden', 'insel', 'ksa', 'kssg', 'ksw', 'smn', 'spital-wallis', 'usb', 'usz'],
-            'beratung': ['careum', 'dayone', 'polynomics', 'sotomo', 'swisstph', 'unilu', 'zhaw'],
-            'stiftungen': ['gfs', 'krebsliga', 'lungenliga', 'pflegewegweiser', 'proinfirmis', 'srk'],
-            'portale': ['sozjobs', 'hospitalj', 'spitalstellenmarkt', 'praxisstellen', 'deinpflegejob', 'gesundheitsstellen', 'medtalents', 'medespo', 'langzeitpflege', 'healthjobs']
-          };
-          return sourceMap[category]?.includes(job.source.toLowerCase());
-        });
-      }
-
-      renderJobResults(filtered);
-    };
-
-    function renderJobResults(jobs) {
-      const grid = document.getElementById('jobsGrid');
-      const noResults = document.getElementById('noResults');
-      const favSection = document.getElementById('favSection');
-      const favGrid = document.getElementById('favGrid');
-
-      if (jobs.length === 0) {
-        grid.innerHTML = '';
-        noResults.style.display = 'block';
-        favSection.style.display = 'none';
-      } else {
-        noResults.style.display = 'none';
-        grid.innerHTML = jobs.map(job => createJobCard(job)).join('');
-
-        // Show favorites section if any
-        const favs = getFav();
-        const favJobs = jobs.filter(j => favs.includes(j.source + '-' + j.url));
-        if (favJobs.length > 0) {
-          favSection.style.display = 'block';
-          favGrid.innerHTML = favJobs.map(job => createJobCard(job, true)).join('');
-        } else {
-          favSection.style.display = 'none';
+      .then(data => {
+        allJobs = [];
+        for (const [source, jobs] of Object.entries(data)) {
+          if (Array.isArray(jobs)) {
+            jobs.forEach(job => {
+              if (job.title && job.url) {
+                allJobs.push({ ...job, source });
+              }
+            });
+          }
         }
-      }
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleDateString('de-CH');
+        updateStats();
+        renderPage();
+      })
+      .catch(e => {
+        console.warn('jobs-data.json nicht gefunden oder ungültig', e);
+        document.getElementById('lastUpdate').textContent = 'nie';
+        updateStats();
+        renderPage();
+      });
+
+    function updateStats() {
+      const favOrgs = getFavOrgs();
+      const favJobs = getFavJobs();
+      document.getElementById('statOrgs').textContent = ORGS.length;
+      document.getElementById('statJobs').textContent = allJobs.length;
+      document.getElementById('statFavs').textContent = (favOrgs.length + favJobs.length);
     }
 
-    function createJobCard(job, isFav = false) {
-      const favId = job.source + '-' + job.url;
-      const isFavorite = getFav().includes(favId);
-      const sourceLabels = {
-        'bag': 'BAG',
-        'usz': 'USZ',
-        'bsv': 'BSV',
-        'kvg': 'KVG',
-        'obsan': 'Obsan',
-        'swissmedic': 'Swissmedic',
-        'css': 'CSS',
-        'sanitas': 'Sanitas',
-        'swica': 'SWICA',
-        'concordia': 'Concordia',
-        'atupri': 'Atupri',
-        'kpt': 'KPT',
-        'helvetia': 'Helvetia',
-        'groupemutuel': 'Groupe Mutuel'
-      };
+    function renderPage() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = ORGS.filter(org =>
+        org.name.toLowerCase().includes(search) ||
+        org.desc.toLowerCase().includes(search) ||
+        org.location.toLowerCase().includes(search) ||
+        org.tags.some(t => t.toLowerCase().includes(search))
+      );
 
+      const favOrgIds = getFavOrgs();
+      const favJobIds = getFavJobs();
+      const favOrgs = ORGS.filter(o => favOrgIds.includes(o.id));
+      const favJobs = allJobs.filter(j => favJobIds.includes(getJobId(j)));
+
+      // Render favorites
+      const hasFavs = (favOrgs.length + favJobs.length) > 0;
+      if (hasFavs) {
+        document.getElementById('favSection').style.display = 'block';
+        let html = '';
+
+        if (favOrgs.length > 0) {
+          html += '<div style="margin-bottom:2rem;">';
+          html += '<h3 style="color:var(--accent); margin:.5rem 0 1rem;">⭐ Favorite Organisationen (' + favOrgs.length + ')</h3>';
+          html += '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1.5rem;">';
+          html += favOrgs.map(renderOrgCard).join('');
+          html += '</div></div>';
+        }
+
+        if (favJobs.length > 0) {
+          html += '<div>';
+          html += '<h3 style="color:var(--accent); margin:.5rem 0 1rem;">⭐ Favorite Jobs (' + favJobs.length + ')</h3>';
+          html += '<div style="display:flex; flex-direction:column; gap:1rem;">';
+          html += favJobs.map(renderJobCard).join('');
+          html += '</div></div>';
+        }
+
+        document.getElementById('favGrid').innerHTML = html;
+      } else {
+        document.getElementById('favSection').style.display = 'none';
+      }
+
+      // Render all orgs
+      document.getElementById('orgGrid').innerHTML = filtered.length
+        ? filtered.map(renderOrgCard).join('')
+        : '<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🔍</div><p>Keine Organisationen gefunden</p></div>';
+
+      // Render jobs
+      renderJobs();
+    }
+
+    function renderOrgCard(org) {
+      const isFav = getFavOrgs().includes(org.id);
       return `
-        <div class="job-card">
-          <div class="job-header">
-            <h3 class="job-title">${job.title}</h3>
-            <span class="job-source">${sourceLabels[job.source] || job.source.toUpperCase()}</span>
-          </div>
-          <div class="job-meta">
-            ${job.location ? `<div class="job-meta-item">📍 ${job.location}</div>` : ''}
-            ${job.pensum ? `<div class="job-meta-item">⏱️ ${job.pensum}</div>` : ''}
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <a href="${job.url}" target="_blank" class="job-link">Zur Stelle →</a>
-            <button class="star-btn ${isFavorite ? 'fav' : ''}" onclick="toggleFav('${favId.replace(/'/g, "\\'")}', event)">
-              ${isFavorite ? '⭐' : '☆'}
+        <div class="org-card">
+          <div class="org-header">
+            <div>
+              <div style="display:flex; gap:.5rem; align-items:center;">
+                <span class="org-icon">${org.icon}</span>
+                <h3 class="org-name">${org.name}</h3>
+              </div>
+              <p class="org-desc">${org.desc}</p>
+            </div>
+            <button class="star-btn ${isFav ? 'fav' : ''}" onclick="toggleFavOrg('${org.id}', event)" title="Zu Favoriten hinzufügen">
+              ${isFav ? '⭐' : '☆'}
             </button>
+          </div>
+          <div class="org-meta">
+            <span class="tag">📍 ${org.location}</span>
+            ${org.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+          </div>
+          <div class="org-links">
+            <a href="${org.website}" target="_blank" class="org-btn">Website →</a>
+            <a href="${org.jobs}" target="_blank" class="org-btn secondary">Jobs →</a>
           </div>
         </div>
       `;
     }
 
-    window.toggleFav = function(favId, e) {
-      e.preventDefault();
-      let favs = getFav();
-      if (favs.includes(favId)) {
-        favs = favs.filter(id => id !== favId);
-      } else {
-        favs.push(favId);
+    function getJobId(job) {
+      return `${job.source}-${job.url}`;
+    }
+
+    function renderJobCard(job) {
+      const isFav = getFavJobs().includes(getJobId(job));
+      return `
+        <div class="job-card">
+          <div class="job-content">
+            <h3 class="job-title">${job.title}</h3>
+            <div class="job-meta">
+              <span class="job-org">${job.source.toUpperCase()}</span>
+              ${job.location ? `<span>📍 ${job.location}</span>` : ''}
+              ${job.pensum ? `<span>⏱️ ${job.pensum}</span>` : ''}
+              <a href="${job.url}" target="_blank" style="color:var(--accent); font-weight:600; text-decoration:none;">→ Zur Stelle</a>
+            </div>
+          </div>
+          <button class="star-btn job-fav ${isFav ? 'fav' : ''}" onclick="toggleFavJob('${getJobId(job)}', event)">
+            ${isFav ? '⭐' : '☆'}
+          </button>
+        </div>
+      `;
+    }
+
+    function renderJobs() {
+      const grid = document.getElementById('jobsGrid');
+      const empty = document.getElementById('jobsEmpty');
+      if (allJobs.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        return;
       }
-      saveFav(favs);
+      empty.style.display = 'none';
+      grid.innerHTML = allJobs.map(renderJobCard).join('');
+    }
+
+    window.toggleFavOrg = function(orgId, e) {
+      e.preventDefault();
+      let favs = getFavOrgs();
+      if (favs.includes(orgId)) {
+        favs = favs.filter(id => id !== orgId);
+      } else {
+        favs.push(orgId);
+      }
+      saveFavOrgs(favs);
       updateStats();
-      filterJobs();
+      renderPage();
     };
 
-    /* Search on Enter & Change */
-    document.getElementById('searchInput').addEventListener('keyup', filterJobs);
-    document.getElementById('filterCategory').addEventListener('change', filterJobs);
-
-    /* Toggle Categories */
-    document.querySelectorAll('.category-header').forEach(header => {
-      header.addEventListener('click', function() {
-        this.parentElement.classList.toggle('open');
-      });
-    });
-
-    /* Initialize */
-    document.addEventListener('DOMContentLoaded', () => {
+    window.toggleFavJob = function(jobId, e) {
+      e.preventDefault();
+      let favs = getFavJobs();
+      if (favs.includes(jobId)) {
+        favs = favs.filter(id => id !== jobId);
+      } else {
+        favs.push(jobId);
+      }
+      saveFavJobs(favs);
       updateStats();
-      filterJobs();
-    });
+      renderPage();
+    };
+
+    window.filterOrgs = function() {
+      renderPage();
+    };
+
+    document.getElementById('searchInput').addEventListener('keyup', renderPage);
+
+    // Initialize
+    updateStats();
   </script>
 </body>
 </html>
