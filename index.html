@@ -33,16 +33,22 @@
 
     /* === Map Section === */
     .map-section{background:var(--card);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;
-                 box-shadow:var(--shadow);text-align:center;}
-    .map-section h2{font-size:1rem;color:var(--muted);font-weight:600;margin-bottom:.8rem;}
-    .map-svg{max-width:520px;margin:0 auto;display:block;}
-    .map-dot{cursor:pointer;transition:.2s;}
-    .map-dot:hover{r:8;filter:drop-shadow(0 0 6px var(--accent));}
-    .map-dot.active{r:8;fill:var(--fav);filter:drop-shadow(0 0 8px var(--fav));}
-    .map-label{font-size:9px;fill:var(--text);pointer-events:none;font-weight:600;text-anchor:middle;}
-    .map-outline{fill:none;stroke:var(--border);stroke-width:1.5;}
-    .map-region{fill:var(--hover);stroke:var(--border);stroke-width:.5;transition:.2s;cursor:pointer;}
-    .map-region:hover{fill:rgba(11,131,217,.1);}
+                 box-shadow:var(--shadow);}
+    .map-section h2{font-size:1rem;color:var(--muted);font-weight:600;margin-bottom:1rem;text-align:center;}
+    .map-container{text-align:center;}
+    .map-svg{max-width:560px;margin:0 auto 1.5rem;display:block;}
+    .ch-outline{fill:var(--hover);stroke:var(--border);stroke-width:1.5;}
+    .connection{stroke:var(--border);stroke-width:1;opacity:.25;transition:.3s;}
+    .city-bubble{cursor:pointer;}
+    .bubble-fill{fill:var(--accent);transition:all .25s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 2px 8px rgba(11,131,217,.2));}
+    .city-bubble:hover .bubble-fill{r:42;filter:drop-shadow(0 0 12px var(--accent));}
+    .city-bubble.selected .bubble-fill{r:42;fill:var(--fav);filter:drop-shadow(0 0 15px var(--fav));}
+    .city-name{font-size:11px;fill:var(--text);pointer-events:none;font-weight:700;text-anchor:middle;dominant-baseline:middle;}
+    .city-count{font-size:9px;fill:var(--muted);pointer-events:none;text-anchor:middle;dominant-baseline:middle;font-weight:600;}
+    .city-bubble.selected .city-name{fill:#fff;font-weight:800;}
+    .city-bubble.selected .city-count{fill:#fff;opacity:.9;}
+    .map-hint{text-align:center;font-size:.8rem;color:var(--muted);margin-top:.8rem;}
+    .map-hint code{background:var(--bg);padding:.2rem .4rem;border-radius:4px;font-family:monospace;}
 
     /* === Search === */
     .search-bar{background:var(--card);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.2rem;
@@ -132,54 +138,126 @@
   <main>
     <!-- Map -->
     <section class="map-section">
-      <h2>Klicke auf eine Stadt, um nach Standort zu filtern</h2>
-      <svg class="map-svg" viewBox="0 0 440 300" xmlns="http://www.w3.org/2000/svg">
-        <!-- Switzerland outline (simplified) -->
-        <path class="map-outline" d="
-          M68,175 L48,155 L38,130 L42,108 L55,88 L75,68 L95,52 L120,38
-          L150,30 L180,28 L210,32 L240,28 L265,35 L290,30 L310,38
-          L335,48 L355,55 L375,62 L390,75 L395,95 L385,115
-          L370,135 L350,155 L330,170 L305,185 L280,200
-          L255,215 L230,222 L205,225 L175,220 L150,215
-          L125,205 L100,195 L80,185 Z" fill="var(--hover)" stroke="var(--border)" stroke-width="2"/>
+      <h2>🗺️ Klicke auf Bubbles, um mehrere Standorte zu filtern</h2>
+      <div class="map-container">
+        <svg class="map-svg" viewBox="0 0 560 320" xmlns="http://www.w3.org/2000/svg">
+          <!-- Switzerland outline -->
+          <path class="ch-outline" d="M80,180 L55,160 L45,135 L50,110 L65,90 L90,70 L115,50 L145,40 L180,35 L220,33 L250,35 L285,32 L315,42 L345,55 L370,65 L395,80 L405,100 L395,125 L375,145 L350,165 L325,180 L300,195 L270,210 L240,220 L210,225 L180,223 L150,215 L120,205 L95,190 Z"/>
 
-        <!-- City dots -->
-        <circle class="map-dot" data-loc="Basel" cx="120" cy="42" r="6" fill="var(--accent)"/>
-        <text class="map-label" x="120" y="33">Basel</text>
+          <!-- Connection lines between cities (network effect) -->
+          <line class="connection" x1="220" y1="70" x2="160" y2="110"/>
+          <line class="connection" x1="220" y1="70" x2="280" y2="85"/>
+          <line class="connection" x1="220" y1="70" x2="310" y2="105"/>
+          <line class="connection" x1="160" y1="110" x2="220" y2="115"/>
+          <line class="connection" x1="280" y1="85" x2="310" y2="105"/>
+          <line class="connection" x1="100" y1="175" x2="160" y2="110"/>
 
-        <circle class="map-dot" data-loc="Zürich" cx="225" cy="58" r="6" fill="var(--accent)"/>
-        <text class="map-label" x="225" y="49">Zürich</text>
+          <!-- City Bubbles -->
+          <g class="city-bubble" data-loc="Bern" data-x="160" data-y="110">
+            <circle class="bubble-fill" cx="160" cy="110" r="36"/>
+            <text class="city-name" x="160" y="108">Bern</text>
+            <text class="city-count" x="160" y="120" id="count-Bern">18</text>
+          </g>
 
-        <circle class="map-dot" data-loc="Winterthur" cx="260" cy="48" r="6" fill="var(--accent)"/>
-        <text class="map-label" x="260" y="39">Winterthur</text>
+          <g class="city-bubble" data-loc="Zürich" data-x="280" data-y="70">
+            <circle class="bubble-fill" cx="280" cy="70" r="36"/>
+            <text class="city-name" x="280" y="68">Zürich</text>
+            <text class="city-count" x="280" y="80" id="count-Zürich">24</text>
+          </g>
 
-        <circle class="map-dot" data-loc="St. Gallen" cx="320" cy="52" r="6" fill="var(--accent)"/>
-        <text class="map-label" x="320" y="43">St. Gallen</text>
+          <g class="city-bubble" data-loc="Basel" data-x="120" data-y="48">
+            <circle class="bubble-fill" cx="120" cy="48" r="32"/>
+            <text class="city-name" x="120" y="46">Basel</text>
+            <text class="city-count" x="120" y="56" id="count-Basel">12</text>
+          </g>
 
-        <circle class="map-dot" data-loc="Bern" cx="155" cy="105" r="7" fill="var(--accent)"/>
-        <text class="map-label" x="155" y="96">Bern</text>
+          <g class="city-bubble" data-loc="Luzern" data-x="220" data-y="115">
+            <circle class="bubble-fill" cx="220" cy="115" r="32"/>
+            <text class="city-name" x="220" y="113">Luzern</text>
+            <text class="city-count" x="220" y="123" id="count-Luzern">13</text>
+          </g>
 
-        <circle class="map-dot" data-loc="Luzern" cx="215" cy="100" r="6" fill="var(--accent)"/>
-        <text class="map-label" x="215" y="91">Luzern</text>
+          <g class="city-bubble" data-loc="St. Gallen" data-x="310" data-y="105">
+            <circle class="bubble-fill" cx="310" cy="105" r="30"/>
+            <text class="city-name" x="310" y="103">St.G.</text>
+            <text class="city-count" x="310" y="113" id="count-St. Gallen">8</text>
+          </g>
 
-        <circle class="map-dot" data-loc="Aarau" cx="175" cy="62" r="5" fill="var(--accent)"/>
-        <text class="map-label" x="175" y="55">Aarau</text>
+          <g class="city-bubble" data-loc="Winterthur" data-x="260" data-y="55">
+            <circle class="bubble-fill" cx="260" cy="55" r="28"/>
+            <text class="city-name" x="260" y="54">Winterthur</text>
+            <text class="city-count" x="260" y="63" id="count-Winterthur">6</text>
+          </g>
 
-        <circle class="map-dot" data-loc="Solothurn" cx="145" cy="68" r="5" fill="var(--accent)"/>
-        <text class="map-label" x="145" y="60">Solothurn</text>
+          <g class="city-bubble" data-loc="Westschweiz" data-x="100" data-y="175">
+            <circle class="bubble-fill" cx="100" cy="175" r="34"/>
+            <text class="city-name" x="100" y="173">Westschweiz</text>
+            <text class="city-count" x="100" y="185" id="count-Westschweiz">16</text>
+          </g>
 
-        <circle class="map-dot" data-loc="Neuenburg" cx="100" cy="108" r="5" fill="var(--accent)"/>
-        <text class="map-label" x="100" y="100">Neuenburg</text>
+          <!-- Smaller cities -->
+          <g class="city-bubble" data-loc="Aarau" data-x="175" data-y="68">
+            <circle class="bubble-fill" cx="175" cy="68" r="24"/>
+            <text class="city-name" x="175" y="71" style="font-size:8px;">Aarau</text>
+            <text class="city-count" x="175" y="77" id="count-Aarau">2</text>
+          </g>
 
-        <circle class="map-dot" data-loc="Westschweiz" cx="72" cy="170" r="6" fill="var(--accent)"/>
-        <text class="map-label" x="72" y="183">Westschweiz</text>
+          <g class="city-bubble" data-loc="Solothurn" data-x="145" data-y="85">
+            <circle class="bubble-fill" cx="145" cy="85" r="24"/>
+            <text class="city-name" x="145" y="88" style="font-size:8px;">Solothurn</text>
+            <text class="city-count" x="145" y="94" id="count-Solothurn">2</text>
+          </g>
 
-        <circle class="map-dot" data-loc="Chur" cx="340" cy="110" r="5" fill="var(--accent)"/>
-        <text class="map-label" x="340" y="102">Chur</text>
+          <g class="city-bubble" data-loc="Neuenburg" data-x="110" data-y="118">
+            <circle class="bubble-fill" cx="110" cy="118" r="24"/>
+            <text class="city-name" x="110" y="121" style="font-size:8px;">Neuenburg</text>
+            <text class="city-count" x="110" y="127" id="count-Neuenburg">1</text>
+          </g>
 
-        <circle class="map-dot" data-loc="Frauenfeld" cx="272" cy="38" r="4" fill="var(--accent)"/>
-        <text class="map-label" x="272" y="30">Frauenfeld</text>
-      </svg>
+          <g class="city-bubble" data-loc="Chur" data-x="345" data-y="140">
+            <circle class="bubble-fill" cx="345" cy="140" r="24"/>
+            <text class="city-name" x="345" y="143" style="font-size:8px;">Chur</text>
+            <text class="city-count" x="345" y="149" id="count-Chur">2</text>
+          </g>
+
+          <g class="city-bubble" data-loc="Frauenfeld" data-x="285" data-y="45">
+            <circle class="bubble-fill" cx="285" cy="45" r="22"/>
+            <text class="city-name" x="285" y="49" style="font-size:7px;">Frauenfeld</text>
+            <text class="city-count" x="285" y="54" id="count-Frauenfeld">1</text>
+          </g>
+
+          <g class="city-bubble" data-loc="Appenzell" data-x="320" data-y="75">
+            <circle class="bubble-fill" cx="320" cy="75" r="22"/>
+            <text class="city-name" x="320" y="79" style="font-size:7px;">Appenzell</text>
+            <text class="city-count" x="320" y="84" id="count-Appenzell">1</text>
+          </g>
+
+          <g class="city-bubble" data-loc="Herisau" data-x="330" data-y="82">
+            <circle class="bubble-fill" cx="330" cy="82" r="20"/>
+            <text class="city-name" x="330" y="86" style="font-size:7px;">Herisau</text>
+            <text class="city-count" x="330" y="91" id="count-Herisau">1</text>
+          </g>
+
+          <g class="city-bubble" data-loc="Schwyz" data-x="215" data-y="155">
+            <circle class="bubble-fill" cx="215" cy="155" r="22"/>
+            <text class="city-name" x="215" y="159" style="font-size:7px;">Schwyz</text>
+            <text class="city-count" x="215" y="164" id="count-Schwyz">1</text>
+          </g>
+
+          <g class="city-bubble" data-loc="Altdorf" data-x="195" data-y="175">
+            <circle class="bubble-fill" cx="195" cy="175" r="20"/>
+            <text class="city-name" x="195" y="179" style="font-size:7px;">Altdorf</text>
+            <text class="city-count" x="195" y="184" id="count-Altdorf">1</text>
+          </g>
+
+          <g class="city-bubble" data-loc="Zug" data-x="235" data-y="130">
+            <circle class="bubble-fill" cx="235" cy="130" r="22"/>
+            <text class="city-name" x="235" y="134" style="font-size:7px;">Zug</text>
+            <text class="city-count" x="235" y="139" id="count-Zug">1</text>
+          </g>
+        </svg>
+        <div class="map-hint">💡 <code>Ctrl/Cmd + Klick</code> für mehrere Städte · <code>Klick</code> um zu deselektieren</div>
+      </div>
     </section>
 
     <!-- Search & Filter -->
@@ -196,6 +274,7 @@
         <button class="loc-btn" data-loc="Westschweiz">Westschweiz</button>
       </div>
     </div>
+    <div id="activeLocs" style="display:none;"></div>
 
     <!-- Stats -->
     <div class="stats">
@@ -597,8 +676,8 @@
     document.getElementById('orgCount').textContent = total;
   }
 
-  /* ======== Search & Filter ======== */
-  let activeLoc = 'alle';
+  /* ======== Search & Filter (Multi-Select) ======== */
+  let activeLocs = [];
   const searchInput = document.getElementById('searchInput');
 
   function filterAll() {
@@ -607,7 +686,8 @@
       const text = card.dataset.search || '';
       const loc = card.dataset.loc || '';
       const matchQ = !q || text.includes(q);
-      const matchL = activeLoc === 'alle' || loc.includes(activeLoc);
+      // Match location: show if no filters OR loc is in active list
+      const matchL = activeLocs.length === 0 || activeLocs.some(l => loc.includes(l));
       card.style.display = (matchQ && matchL) ? '' : 'none';
     });
     // Hide empty categories
@@ -619,32 +699,74 @@
 
   searchInput.addEventListener('input', filterAll);
 
-  // Location buttons
+  // Location buttons - Multi-select with Ctrl/Cmd
   document.querySelectorAll('.loc-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeLoc = btn.dataset.loc;
-      // Sync map dots
-      document.querySelectorAll('.map-dot').forEach(d => d.classList.toggle('active', d.dataset.loc === activeLoc));
+    btn.addEventListener('click', (e) => {
+      const loc = btn.dataset.loc;
+      if (loc === 'alle') {
+        // "Alle" button resets everything
+        activeLocs = [];
+        document.querySelectorAll('.loc-btn').forEach(b => b.classList.toggle('active', b.dataset.loc === 'alle'));
+        document.querySelectorAll('.city-bubble').forEach(b => b.classList.remove('selected'));
+      } else if (e.ctrlKey || e.metaKey) {
+        // Ctrl/Cmd + Click: toggle in multi-select
+        if (activeLocs.includes(loc)) {
+          activeLocs = activeLocs.filter(x => x !== loc);
+        } else {
+          activeLocs.push(loc);
+        }
+        document.querySelectorAll('.loc-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.loc === 'alle' ? activeLocs.length === 0 : activeLocs.includes(b.dataset.loc));
+        });
+        document.querySelectorAll('.city-bubble').forEach(b => {
+          b.classList.toggle('selected', activeLocs.includes(b.dataset.loc));
+        });
+      } else {
+        // Normal click: only this location (or clear if already selected)
+        if (activeLocs.length === 1 && activeLocs[0] === loc) {
+          activeLocs = [];
+          document.querySelectorAll('.loc-btn').forEach(b => b.classList.toggle('active', b.dataset.loc === 'alle'));
+          document.querySelectorAll('.city-bubble').forEach(b => b.classList.remove('selected'));
+        } else {
+          activeLocs = [loc];
+          document.querySelectorAll('.loc-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.loc === loc);
+          });
+          document.querySelectorAll('.city-bubble').forEach(b => {
+            b.classList.toggle('selected', b.dataset.loc === loc);
+          });
+        }
+      }
       filterAll();
     });
   });
 
-  // Map dots
-  document.querySelectorAll('.map-dot').forEach(dot => {
-    dot.addEventListener('click', () => {
-      const loc = dot.dataset.loc;
-      // If already active, reset to 'alle'
-      if (activeLoc === loc) {
-        activeLoc = 'alle';
-        document.querySelectorAll('.loc-btn').forEach(b => b.classList.toggle('active', b.dataset.loc === 'alle'));
-        document.querySelectorAll('.map-dot').forEach(d => d.classList.remove('active'));
+  // Map bubbles - same multi-select logic
+  document.querySelectorAll('.city-bubble').forEach(bubble => {
+    bubble.addEventListener('click', (e) => {
+      const loc = bubble.dataset.loc;
+      if (e.ctrlKey || e.metaKey) {
+        // Ctrl/Cmd + Click: toggle in multi-select
+        if (activeLocs.includes(loc)) {
+          activeLocs = activeLocs.filter(x => x !== loc);
+        } else {
+          activeLocs.push(loc);
+        }
       } else {
-        activeLoc = loc;
-        document.querySelectorAll('.loc-btn').forEach(b => b.classList.toggle('active', b.dataset.loc === loc));
-        document.querySelectorAll('.map-dot').forEach(d => d.classList.toggle('active', d.dataset.loc === loc));
+        // Normal click: only this location (or clear if already selected)
+        if (activeLocs.length === 1 && activeLocs[0] === loc) {
+          activeLocs = [];
+        } else {
+          activeLocs = [loc];
+        }
       }
+      // Update UI
+      document.querySelectorAll('.city-bubble').forEach(b => {
+        b.classList.toggle('selected', activeLocs.includes(b.dataset.loc));
+      });
+      document.querySelectorAll('.loc-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.loc === 'alle' ? activeLocs.length === 0 : activeLocs.includes(btn.dataset.loc));
+      });
       filterAll();
     });
   });
@@ -661,8 +783,22 @@
     renderAll();
   });
 
+  /* ======== Update Bubble Counts ======== */
+  function updateBubbleCounts() {
+    const locationCounts = {};
+    allOrgs().forEach(org => {
+      const loc = org.loc;
+      locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+    });
+    Object.entries(locationCounts).forEach(([loc, count]) => {
+      const el = document.getElementById('count-' + loc);
+      if (el) el.textContent = count;
+    });
+  }
+
   /* ======== Init ======== */
   renderAll();
+  updateBubbleCounts();
   </script>
 </body>
 </html>
