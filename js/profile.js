@@ -13,7 +13,11 @@ function getProfile() {
 }
 
 function saveProfile(data) {
-  localStorage.setItem(LS_PROFILE, JSON.stringify({ ...data, updated_at: new Date().toISOString() }));
+  const enriched = { ...data, updated_at: new Date().toISOString() };
+  localStorage.setItem(LS_PROFILE, JSON.stringify(enriched));
+  if (typeof syncProfileToSupabase === 'function' && isLoggedIn()) {
+    syncProfileToSupabase(enriched);
+  }
 }
 
 function isProfileFilled() {

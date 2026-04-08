@@ -111,3 +111,6 @@ function updateBubbleCounts() {
 renderAll();
 updateBubbleCounts();
 buildMobileCantonChips();
+
+// Signal to auth.js that the app is initialized and ready for Supabase sync
+if (typeof onAppReady === 'function') onAppReady();
