@@ -329,7 +329,7 @@ function cardHTML(org, isFav) {
       <div class="org-top">
         ${favicon ? `<img class="org-favicon" src="${favicon}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}
         <span class="org-name">${escapeHtml(org.name)}</span>
-        <span class="org-star ${isFav?'fav':''}" data-fav="${escapeHtml(org.id)}">${isFav?'⭐':'☆'}</span>
+        <span class="org-star ${isFav?'fav':''}" data-fav="${escapeHtml(org.id)}" role="button" aria-label="${isFav?'Favorit entfernen':'Als Favorit markieren'}: ${escapeHtml(org.name)}" tabindex="0">${isFav?'⭐':'☆'}</span>
       </div>
       <span class="org-loc">📍 ${escapeHtml(org.loc)}</span>
       <p class="org-desc">${escapeHtml(org.desc)}</p>
@@ -377,8 +377,11 @@ function updateStats() {
   const total = allOrgs().length;
   const favCount = getFavs().length;
   document.getElementById('statOrgs').textContent = total;
+  document.getElementById('statCats').textContent = DATA.length;
   document.getElementById('statFavs').textContent = favCount || '—';
   document.getElementById('orgCount').textContent = total;
+  const catCountEl = document.getElementById('catCount');
+  if (catCountEl) catCountEl.textContent = DATA.length;
 }
 
 /* ======== Onboarding ======== */

@@ -150,7 +150,7 @@ function buildCategoryChips() {
 }
 
 /* ======== Favorite Toggle ======== */
-document.addEventListener('click', e => {
+function handleFavToggle(e) {
   const star = e.target.closest('[data-fav]');
   if (!star) return;
   e.preventDefault();
@@ -159,6 +159,13 @@ document.addEventListener('click', e => {
   favs = favs.includes(id) ? favs.filter(x => x !== id) : [...favs, id];
   saveFavs(favs);
   renderAll();
+}
+document.addEventListener('click', handleFavToggle);
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('[data-fav]')) {
+    e.preventDefault();
+    handleFavToggle(e);
+  }
 });
 
 /* ======== Update Bubble Counts (responsive labels) ======== */

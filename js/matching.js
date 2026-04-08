@@ -424,17 +424,17 @@ async function generateCoverLetter() {
 
     const data = await resp.json();
     if (!resp.ok) {
-      buildCoverLetterModal(false, data.error || 'Fehler beim Generieren.');
+      buildCoverLetterModal(false, data.error || 'Fehler beim Generieren.', null, true);
       return;
     }
 
     buildCoverLetterModal(false, null, data.letter);
   } catch (err) {
-    buildCoverLetterModal(false, 'Netzwerkfehler: ' + err.message);
+    buildCoverLetterModal(false, 'Netzwerkfehler: ' + err.message, null, true);
   }
 }
 
-function buildCoverLetterModal(loading, error, letter) {
+function buildCoverLetterModal(loading, error, letter, showRetry) {
   let modal = document.getElementById('clModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -465,7 +465,7 @@ function buildCoverLetterModal(loading, error, letter) {
         <p>Claude schreibt dein Bewerbungsschreiben...</p>
       </div>`;
   } else if (error) {
-    content = `<div class="cl-error">❌ ${escapeHtml(error)}</div>`;
+    content = `<div class="cl-error">❌ ${escapeHtml(error)}${showRetry ? '<br><button class="cl-retry-btn" onclick="generateCoverLetter()">🔄 Erneut versuchen</button>' : ''}</div>`;
   } else {
     content = `
       <textarea class="cl-editor" id="clEditor">${escapeHtml(letter || '')}</textarea>
@@ -519,7 +519,8 @@ function downloadCoverLetterTxt() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Bewerbung_${_clCurrentMatch?.organization || 'Job'}.txt`;
+  const dateTag = new Date().toISOString().slice(0,10);
+  a.download = `Bewerbung_${_clCurrentMatch?.organization || 'Job'}_${dateTag}.txt`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -547,7 +548,8 @@ ${text}
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Bewerbung_${_clCurrentMatch?.organization || 'Job'}.html`;
+  const dateTag2 = new Date().toISOString().slice(0,10);
+  a.download = `Bewerbung_${_clCurrentMatch?.organization || 'Job'}_${dateTag2}.html`;
   a.click();
   URL.revokeObjectURL(url);
 }

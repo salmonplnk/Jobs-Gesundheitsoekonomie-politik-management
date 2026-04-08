@@ -245,6 +245,11 @@ async function handleLogout() {
   } catch (err) {
     console.warn('Pre-logout sync failed:', err.message);
   }
+  // Clean up sensitive session data
+  localStorage.removeItem('userDocuments');
+  localStorage.removeItem('lastMatchResults');
+  if (typeof cancelMatching === 'function') cancelMatching();
+  window._lastMatches = null;
   await supabaseClient.auth.signOut();
 }
 

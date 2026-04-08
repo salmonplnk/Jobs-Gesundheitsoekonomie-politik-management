@@ -34,7 +34,7 @@ main{max-width:1100px;margin:-2rem auto 3rem;padding:0 1rem;position:relative;z-
 .ch-lakes{fill:#c8e0f4;stroke:#a8c8e8;stroke-width:0.8;opacity:.6;}
 body.dark .ch-lakes{fill:#2a5a8c;stroke:#3a6a9c;opacity:.7;}
 .connection{stroke:var(--border);stroke-width:1;opacity:.2;stroke-dasharray:4,4;transition:.3s;}
-.city-bubble{cursor:pointer;transition:transform .15s ease;}
+.city-bubble{cursor:pointer;transition:transform .15s ease;touch-action:manipulation;}
 .city-bubble:hover{transform:scale(1.08);}
 .bubble-fill{fill:var(--accent);transition:all .25s cubic-bezier(.4,0,.2,1);
              filter:drop-shadow(0 3px 10px rgba(11,131,217,.3));}
@@ -456,6 +456,8 @@ body.dark .pf-cv-success{background:#14532d;color:#86efac;}
 .match-doc-hint a{color:var(--accent);cursor:pointer;font-weight:600;text-decoration:underline;}
 .match-doc-ready{color:#059669;}
 body.dark .match-doc-ready{color:#86efac;}
+.match-doc-ready{color:#059669;}
+body.dark .match-doc-ready{color:#86efac;}
 .match-doc-partial{color:var(--accent);}
 
 /* === Cover Letter Modal === */
@@ -488,6 +490,12 @@ body.dark .match-doc-ready{color:#86efac;}
 .cl-error{background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:.8rem 1rem;
           color:#991b1b;font-size:.85rem;}
 body.dark .cl-error{background:#450a0a;border-color:#7f1d1d;color:#fca5a5;}
+.cl-retry-btn{margin-top:.6rem;padding:.4rem .9rem;border-radius:8px;border:1.5px solid #fca5a5;
+              background:transparent;color:#991b1b;font-size:.82rem;font-weight:600;cursor:pointer;
+              transition:.2s;font-family:inherit;}
+.cl-retry-btn:hover{background:#fca5a5;color:#fff;}
+body.dark .cl-retry-btn{border-color:#7f1d1d;color:#fca5a5;}
+body.dark .cl-retry-btn:hover{background:#7f1d1d;color:#fca5a5;}
 
 .cl-editor{width:100%;min-height:420px;border:1.5px solid var(--border);border-radius:10px;padding:1.2rem;
            font-family:'Times New Roman',Georgia,serif;font-size:1rem;line-height:1.7;color:var(--text);

@@ -343,10 +343,14 @@ function populateProfile() {
 /* ======== Submit / Reset / Open / Close ======== */
 function submitProfile(e) {
   e.preventDefault();
+  const btn = e.target.querySelector('[type="submit"]');
+  if (btn && btn.disabled) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Speichern...'; }
   const data = collectProfileData();
   saveProfile(data);
   updateProfileButton();
-  closeProfile();
+  if (typeof buildMatchingSection === 'function') buildMatchingSection();
+  setTimeout(() => closeProfile(), 200);
 }
 
 function resetProfile() {
