@@ -192,6 +192,9 @@
       <div class="stat"><div class="stat-val" id="statFavs">0</div><div class="stat-lbl">Favoriten ⭐</div></div>
     </div>
 
+    <!-- KI Matching -->
+    <section class="match-section" id="matchingSection"></section>
+
     <!-- Favorites -->
     <section id="fav-sec">
       <h2>⭐ Meine Favoriten</h2>
@@ -200,6 +203,15 @@
 
     <!-- Categories rendered by JS -->
     <div id="categories"></div>
+
+    <!-- Community Actions -->
+    <div class="community-actions">
+      <button class="community-btn" onclick="openOrgModal()">🏢 Unternehmen vorschlagen</button>
+      <button class="community-btn" onclick="openCatModal()">📁 Kategorie vorschlagen</button>
+    </div>
+
+    <!-- Community Orgs (approved, loaded from Supabase) -->
+    <div id="communitySection"></div>
   </main>
 
   <footer>
@@ -212,5 +224,7 @@
   <script src="js/app.js"></script>
   <script src="js/map.js"></script>
   <script src="js/profile.js"></script>
+  <script src="js/matching.js"></script>
+  <script src="js/community.js"></script>
 </body>
 </html>
