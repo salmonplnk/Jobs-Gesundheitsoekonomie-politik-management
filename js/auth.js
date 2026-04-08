@@ -32,10 +32,12 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && _appReady) {
     syncFavoritesOnLogin();
     syncProfileOnLogin();
+    if (typeof buildMatchingSection === 'function') buildMatchingSection();
   }
   if (event === 'SIGNED_OUT') {
     if (typeof renderAll === 'function') renderAll();
     if (typeof updateProfileButton === 'function') updateProfileButton();
+    if (typeof buildMatchingSection === 'function') buildMatchingSection();
   }
 });
 
@@ -45,6 +47,7 @@ function onAppReady() {
   if (currentUser) {
     syncFavoritesOnLogin();
     syncProfileOnLogin();
+    if (typeof buildMatchingSection === 'function') buildMatchingSection();
   }
 }
 
