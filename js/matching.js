@@ -62,9 +62,10 @@ async function startMatching() {
     });
   }
 
-  // If nothing selected, use all favorited orgs or all orgs up to 15
+  // If nothing selected, warn the user instead of silently using random orgs
   if (selectedOrgs.length === 0) {
-    selectedOrgs = all.slice(0, 15);
+    showMatchError('Bitte markiere zuerst Organisationen mit ⭐ oder wähle Standorte auf der Karte, damit die KI weiss, wo sie suchen soll.');
+    return;
   }
 
   // Filter to orgs that have a jobs URL
@@ -173,10 +174,6 @@ function showMatchError(msg) {
   if (btn) { btn.disabled = false; btn.innerHTML = '🔍 Jobs finden'; }
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 /* ======== Init ======== */
 buildMatchingSection();

@@ -62,10 +62,10 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Fetch job pages (check cache first, then fetch live)
-    const jobData = []
-    for (const org of orgs.slice(0, 15)) { // max 15 orgs per request
-      let cached = null
+    // Fetch job pages in PARALLEL (check cache first, then fetch live)
+    const selectedOrgs = orgs.slice(0, 10) // max 10 orgs per request
+    const jobData = await Promise.all(selectedOrgs.map(async (org) => {
+      // Check cache first
       const { data: cacheRow } = await supabase
         .from('job_cache')
         .select('*')
@@ -74,64 +74,55 @@ Deno.serve(async (req) => {
         .single()
 
       if (cacheRow && cacheRow.extracted_jobs) {
-        cached = cacheRow.extracted_jobs
-      } else if (org.jobs) {
-        // Fetch live
-        try {
-          const resp = await fetch(org.jobs, {
-            headers: { 'User-Agent': 'SwissHealthJobs/1.0' },
-            signal: AbortSignal.timeout(8000)
-          })
-          if (resp.ok) {
-            const html = await resp.text()
-            // Truncate to ~8000 chars to stay within Claude context limits
-            const truncated = html.replace(/<script[\s\S]*?<\/script>/gi, '')
-              .replace(/<style[\s\S]*?<\/style>/gi, '')
-              .replace(/<[^>]+>/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim()
-              .substring(0, 8000)
-
-            jobData.push({
-              org_name: org.name,
-              org_id: org.id,
-              url: org.jobs,
-              page_content: truncated
-            })
-
-            // Update cache (fire-and-forget)
-            supabase.from('job_cache').upsert({
-              org_id: org.id,
-              url: org.jobs,
-              raw_html: truncated,
-              fetched_at: new Date().toISOString(),
-              expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-            }, { onConflict: 'org_id' }).then(() => {})
-          }
-        } catch (fetchErr) {
-          // Skip this org if fetch fails
-          jobData.push({
-            org_name: org.name,
-            org_id: org.id,
-            url: org.jobs,
-            page_content: '(Karriereseite konnte nicht geladen werden)'
-          })
+        return {
+          org_name: org.name, org_id: org.id, url: org.jobs,
+          page_content: JSON.stringify(cacheRow.extracted_jobs)
         }
       }
 
-      if (cached) {
-        jobData.push({
-          org_name: org.name,
-          org_id: org.id,
-          url: org.jobs,
-          page_content: JSON.stringify(cached)
+      if (!org.jobs) return null
+
+      // Fetch live
+      try {
+        const resp = await fetch(org.jobs, {
+          headers: { 'User-Agent': 'SwissHealthJobs/1.0' },
+          signal: AbortSignal.timeout(8000)
         })
+        if (resp.ok) {
+          const html = await resp.text()
+          const truncated = html.replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[\s\S]*?<\/style>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 4000) // 4k chars per org to keep payload manageable
+
+          // Update cache (fire-and-forget)
+          supabase.from('job_cache').upsert({
+            org_id: org.id, url: org.jobs, raw_html: truncated,
+            fetched_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          }, { onConflict: 'org_id' }).then(() => {})
+
+          return {
+            org_name: org.name, org_id: org.id, url: org.jobs,
+            page_content: truncated
+          }
+        }
+      } catch (fetchErr) {
+        return {
+          org_name: org.name, org_id: org.id, url: org.jobs,
+          page_content: '(Karriereseite konnte nicht geladen werden)'
+        }
       }
-    }
+      return null
+    }))
+
+    const validJobData = jobData.filter(Boolean)
 
     // Build Claude prompt
     const profileText = buildProfileText(profile)
-    const jobsText = jobData.map((j, i) =>
+    const jobsText = validJobData.map((j, i) =>
       `--- ${i + 1}. ${j.org_name} (${j.url}) ---\n${j.page_content}`
     ).join('\n\n')
 

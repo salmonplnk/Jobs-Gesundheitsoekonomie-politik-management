@@ -240,6 +240,12 @@ footer{text-align:center;font-size:.8rem;color:var(--muted);padding:2rem 1rem;bo
   .auth-area{right:3.8rem;}
   .auth-email{display:none;}
 }
+@media(max-width:400px){
+  .profile-btn{width:34px;height:34px;font-size:1rem;top:.8rem;left:.8rem;}
+  .theme-toggle{width:34px;height:34px;font-size:1rem;top:.8rem;right:.8rem;}
+  .auth-area{top:.8rem;right:3rem;}
+  .auth-btn{padding:.25rem .5rem;font-size:.7rem;}
+}
 
 /* === Auth Modal === */
 .auth-modal{position:fixed;inset:0;z-index:1001;display:flex;align-items:center;justify-content:center;
@@ -328,3 +334,18 @@ body.dark .match-error{background:#450a0a;border-color:#7f1d1d;color:#fca5a5;}
 .community-badge{font-size:.65rem;padding:.15rem .45rem;border-radius:8px;background:#dbeafe;color:#1e40af;
                  font-weight:700;flex-shrink:0;}
 body.dark .community-badge{background:#1e3a5f;color:#93c5fd;}
+
+/* === iOS Auto-Zoom Fix === */
+@media(max-width:768px){
+  .pf-input,.pf-select,#searchInput,#authEmail,#authPassword,#authPasswordConfirm{font-size:16px !important;}
+}
+
+/* === Onboarding Hint === */
+.onboarding-hint{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #93c5fd;
+                 border-radius:var(--radius);padding:.8rem 1rem;margin-bottom:1rem;display:flex;
+                 align-items:center;gap:.6rem;font-size:.84rem;color:#1e40af;line-height:1.4;}
+body.dark .onboarding-hint{background:linear-gradient(135deg,#1e3a5f,#172554);border-color:#3b82f6;color:#93c5fd;}
+.onboarding-dismiss{border:none;background:none;color:#1e40af;cursor:pointer;font-size:1rem;flex-shrink:0;
+                    padding:.2rem;opacity:.6;}
+.onboarding-dismiss:hover{opacity:1;}
+body.dark .onboarding-dismiss{color:#93c5fd;}

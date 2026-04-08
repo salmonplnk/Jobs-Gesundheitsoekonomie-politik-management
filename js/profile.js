@@ -88,12 +88,12 @@ function buildProfileModal() {
           <div class="pf-range-row">
             <label>Min: <strong id="pensumMinVal">50</strong>%</label>
             <input type="range" class="pf-range" name="workload_min" min="10" max="100" step="10" value="50"
-              oninput="document.getElementById('pensumMinVal').textContent=this.value">
+              oninput="constrainPensum('min', this.value)">
           </div>
           <div class="pf-range-row">
             <label>Max: <strong id="pensumMaxVal">100</strong>%</label>
             <input type="range" class="pf-range" name="workload_max" min="10" max="100" step="10" value="100"
-              oninput="document.getElementById('pensumMaxVal').textContent=this.value">
+              oninput="constrainPensum('max', this.value)">
           </div>
         </fieldset>
 
@@ -167,6 +167,25 @@ function buildProfileModal() {
   `;
   document.body.appendChild(modal);
   initProfileInteractions();
+}
+
+/* ======== Pensum Constraint ======== */
+function constrainPensum(which, val) {
+  const form = document.getElementById('profileForm');
+  if (!form) return;
+  const minEl = form.querySelector('[name="workload_min"]');
+  const maxEl = form.querySelector('[name="workload_max"]');
+  let minVal = parseInt(minEl.value);
+  let maxVal = parseInt(maxEl.value);
+  if (which === 'min') {
+    minVal = parseInt(val);
+    if (minVal > maxVal) { maxVal = minVal; maxEl.value = maxVal; }
+  } else {
+    maxVal = parseInt(val);
+    if (maxVal < minVal) { minVal = maxVal; minEl.value = minVal; }
+  }
+  document.getElementById('pensumMinVal').textContent = minVal;
+  document.getElementById('pensumMaxVal').textContent = maxVal;
 }
 
 /* ======== Interactions ======== */

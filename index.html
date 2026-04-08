@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Schweizer Gesundheits-Jobs – Kategorien, Suche & Karte</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -24,7 +27,7 @@
       <div class="map-container">
         <svg class="map-svg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
           <!-- Switzerland outline (detailed) -->
-          <path class="ch-outline" d="M82,332 L90,318 L98,298 L108,272 L118,252 L132,228 L150,200 L168,178
+          <path class="ch-outline" stroke-linejoin="round" stroke-linecap="round" d="M82,332 L90,318 L98,298 L108,272 L118,252 L132,228 L150,200 L168,178
             L188,152 L205,132 L220,112 L232,96 L248,80 L262,68 L280,58 L300,52
             L328,46 L358,42 L390,40 L425,42 L458,40 L488,38 L510,36
             L528,34 L542,36 L556,42 L568,48 L582,44 L598,48 L616,54
@@ -148,15 +151,15 @@
           </g>
 
           <g class="city-bubble" data-loc="Appenzell">
-            <circle class="bubble-fill" cx="722" cy="112" r="22"/>
-            <text class="city-name" x="722" y="109" style="font-size:9px;">Appenzell</text>
-            <text class="city-count" x="722" y="121" id="count-Appenzell">1</text>
+            <circle class="bubble-fill" cx="735" cy="100" r="20"/>
+            <text class="city-name" x="735" y="97" style="font-size:9px;">Appenzell</text>
+            <text class="city-count" x="735" y="109" id="count-Appenzell">1</text>
           </g>
 
           <g class="city-bubble" data-loc="Herisau">
-            <circle class="bubble-fill" cx="705" cy="125" r="20"/>
-            <text class="city-name" x="705" y="122" style="font-size:9px;">Herisau</text>
-            <text class="city-count" x="705" y="134" id="count-Herisau">1</text>
+            <circle class="bubble-fill" cx="698" cy="135" r="18"/>
+            <text class="city-name" x="698" y="132" style="font-size:9px;">Herisau</text>
+            <text class="city-count" x="698" y="143" id="count-Herisau">1</text>
           </g>
         </svg>
 
@@ -185,15 +188,18 @@
     </div>
     <div id="activeLocs" style="display:none;"></div>
 
-    <!-- Stats -->
+    <!-- Stats + Community Actions (inline) -->
     <div class="stats">
       <div class="stat"><div class="stat-val" id="statOrgs">0</div><div class="stat-lbl">Organisationen</div></div>
       <div class="stat"><div class="stat-val" id="statCats">7</div><div class="stat-lbl">Kategorien</div></div>
       <div class="stat"><div class="stat-val" id="statFavs">0</div><div class="stat-lbl">Favoriten ⭐</div></div>
     </div>
 
-    <!-- KI Matching -->
-    <section class="match-section" id="matchingSection"></section>
+    <!-- Onboarding hint (dismissible, first-time users) -->
+    <div class="onboarding-hint" id="onboardingHint" style="display:none;">
+      <span>💡 <strong>Tipp:</strong> Markiere Organisationen mit ⭐, wähle Standorte auf der Karte, und nutze dann das KI-Matching um passende Stellen zu finden.</span>
+      <button class="onboarding-dismiss" onclick="dismissOnboarding()">✕</button>
+    </div>
 
     <!-- Favorites -->
     <section id="fav-sec">
@@ -201,16 +207,17 @@
       <div class="card-grid" id="fav-grid"></div>
     </section>
 
+    <!-- KI Matching (after favorites – user knows the orgs first) -->
+    <section class="match-section" id="matchingSection"></section>
+
     <!-- Categories rendered by JS -->
     <div id="categories"></div>
 
-    <!-- Community Actions -->
+    <!-- Community Actions + Orgs -->
     <div class="community-actions">
       <button class="community-btn" onclick="openOrgModal()">🏢 Unternehmen vorschlagen</button>
       <button class="community-btn" onclick="openCatModal()">📁 Kategorie vorschlagen</button>
     </div>
-
-    <!-- Community Orgs (approved, loaded from Supabase) -->
     <div id="communitySection"></div>
   </main>
 

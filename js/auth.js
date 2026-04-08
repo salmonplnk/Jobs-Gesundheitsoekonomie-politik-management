@@ -8,6 +8,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let _appReady = false;
+let _syncInProgress = false;
 
 function isLoggedIn() { return !!currentUser; }
 
@@ -19,6 +20,13 @@ const AUTH_ERRORS = {
   'Email not confirmed': 'Bitte bestätige zuerst deine E-Mail-Adresse.',
   'Signup requires a valid password': 'Bitte gib ein gültiges Passwort ein.',
   'Unable to validate email address: invalid format': 'Ungültiges E-Mail-Format.',
+  'Network request failed': 'Netzwerkfehler – bitte prüfe deine Internetverbindung.',
+  'Failed to fetch': 'Netzwerkfehler – bitte prüfe deine Internetverbindung.',
+  'Request timeout': 'Zeitüberschreitung – bitte versuche es erneut.',
+  'Invalid auth token': 'Sitzung abgelaufen – bitte erneut anmelden.',
+  'Session has expired': 'Sitzung abgelaufen – bitte erneut anmelden.',
+  'Auth session missing!': 'Bitte melde dich erneut an.',
+  'Email rate limit exceeded': 'Zu viele Versuche – bitte warte einen Moment.',
 };
 function translateError(msg) { return AUTH_ERRORS[msg] || msg; }
 
@@ -280,7 +288,8 @@ function syncFavoritesToSupabase(favs) {
 }
 
 async function syncFavoritesOnLogin() {
-  if (!currentUser) return;
+  if (!currentUser || _syncInProgress) return;
+  _syncInProgress = true;
   try {
     const localFavs = JSON.parse(localStorage.getItem('favOrgs') || '[]');
     const { data, error } = await supabaseClient
@@ -305,6 +314,8 @@ async function syncFavoritesOnLogin() {
     if (typeof renderAll === 'function') renderAll();
   } catch (err) {
     console.warn('Favorites sync on login failed, using localStorage:', err.message);
+  } finally {
+    _syncInProgress = false;
   }
 }
 

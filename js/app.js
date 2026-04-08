@@ -152,9 +152,6 @@ const DATA = [
       { id:'oaat', name:'OAAT', loc:'Bern',
         main:'https://oaat-otma.ch', jobs:'',
         desc:'Tariforganisation ambulante Arzttarife.' },
-      { id:'prio', name:'prio.swiss', loc:'Bern',
-        main:'https://prio.swiss', jobs:'https://prio.swiss/jobs/',
-        desc:'Verband Schweizer Krankenversicherer.' },
       { id:'santesuisse', name:'santésuisse', loc:'Bern',
         main:'https://www.santesuisse.ch', jobs:'https://www.santesuisse.ch/de/ueber-santesuisse/offene-stellen/',
         desc:'Branchenverband der Schweizer Krankenversicherer.' },
@@ -307,6 +304,10 @@ const saveFavs = f => {
 };
 const allOrgs = () => DATA.flatMap(c => c.orgs);
 const domain = url => { try { return new URL(url).hostname; } catch { return ''; } };
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 
 /* ======== Dark Mode ======== */
 const themeBtn = document.getElementById('themeToggle');
@@ -324,17 +325,17 @@ function cardHTML(org, isFav) {
   const d = domain(org.main);
   const favicon = d ? `https://www.google.com/s2/favicons?domain=${d}&sz=32` : '';
   return `
-    <div class="org-card" data-id="${org.id}" data-loc="${org.loc}" data-search="${(org.name+' '+org.loc+' '+org.desc).toLowerCase()}">
+    <div class="org-card" data-id="${escapeHtml(org.id)}" data-loc="${escapeHtml(org.loc)}" data-search="${escapeHtml((org.name+' '+org.loc+' '+org.desc).toLowerCase())}">
       <div class="org-top">
         ${favicon ? `<img class="org-favicon" src="${favicon}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}
-        <span class="org-name">${org.name}</span>
-        <span class="org-star ${isFav?'fav':''}" data-fav="${org.id}">${isFav?'⭐':'☆'}</span>
+        <span class="org-name">${escapeHtml(org.name)}</span>
+        <span class="org-star ${isFav?'fav':''}" data-fav="${escapeHtml(org.id)}">${isFav?'⭐':'☆'}</span>
       </div>
-      <span class="org-loc">📍 ${org.loc}</span>
-      <p class="org-desc">${org.desc}</p>
+      <span class="org-loc">📍 ${escapeHtml(org.loc)}</span>
+      <p class="org-desc">${escapeHtml(org.desc)}</p>
       <div class="org-links">
-        <a class="org-link org-link-main" href="${org.main}" target="_blank" rel="noopener">🌐 Website</a>
-        ${org.jobs ? `<a class="org-link org-link-jobs" href="${org.jobs}" target="_blank" rel="noopener">💼 Jobs</a>` : ''}
+        <a class="org-link org-link-main" href="${escapeHtml(org.main)}" target="_blank" rel="noopener">🌐 Website</a>
+        ${org.jobs ? `<a class="org-link org-link-jobs" href="${escapeHtml(org.jobs)}" target="_blank" rel="noopener">💼 Jobs</a>` : ''}
       </div>
     </div>`;
 }
@@ -374,7 +375,23 @@ function renderFavs() {
 /* ======== Stats ======== */
 function updateStats() {
   const total = allOrgs().length;
+  const favCount = getFavs().length;
   document.getElementById('statOrgs').textContent = total;
-  document.getElementById('statFavs').textContent = getFavs().length;
+  document.getElementById('statFavs').textContent = favCount || '—';
   document.getElementById('orgCount').textContent = total;
 }
+
+/* ======== Onboarding ======== */
+function showOnboarding() {
+  const hint = document.getElementById('onboardingHint');
+  if (!hint) return;
+  if (localStorage.getItem('onboardingDismissed') === '1') return;
+  if (getFavs().length > 0) return; // Don't show if user already has favorites
+  hint.style.display = 'flex';
+}
+function dismissOnboarding() {
+  localStorage.setItem('onboardingDismissed', '1');
+  const hint = document.getElementById('onboardingHint');
+  if (hint) hint.style.display = 'none';
+}
+showOnboarding();
