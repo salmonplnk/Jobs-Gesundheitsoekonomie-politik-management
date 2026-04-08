@@ -15,6 +15,10 @@ function buildMatchingSection() {
   const hasProfile = isProfileFilled();
   const hasFavs = favs.length > 0;
 
+  const docs = typeof getDocuments === 'function' ? getDocuments() : [];
+  const hasCV = docs.some(d => d.doc_type === 'cv');
+  const zeugnisCount = docs.filter(d => d.doc_type === 'zeugnis').length;
+
   let hint = '';
   if (!isLoggedIn()) {
     hint = '<span class="match-hint">💡 <a onclick="openAuthModal()">Melde dich an</a>, um das KI-Matching zu nutzen.</span>';
@@ -22,6 +26,18 @@ function buildMatchingSection() {
     hint = '<span class="match-hint">💡 <a onclick="openProfile()">Erstelle ein Profil</a> und markiere Organisationen mit ⭐ für bessere Ergebnisse.</span>';
   } else if (!hasProfile) {
     hint = '<span class="match-hint">💡 <a onclick="openProfile()">Profil erstellen</a> für genauere Matches.</span>';
+  }
+
+  // Document status hint
+  let docHint = '';
+  if (isLoggedIn()) {
+    if (hasCV && zeugnisCount > 0) {
+      docHint = `<span class="match-doc-hint match-doc-ready">🧠 CV + ${zeugnisCount} Arbeitszeugnis${zeugnisCount > 1 ? 'se' : ''} werden beim Matching berücksichtigt</span>`;
+    } else if (hasCV) {
+      docHint = '<span class="match-doc-hint match-doc-partial">🧠 CV wird berücksichtigt · <a onclick="openProfile()">Arbeitszeugnisse hochladen</a> für noch bessere Ergebnisse</span>';
+    } else {
+      docHint = '<span class="match-doc-hint"><a onclick="openProfile()">📄 CV & Arbeitszeugnisse hochladen</a> für personalisierte Matches</span>';
+    }
   }
 
   // Rate limit info
@@ -33,6 +49,7 @@ function buildMatchingSection() {
         <span class="match-title">🤖 KI Job-Matching</span>
         <span class="match-desc">Claude analysiert Karriereseiten und findet passende Stellen für dein Profil.</span>
         ${hint}
+        ${docHint}
         ${rateInfo}
       </div>
       <div class="match-actions">
@@ -132,7 +149,10 @@ async function startMatching() {
         },
         body: JSON.stringify({
           profile: profile,
-          orgs: selectedOrgs.map(o => ({ id: o.id, name: o.name, jobs: o.jobs, loc: o.loc }))
+          orgs: selectedOrgs.map(o => ({ id: o.id, name: o.name, jobs: o.jobs, loc: o.loc })),
+          documents: (typeof getDocuments === 'function' ? getDocuments() : [])
+            .filter(d => d.raw_text)
+            .map(d => ({ doc_type: d.doc_type, raw_text: d.raw_text, employer: d.employer, period: d.period }))
         }),
         signal: matchAbortController.signal
       }
@@ -270,11 +290,19 @@ function renderMatchResults(data, isRestored, timestamp) {
           ${m.highlights.map(h => `<span class="match-tag match-tag-good">✓ ${escapeHtml(h)}</span>`).join('')}
           ${(m.concerns || []).map(c => `<span class="match-tag match-tag-warn">⚠ ${escapeHtml(c)}</span>`).join('')}
         </div>` : ''}
-      <a class="match-link" href="${escapeHtml(m.url)}" target="_blank" rel="noopener">
-        💼 Zur Stelle →
-      </a>
+      <div class="match-card-actions">
+        <a class="match-link" href="${escapeHtml(m.url)}" target="_blank" rel="noopener">
+          💼 Zur Stelle →
+        </a>
+        <button class="match-apply-btn" data-match-idx="${i}" onclick="openCoverLetterForMatch(${i})">
+          ✍️ Bewerbung
+        </button>
+      </div>
     </div>
   `}).join('');
+
+  // Store matches for cover letter access
+  window._lastMatches = data.matches;
 
   results.innerHTML = `
     ${restoredBar}
@@ -311,6 +339,217 @@ function formatTimeAgo(isoString) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `vor ${hrs} Std.`;
   return 'vor mehr als einem Tag';
+}
+
+/* ======== Cover Letter Modal ======== */
+let _clCurrentMatch = null;
+let _clCurrentLang = 'de';
+
+function openCoverLetterForMatch(idx) {
+  const matches = window._lastMatches;
+  if (!matches || !matches[idx]) return;
+
+  const docs = typeof getDocuments === 'function' ? getDocuments() : [];
+  const cv = docs.find(d => d.doc_type === 'cv');
+
+  if (!cv || !cv.raw_text) {
+    // No CV: show hint
+    showCoverLetterHint();
+    return;
+  }
+
+  _clCurrentMatch = matches[idx];
+  // Auto-detect language: Westschweiz jobs → offer French
+  const isWestschweiz = _clCurrentMatch.location &&
+    /westschweiz|lausanne|gen[eè]ve|fribourg|neuch[aâ]tel|sion|valais|vaud/i.test(_clCurrentMatch.location);
+  _clCurrentLang = isWestschweiz ? 'fr' : 'de';
+
+  generateCoverLetter();
+}
+
+function showCoverLetterHint() {
+  if (document.getElementById('clModal')) { document.getElementById('clModal').remove(); }
+  const modal = document.createElement('div');
+  modal.id = 'clModal';
+  modal.className = 'cl-modal open';
+  modal.innerHTML = `
+    <div class="cl-backdrop" onclick="closeCoverLetter()"></div>
+    <div class="cl-panel cl-panel-hint">
+      <button class="cl-close" onclick="closeCoverLetter()">✕</button>
+      <div class="cl-hint-content">
+        <div class="cl-hint-icon">📄</div>
+        <h3>CV benötigt</h3>
+        <p>Um ein Bewerbungsschreiben zu generieren, lade zuerst deinen Lebenslauf hoch.</p>
+        <button class="pf-btn-primary" onclick="closeCoverLetter();openProfile();">📄 CV hochladen</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.body.style.overflow = 'hidden';
+}
+
+async function generateCoverLetter() {
+  const docs = typeof getDocuments === 'function' ? getDocuments() : [];
+  const cv = docs.find(d => d.doc_type === 'cv');
+  if (!cv || !_clCurrentMatch) return;
+
+  const zeugnisse = docs.filter(d => d.doc_type === 'zeugnis').map(d => ({
+    employer: d.employer,
+    period: d.period,
+    text: d.raw_text,
+    notable_quotes: d.notable_quotes || []
+  }));
+
+  // Build/show modal with loading state
+  buildCoverLetterModal(true);
+
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) { closeCoverLetter(); openAuthModal(); return; }
+
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/generate-cover-letter`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_KEY
+      },
+      body: JSON.stringify({
+        cv_text: cv.raw_text,
+        person_name: cv.person_name || null,
+        zeugnisse,
+        job: _clCurrentMatch,
+        language: _clCurrentLang
+      })
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) {
+      buildCoverLetterModal(false, data.error || 'Fehler beim Generieren.');
+      return;
+    }
+
+    buildCoverLetterModal(false, null, data.letter);
+  } catch (err) {
+    buildCoverLetterModal(false, 'Netzwerkfehler: ' + err.message);
+  }
+}
+
+function buildCoverLetterModal(loading, error, letter) {
+  let modal = document.getElementById('clModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'clModal';
+    modal.className = 'cl-modal';
+    document.body.appendChild(modal);
+    // Trigger reflow for animation
+    requestAnimationFrame(() => modal.classList.add('open'));
+  } else {
+    modal.classList.add('open');
+  }
+  document.body.style.overflow = 'hidden';
+
+  const m = _clCurrentMatch;
+  const jobInfo = m ? `${escapeHtml(m.title)}${m.pensum ? ' (' + escapeHtml(m.pensum) + ')' : ''} bei ${escapeHtml(m.organization)}${m.location ? ', ' + escapeHtml(m.location) : ''}` : '';
+
+  const langOptions = `
+    <select class="cl-lang-select" onchange="_clCurrentLang=this.value;generateCoverLetter();">
+      <option value="de" ${_clCurrentLang === 'de' ? 'selected' : ''}>🇩🇪 Deutsch</option>
+      <option value="fr" ${_clCurrentLang === 'fr' ? 'selected' : ''}>🇫🇷 Français</option>
+    </select>`;
+
+  let content;
+  if (loading) {
+    content = `
+      <div class="cl-loading">
+        <div class="match-spinner"></div>
+        <p>Claude schreibt dein Bewerbungsschreiben...</p>
+      </div>`;
+  } else if (error) {
+    content = `<div class="cl-error">❌ ${escapeHtml(error)}</div>`;
+  } else {
+    content = `
+      <textarea class="cl-editor" id="clEditor">${escapeHtml(letter || '')}</textarea>
+      <div class="cl-actions-bar">
+        ${langOptions}
+        <div class="cl-actions">
+          <button class="cl-action-btn" onclick="copyCoverLetter()">📋 Kopieren</button>
+          <button class="cl-action-btn" onclick="downloadCoverLetterTxt()">⬇ .txt</button>
+          <button class="cl-action-btn" onclick="downloadCoverLetterHtml()">⬇ .html</button>
+          <button class="cl-action-btn cl-action-regen" onclick="generateCoverLetter()">🔄 Neu</button>
+        </div>
+      </div>`;
+  }
+
+  modal.innerHTML = `
+    <div class="cl-backdrop" onclick="closeCoverLetter()"></div>
+    <div class="cl-panel">
+      <div class="cl-header">
+        <div>
+          <h3>✍️ Bewerbungsschreiben</h3>
+          <p class="cl-job-info">${jobInfo}</p>
+        </div>
+        <button class="cl-close" onclick="closeCoverLetter()">✕</button>
+      </div>
+      <div class="cl-body">${content}</div>
+    </div>`;
+}
+
+function closeCoverLetter() {
+  const modal = document.getElementById('clModal');
+  if (modal) {
+    modal.classList.remove('open');
+    setTimeout(() => modal.remove(), 300);
+  }
+  document.body.style.overflow = '';
+}
+
+function copyCoverLetter() {
+  const editor = document.getElementById('clEditor');
+  if (!editor) return;
+  navigator.clipboard.writeText(editor.value).then(() => {
+    const btn = document.querySelector('.cl-action-btn');
+    if (btn) { const orig = btn.innerHTML; btn.innerHTML = '✅ Kopiert!'; setTimeout(() => btn.innerHTML = orig, 2000); }
+  });
+}
+
+function downloadCoverLetterTxt() {
+  const editor = document.getElementById('clEditor');
+  if (!editor) return;
+  const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Bewerbung_${_clCurrentMatch?.organization || 'Job'}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadCoverLetterHtml() {
+  const editor = document.getElementById('clEditor');
+  if (!editor) return;
+  const text = editor.value.replace(/\n/g, '<br>\n');
+  const html = `<!DOCTYPE html>
+<html lang="${_clCurrentLang}">
+<head>
+<meta charset="utf-8">
+<title>Bewerbung – ${escapeHtml(_clCurrentMatch?.organization || '')}</title>
+<style>
+body{font-family:'Times New Roman',Georgia,serif;max-width:680px;margin:50px auto;
+     line-height:1.7;font-size:12pt;color:#1a1a1a;padding:0 20px;}
+@media print{body{margin:20mm;padding:0;}}
+</style>
+</head>
+<body>
+${text}
+</body>
+</html>`;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Bewerbung_${_clCurrentMatch?.organization || 'Job'}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /* ======== Init ======== */

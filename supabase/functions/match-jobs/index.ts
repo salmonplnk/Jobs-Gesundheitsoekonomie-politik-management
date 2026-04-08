@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request
-    const { profile, orgs } = await req.json()
+    const { profile, orgs, documents } = await req.json()
     if (!orgs || !orgs.length) {
       return new Response(JSON.stringify({ error: 'Keine Organisationen ausgewählt' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -122,13 +122,15 @@ Deno.serve(async (req) => {
 
     // Build Claude prompt
     const profileText = buildProfileText(profile)
+    const documentsText = buildDocumentsText(documents)
     const jobsText = validJobData.map((j, i) =>
       `--- ${i + 1}. ${j.org_name} (${j.url}) ---\n${j.page_content}`
     ).join('\n\n')
 
     const systemPrompt = `Du bist ein Schweizer Gesundheitswesen-Jobberater. Du erhältst:
-1. Ein Profil eines Stellensuchenden
-2. Karriereseiten-Inhalte von Schweizer Gesundheitsorganisationen
+1. Ein Profil eines Stellensuchenden (Präferenzen: was die Person sucht)
+2. Optional: Lebenslauf und/oder Arbeitszeugnisse (wer die Person ist)
+3. Karriereseiten-Inhalte von Schweizer Gesundheitsorganisationen
 
 Deine Aufgabe:
 - Analysiere die Inhalte und finde passende Stellen für das Profil
@@ -138,6 +140,10 @@ Deine Aufgabe:
 - Sortiere nach Relevanz (höchster Score zuerst, bei Gleichstand alphabetisch nach Organisation)
 - Antworte auf Deutsch
 - Berücksichtige: Ausbildungsniveau, Fachrichtung, Erfahrung, Region, Pensum, Sprache
+- Nutze den Lebenslauf (wenn vorhanden) um den konkreten Werdegang, Skills und die Fachrichtung zu verstehen
+- Nutze Arbeitszeugnisse (wenn vorhanden) um die tatsächlichen Stärken und Leistungen einzuschätzen
+- Priorisiere Stellen die zu den nachgewiesenen Kompetenzen und dem Erfahrungslevel passen
+- Berücksichtige Branchenkenntnis (z.B. Zeugnis von Krankenkasse → passt gut zu Versicherungs-Jobs)
 - Wenn keine passenden Stellen gefunden wurden, erkläre warum und gib konkrete Tipps
 - Maximal 10 beste Matches
 
@@ -171,7 +177,7 @@ WICHTIG zu den neuen Feldern:
 - "deadline": Bewerbungsfrist wenn angegeben. Wenn nicht ersichtlich, setze null.
 Setze Felder auf null wenn die Information nicht verfügbar ist – erfinde KEINE Daten.`
 
-    const userMessage = `PROFIL DES STELLENSUCHENDEN:\n${profileText}\n\nKARRIERESEITEN-INHALTE:\n${jobsText}`
+    const userMessage = `PROFIL DES STELLENSUCHENDEN (Präferenzen):\n${profileText}${documentsText}\n\nKARRIERESEITEN-INHALTE:\n${jobsText}`
 
     // Call Claude API
     const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')
@@ -252,4 +258,25 @@ function buildProfileText(p) {
   if (p.exclusions_freetext) parts.push(`Weitere Ausschlüsse: ${p.exclusions_freetext}`)
   if (p.start_date) parts.push(`Starttermin: ${p.start_date}`)
   return parts.join('\n') || 'Kein Profil angegeben.'
+}
+
+function buildDocumentsText(docs: Array<{doc_type: string, raw_text: string, employer?: string, period?: string}> | undefined): string {
+  if (!docs || !docs.length) return ''
+  const parts: string[] = []
+
+  const cv = docs.find(d => d.doc_type === 'cv')
+  if (cv && cv.raw_text) {
+    parts.push(`\n\nLEBENSLAUF:\n${cv.raw_text.substring(0, 4000)}`)
+  }
+
+  const zeugnisse = docs.filter(d => d.doc_type === 'zeugnis' && d.raw_text)
+  if (zeugnisse.length) {
+    parts.push('\n\nARBEITSZEUGNISSE:')
+    zeugnisse.slice(0, 3).forEach(z => {
+      const header = z.employer ? `--- ${z.employer}${z.period ? ` (${z.period})` : ''} ---` : '--- Arbeitszeugnis ---'
+      parts.push(`${header}\n${z.raw_text.substring(0, 2000)}`)
+    })
+  }
+
+  return parts.join('\n')
 }

@@ -1,7 +1,6 @@
-// Supabase Edge Function: parse-cv
-// Accepts a PDF CV, extracts text, sends to Claude for profile extraction
+// Supabase Edge Function: parse-cv (document parser)
+// Accepts a PDF (CV or Arbeitszeugnis), extracts text, classifies and summarizes via Claude
 // Deploy: supabase functions deploy parse-cv
-// Env var: ANTHROPIC_API_KEY
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -16,7 +15,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Nicht authentifiziert' }), {
@@ -37,7 +35,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Rate limit: max 3 CV parses per day
+    // Rate limit: 5 document uploads per day
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const { count } = await supabase
       .from('cv_uploads')
@@ -45,13 +43,12 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id)
       .gte('uploaded_at', oneDayAgo)
 
-    if ((count ?? 0) >= 3) {
+    if ((count ?? 0) >= 5) {
       return new Response(JSON.stringify({
-        error: 'Maximal 3 CV-Uploads pro Tag. Bitte versuche es morgen erneut.'
+        error: 'Maximal 5 Dokumente pro Tag. Bitte versuche es morgen erneut.'
       }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Parse multipart form data
     const formData = await req.formData()
     const file = formData.get('cv')
 
@@ -61,45 +58,36 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Validate file
     if (file.size > 5 * 1024 * 1024) {
       return new Response(JSON.stringify({ error: 'Datei zu gross. Maximal 5 MB.' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    const allowedTypes = ['application/pdf']
-    if (!allowedTypes.includes(file.type)) {
+    if (file.type !== 'application/pdf') {
       return new Response(JSON.stringify({ error: 'Nur PDF-Dateien werden akzeptiert.' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // Read file content
     const arrayBuffer = await file.arrayBuffer()
     const bytes = new Uint8Array(arrayBuffer)
-
-    // Extract text from PDF (simple text extraction – works for most modern PDFs)
     const pdfText = extractTextFromPdf(bytes)
 
     if (!pdfText || pdfText.trim().length < 50) {
       return new Response(JSON.stringify({
-        error: 'CV konnte nicht gelesen werden. Bitte stelle sicher, dass das PDF Text enthält (kein Scan/Bild).'
+        error: 'Dokument konnte nicht gelesen werden. Bitte stelle sicher, dass das PDF Text enthält (kein Scan/Bild).'
       }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage (fire-and-forget)
     const storagePath = `cvs/${user.id}/${Date.now()}_${file.name}`
-    const { error: uploadError } = await supabase.storage
+    supabase.storage
       .from('cv-uploads')
       .upload(storagePath, bytes, { contentType: 'application/pdf', upsert: false })
+      .then(() => {})
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError)
-      // Continue without storage – parsing is more important
-    }
-
-    // Send to Claude for extraction
+    // Classify and summarize via Claude
     const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')
     if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: 'API Key nicht konfiguriert' }), {
@@ -117,35 +105,36 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1024,
-        system: `Du bist ein CV-Parser für eine Schweizer Gesundheitswesen-Jobplattform.
-Extrahiere aus dem Lebenslauf die folgenden Informationen und antworte AUSSCHLIESSLICH im JSON-Format:
+        system: `Du analysierst ein Dokument einer stellensuchenden Person im Schweizer Gesundheitswesen.
 
+Bestimme zuerst den Dokumenttyp:
+- "cv" = Lebenslauf / Curriculum Vitae
+- "zeugnis" = Arbeitszeugnis / Referenzschreiben / Zwischenzeugnis
+- "andere" = Anderes Dokument (Diplom, Zertifikat, etc.)
+
+Antworte AUSSCHLIESSLICH im JSON-Format:
 {
-  "education": "lehre" | "bachelor" | "master" | "phd" | "andere" | null,
-  "field_of_study": "Fachrichtung (z.B. Pflege, Gesundheitsökonomie, Medizin, Public Health)" | null,
-  "experience": "0-2" | "2-5" | "5-10" | "10+" | null,
-  "languages": {
-    "de": "grundkenntnisse" | "fliessend" | "muttersprachlich" | null,
-    "fr": "grundkenntnisse" | "fliessend" | "muttersprachlich" | null,
-    "it": "grundkenntnisse" | "fliessend" | "muttersprachlich" | null,
-    "en": "grundkenntnisse" | "fliessend" | "muttersprachlich" | null
-  },
-  "keywords": "Komma-getrennte Stichwörter zu Skills/Fachgebieten",
-  "summary": "2-3 Sätze Zusammenfassung des Profils auf Deutsch"
+  "doc_type": "cv" | "zeugnis" | "andere",
+  "person_name": "Vor- und Nachname der Person (wenn erkennbar, sonst null)",
+  "summary": "3-5 Sätze Zusammenfassung des Dokuments auf Deutsch",
+  "key_skills": ["Relevante Fähigkeiten und Kompetenzen (max 10)"],
+  "employer": "Arbeitgeber-Name (nur bei Zeugnis, sonst null)",
+  "period": "Zeitraum (nur bei Zeugnis, z.B. '2018–2023', sonst null)",
+  "notable_quotes": ["Wörtliche Zitate die Stärken belegen (nur bei Zeugnis, max 3, sonst [])"]
 }
 
 Regeln:
-- Berechne Berufserfahrung basierend auf dem Zeitraum der relevanten Stellen
-- Erkenne Schweizer Bildungsabschlüsse (EFZ, HF, FH, Uni)
-- Extrahiere nur vorhandene Informationen – keine Annahmen
-- Setze nicht erkannte Felder auf null`,
-        messages: [{ role: 'user', content: `Hier ist der Lebenslauf:\n\n${pdfText.substring(0, 8000)}` }]
+- Bei CVs: Erkenne Schweizer Abschlüsse (EFZ, HF, FH, Uni), berechne Erfahrungsjahre
+- Bei Zeugnissen: Extrahiere die besten Bewertungen und Stärken als Zitate
+- Name: Suche nach dem vollständigen Namen (Vorname + Nachname)
+- Setze unbekannte Felder auf null, erfinde NICHTS`,
+        messages: [{ role: 'user', content: `Hier ist das Dokument:\n\n${pdfText.substring(0, 8000)}` }]
       })
     })
 
     if (!claudeResp.ok) {
       console.error('Claude API error:', await claudeResp.text())
-      return new Response(JSON.stringify({ error: 'Fehler beim Analysieren des CVs.' }), {
+      return new Response(JSON.stringify({ error: 'Fehler beim Analysieren des Dokuments.' }), {
         status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
@@ -153,11 +142,11 @@ Regeln:
     const claudeData = await claudeResp.json()
     const content = claudeData.content?.[0]?.text || '{}'
 
-    let extracted
+    let extracted: Record<string, unknown>
     try {
       extracted = JSON.parse(content)
     } catch {
-      extracted = { error: 'CV konnte nicht strukturiert werden', raw: content }
+      extracted = { doc_type: 'andere', summary: 'Dokument konnte nicht strukturiert werden.' }
     }
 
     // Store in cv_uploads table
@@ -165,11 +154,15 @@ Regeln:
       user_id: user.id,
       file_name: file.name,
       storage_path: storagePath,
-      extracted_profile: extracted
+      extracted_profile: {
+        ...extracted,
+        raw_text: pdfText.substring(0, 5000)
+      }
     })
 
     return new Response(JSON.stringify({
-      extracted,
+      ...extracted,
+      raw_text: pdfText.substring(0, 5000),
       file_name: file.name
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -183,26 +176,19 @@ Regeln:
   }
 })
 
-/**
- * Simple PDF text extraction using raw stream parsing.
- * Works for most modern PDFs with embedded text (not scanned images).
- */
 function extractTextFromPdf(bytes: Uint8Array): string {
   const raw = new TextDecoder('latin1').decode(bytes)
   const textParts: string[] = []
 
-  // Method 1: Extract text between BT...ET (text objects)
   const btEtRegex = /BT\s([\s\S]*?)ET/g
   let match
   while ((match = btEtRegex.exec(raw)) !== null) {
     const block = match[1]
-    // Extract text from Tj and TJ operators
     const tjRegex = /\(([^)]*)\)\s*Tj/g
     let tj
     while ((tj = tjRegex.exec(block)) !== null) {
       textParts.push(tj[1])
     }
-    // TJ arrays: [(text) kern (text) kern ...]
     const tjArrayRegex = /\[([^\]]*)\]\s*TJ/g
     let tja
     while ((tja = tjArrayRegex.exec(block)) !== null) {
@@ -214,16 +200,13 @@ function extractTextFromPdf(bytes: Uint8Array): string {
     }
   }
 
-  // Method 2: If method 1 got very little, try stream decompression markers
   if (textParts.join('').length < 100) {
-    // Fallback: extract anything that looks like readable text
     const readable = raw.match(/[\w\säöüÄÖÜéèêàâçß.,;:!?()\-–/@&]{20,}/g)
     if (readable) {
       return readable.join('\n').substring(0, 10000)
     }
   }
 
-  // Clean up extracted text
   let text = textParts.join(' ')
     .replace(/\\n/g, '\n')
     .replace(/\\r/g, '')
