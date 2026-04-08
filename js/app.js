@@ -299,7 +299,12 @@ const DATA = [
 /* ======== Helpers ======== */
 const LS_FAV = 'favOrgs';
 const getFavs = () => JSON.parse(localStorage.getItem(LS_FAV) || '[]');
-const saveFavs = f => localStorage.setItem(LS_FAV, JSON.stringify(f));
+const saveFavs = f => {
+  localStorage.setItem(LS_FAV, JSON.stringify(f));
+  if (typeof syncFavoritesToSupabase === 'function' && isLoggedIn()) {
+    syncFavoritesToSupabase(f);
+  }
+};
 const allOrgs = () => DATA.flatMap(c => c.orgs);
 const domain = url => { try { return new URL(url).hostname; } catch { return ''; } };
 
