@@ -117,8 +117,8 @@ REGELN:
 - Schweizer Hochdeutsch (kein ß! "Grüsse" nicht "Grüße", "gross" nicht "groß")
 - Name "${person_name || 'Vorname Nachname'}" und Datum "${dateStr}" DIREKT einsetzen – KEINE Platzhalter
 - Erster Absatz: Konkreter Bezug zur Stelle und zur Organisation ${job.organization}
-- Zweiter Absatz: Relevante Erfahrung und Kompetenzen aus dem Lebenslauf hervorheben
-${zeugnisse?.length ? '- Dritter Absatz: Bezug auf Arbeitszeugnisse nehmen, z.B. "Wie in meinem Arbeitszeugnis von [Firma] bestätigt, konnte ich..." oder "Meine Stärke in [X] wurde auch von meinem früheren Arbeitgeber [Y] hervorgehoben."' : ''}
+- Zweiter Absatz: Relevante Erfahrung und Kompetenzen hervorheben
+${zeugnisse?.length ? '- Nutze die Arbeitszeugnisse als HINTERGRUNDWISSEN um die richtigen Stärken und Erfolge zu betonen – aber ERWÄHNE die Zeugnisse NICHT im Brief. Schreib z.B. "In meiner Tätigkeit bei [Firma] konnte ich [konkrete Leistung]..." statt "Mein Arbeitszeugnis bestätigt..."' : ''}
 - Schluss: Motivation + Gesprächsbereitschaft
 - Personalisierten Bezug zu ${job.organization} herstellen (NICHT generisch!)
 - Direkt, überzeugend, professionell – nicht übertrieben oder devot
@@ -151,7 +151,7 @@ RÈGLES:
 - Nom "${person_name || 'Prénom Nom'}" et date "${dateStr}" directement insérés – PAS de placeholder
 - Premier paragraphe: référence au poste et à ${job.organization}
 - Deuxième paragraphe: expérience et compétences du CV
-${zeugnisse?.length ? '- Troisième paragraphe: référence aux certificats de travail' : ''}
+${zeugnisse?.length ? '- Utilise les certificats de travail comme contexte pour mettre en avant les bonnes compétences – NE PAS mentionner les certificats dans la lettre' : ''}
 - Conclusion: motivation + disponibilité pour un entretien
 
 Réponds UNIQUEMENT avec la lettre (pas de markdown, pas d\'explications):`
