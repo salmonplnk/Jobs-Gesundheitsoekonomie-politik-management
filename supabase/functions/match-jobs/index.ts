@@ -133,11 +133,12 @@ Deno.serve(async (req) => {
 Deine Aufgabe:
 - Analysiere die Inhalte und finde passende Stellen für das Profil
 - Bewerte jede passende Stelle mit einem Matching-Score (1-5 Sterne)
+- Extrahiere so viele Details wie möglich: Pensum, Standort, Sprachen, Gehalt, Bewerbungsfrist
 - Begründe kurz, warum die Stelle passt
-- Sortiere nach Relevanz
+- Sortiere nach Relevanz (höchster Score zuerst, bei Gleichstand alphabetisch nach Organisation)
 - Antworte auf Deutsch
 - Berücksichtige: Ausbildungsniveau, Fachrichtung, Erfahrung, Region, Pensum, Sprache
-- Wenn keine passenden Stellen gefunden wurden, erkläre warum und gib Tipps
+- Wenn keine passenden Stellen gefunden wurden, erkläre warum und gib konkrete Tipps
 - Maximal 10 beste Matches
 
 Antworte AUSSCHLIESSLICH im folgenden JSON-Format (kein Markdown, kein anderer Text):
@@ -150,12 +151,25 @@ Antworte AUSSCHLIESSLICH im folgenden JSON-Format (kein Markdown, kein anderer T
       "score": 4,
       "reason": "Kurze Begründung warum passend",
       "highlights": ["Passt zu Erfahrung", "Richtige Region"],
-      "concerns": ["Evtl. Überqualifiziert"]
+      "concerns": ["Evtl. Überqualifiziert"],
+      "pensum": "80–100%",
+      "location": "Bern",
+      "languages": "DE (fliessend), FR (Grundkenntnisse)",
+      "salary_hint": "Lohnklasse 18–22 / ca. CHF 90'000–110'000",
+      "deadline": "30.04.2026"
     }
   ],
   "summary": "Zusammenfassung der Suche in 1-2 Sätzen",
   "tips": "Optionale Tipps für die weitere Suche"
-}`
+}
+
+WICHTIG zu den neuen Feldern:
+- "pensum": Extrahiere das Arbeitspensum wenn angegeben (z.B. "80–100%", "60%", "Vollzeit"). Wenn nicht ersichtlich, setze null.
+- "location": Stadt/Kanton des Arbeitsplatzes. Wenn nicht ersichtlich, verwende den Standort der Organisation.
+- "languages": Sprachanforderungen wenn angegeben. Wenn nicht ersichtlich, setze null.
+- "salary_hint": Gehaltsangabe wenn vorhanden (Lohnklasse, Bandbreite, etc.). Oft nicht vorhanden – dann null.
+- "deadline": Bewerbungsfrist wenn angegeben. Wenn nicht ersichtlich, setze null.
+Setze Felder auf null wenn die Information nicht verfügbar ist – erfinde KEINE Daten.`
 
     const userMessage = `PROFIL DES STELLENSUCHENDEN:\n${profileText}\n\nKARRIERESEITEN-INHALTE:\n${jobsText}`
 

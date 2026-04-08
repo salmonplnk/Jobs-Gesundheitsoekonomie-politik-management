@@ -148,13 +148,23 @@ function buildProfileModal() {
           </div>
         </fieldset>
 
-        <!-- CV Upload (placeholder – needs Supabase Storage later) -->
+        <!-- CV Upload -->
         <fieldset class="pf-field">
-          <legend>📄 CV hochladen (kommt bald)</legend>
-          <div class="pf-cv-placeholder">
-            <p>CV-Upload wird mit der Supabase-Integration freigeschaltet.</p>
-            <p>Claude analysiert dein CV und füllt die Felder automatisch aus.</p>
+          <legend>📄 CV hochladen</legend>
+          ${isLoggedIn() ? `
+          <div class="pf-cv-dropzone" id="cvDropzone">
+            <div class="pf-cv-icon">📄</div>
+            <p class="pf-cv-text">PDF hier hinziehen oder <strong>klicken</strong></p>
+            <p class="pf-cv-sub">Max. 5 MB · Claude füllt die Felder automatisch aus</p>
+            <input type="file" id="cvFileInput" accept=".pdf,application/pdf" style="display:none">
           </div>
+          <div class="pf-cv-status" id="cvStatus" style="display:none;"></div>
+          <div class="pf-cv-review" id="cvReview" style="display:none;"></div>
+          ` : `
+          <div class="pf-cv-placeholder">
+            <p><a onclick="openAuthModal()" style="color:var(--accent);cursor:pointer;font-weight:600;">Anmelden</a> um dein CV hochzuladen.</p>
+            <p>Claude analysiert dein CV und füllt die Felder automatisch aus.</p>
+          </div>`}
         </fieldset>
 
         <!-- Actions -->
@@ -167,6 +177,7 @@ function buildProfileModal() {
   `;
   document.body.appendChild(modal);
   initProfileInteractions();
+  initCvUpload();
 }
 
 /* ======== Pensum Constraint ======== */
@@ -366,6 +377,189 @@ function updateProfileButton() {
   const filled = isProfileFilled();
   btn.classList.toggle('profile-filled', filled);
   btn.title = filled ? 'Profil bearbeiten' : 'Profil erstellen';
+}
+
+/* ======== CV Upload ======== */
+function initCvUpload() {
+  const dropzone = document.getElementById('cvDropzone');
+  const fileInput = document.getElementById('cvFileInput');
+  if (!dropzone || !fileInput) return;
+
+  dropzone.addEventListener('click', () => fileInput.click());
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('pf-cv-dragover');
+  });
+
+  dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('pf-cv-dragover');
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('pf-cv-dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handleCvFile(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleCvFile(fileInput.files[0]);
+  });
+}
+
+async function handleCvFile(file) {
+  if (file.type !== 'application/pdf') {
+    showCvStatus('error', 'Nur PDF-Dateien werden akzeptiert.');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showCvStatus('error', 'Datei zu gross. Maximal 5 MB.');
+    return;
+  }
+  if (!isLoggedIn()) {
+    showCvStatus('error', 'Bitte melde dich zuerst an.');
+    return;
+  }
+
+  showCvStatus('loading', `Analysiere "${file.name}"...`);
+
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) { showCvStatus('error', 'Sitzung abgelaufen. Bitte neu anmelden.'); return; }
+
+    const formData = new FormData();
+    formData.append('cv', file);
+
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/parse-cv`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_KEY
+      },
+      body: formData
+    });
+
+    const result = await resp.json();
+
+    if (!resp.ok) {
+      showCvStatus('error', result.error || 'Fehler beim Verarbeiten.');
+      return;
+    }
+
+    if (result.extracted) {
+      showCvReview(result.extracted, file.name);
+    } else {
+      showCvStatus('error', 'CV konnte nicht analysiert werden.');
+    }
+  } catch (err) {
+    showCvStatus('error', 'Netzwerkfehler: ' + err.message);
+  }
+}
+
+function showCvStatus(type, msg) {
+  const el = document.getElementById('cvStatus');
+  const review = document.getElementById('cvReview');
+  if (!el) return;
+  if (review) review.style.display = 'none';
+  el.style.display = 'block';
+
+  if (type === 'loading') {
+    el.innerHTML = `<div class="pf-cv-loading"><div class="match-spinner" style="width:24px;height:24px;margin:0;"></div> ${escapeHtml(msg)}</div>`;
+  } else if (type === 'error') {
+    el.innerHTML = `<div class="pf-cv-error">❌ ${escapeHtml(msg)}</div>`;
+  } else {
+    el.innerHTML = `<div class="pf-cv-success">✅ ${escapeHtml(msg)}</div>`;
+  }
+}
+
+function showCvReview(extracted, fileName) {
+  const el = document.getElementById('cvReview');
+  const status = document.getElementById('cvStatus');
+  if (!el) return;
+  if (status) status.style.display = 'none';
+  el.style.display = 'block';
+
+  const fields = [];
+  if (extracted.education) fields.push(`<div class="pf-cv-field"><strong>🎓 Ausbildung:</strong> ${escapeHtml(extracted.education)}</div>`);
+  if (extracted.field_of_study) fields.push(`<div class="pf-cv-field"><strong>📚 Fachrichtung:</strong> ${escapeHtml(extracted.field_of_study)}</div>`);
+  if (extracted.experience) fields.push(`<div class="pf-cv-field"><strong>💼 Erfahrung:</strong> ${escapeHtml(extracted.experience)} Jahre</div>`);
+  if (extracted.keywords) fields.push(`<div class="pf-cv-field"><strong>🔍 Skills:</strong> ${escapeHtml(extracted.keywords)}</div>`);
+  if (extracted.languages) {
+    const langs = Object.entries(extracted.languages)
+      .filter(([,v]) => v)
+      .map(([k,v]) => `${k.toUpperCase()}: ${v}`)
+      .join(', ');
+    if (langs) fields.push(`<div class="pf-cv-field"><strong>🌐 Sprachen:</strong> ${escapeHtml(langs)}</div>`);
+  }
+  if (extracted.summary) fields.push(`<div class="pf-cv-summary">${escapeHtml(extracted.summary)}</div>`);
+
+  el.innerHTML = `
+    <div class="pf-cv-review-box">
+      <p class="pf-cv-review-title">✅ Claude hat folgende Daten aus "${escapeHtml(fileName)}" extrahiert:</p>
+      ${fields.join('')}
+      <div class="pf-cv-review-actions">
+        <button type="button" class="pf-btn-primary" onclick="applyCvData(${escapeHtml(JSON.stringify(JSON.stringify(extracted)))})">✓ Übernehmen</button>
+        <button type="button" class="pf-btn-secondary" onclick="dismissCvReview()">Verwerfen</button>
+      </div>
+    </div>`;
+}
+
+function applyCvData(jsonStr) {
+  const data = JSON.parse(jsonStr);
+  const form = document.getElementById('profileForm');
+  if (!form) return;
+
+  // Education
+  if (data.education) {
+    const group = document.querySelector('.pf-btn-group[data-name="education"]');
+    if (group) {
+      group.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('active'));
+      const btn = group.querySelector(`[data-value="${data.education}"]`);
+      if (btn) btn.classList.add('active');
+    }
+  }
+
+  // Experience
+  if (data.experience) {
+    const group = document.querySelector('.pf-btn-group[data-name="experience"]');
+    if (group) {
+      group.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('active'));
+      const btn = group.querySelector(`[data-value="${data.experience}"]`);
+      if (btn) btn.classList.add('active');
+    }
+  }
+
+  // Field of study
+  if (data.field_of_study) {
+    const input = form.querySelector('[name="field_of_study"]');
+    if (input) input.value = data.field_of_study;
+  }
+
+  // Keywords
+  if (data.keywords) {
+    const input = form.querySelector('[name="keywords"]');
+    if (input) input.value = data.keywords;
+  }
+
+  // Languages
+  if (data.languages) {
+    Object.entries(data.languages).forEach(([lang, val]) => {
+      if (val) {
+        const sel = form.querySelector(`[name="lang_${lang}"]`);
+        if (sel) sel.value = val;
+      }
+    });
+  }
+
+  showCvStatus('success', 'Profil-Felder wurden ausgefüllt. Bitte prüfen und speichern.');
+  const review = document.getElementById('cvReview');
+  if (review) review.style.display = 'none';
+}
+
+function dismissCvReview() {
+  const review = document.getElementById('cvReview');
+  if (review) review.style.display = 'none';
 }
 
 /* ======== Init ======== */
