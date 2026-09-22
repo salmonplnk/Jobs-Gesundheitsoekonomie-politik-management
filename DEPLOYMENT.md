@@ -58,6 +58,8 @@ Mit zwei separaten Testkonten prüfen:
 9. Filter, zwei bis vier Vergleichsstellen, Statuswechsel und Anschreiben-Versionen prüfen; DOCX öffnen und PDF mit Umlauten sowie längeren Absätzen auf Vollständigkeit prüfen. Für eine Stelle «KI-Einschätzung mit CV» anfordern, Inserat-/CV-Zitate am Ausgangstext prüfen und bestätigen, dass der gewichtete Kriterienwert unverändert bleibt.
 10. Quoten mit isolierten Testkonten über die RPC prüfen: selbst übergebene höhere `max_requests` oder kleinere `window_seconds` ändern die festgelegten 60 Aufrufe für `match-jobs` sowie je 10 für `parse-cv`, `assess-job` und `generate-cover-letter` pro Stunde nicht. Unbekannte Aktionen werden abgewiesen; parallele Aufrufe überschreiten das Limit nicht.
 
+11. Karte auf Desktop und bei 390 Pixel Breite prüfen: mobile Standortliste, optional scrollbar zugängliche Karte, Tastaturfokus, heller/dunkler Modus, Auswahl Bern + Zürich und Suchtext/Kategorie. Bern zeigt ohne weitere Filter 28 Organisationen und übernimmt 25 Arbeitgeber mit Stellenportal. Nulltreffer, Entfernen einzelner Standortchips und Reset prüfen. Übernahme öffnet den Arbeitgeberdialog; Abbrechen startet keinen Abruf.
+
 Zusätzlich `npm ci --ignore-scripts` und danach `npm test` ausführen und die GitHub-Prüfungen bestehen lassen. Nicht produktive Kontingente für einen Lasttest verbrauchen.
 
 ## 5. Frontend veröffentlichen

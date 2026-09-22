@@ -174,11 +174,14 @@
     return `<div class="jw-toolbar">${button('save-search', 'Aktuelle Suche als Profil speichern', '', true)}${button('criteria', 'Kriterien bearbeiten')}</div><p class="jw-small jw-muted">Jedes Suchprofil speichert Arbeitgeberauswahl, Ergebnisfilter und Matching-Kriterien. Dein persönliches CV-Profil bleibt davon unabhängig.</p><div class="jw-grid">${profiles.map(p => `<article class="jw-card"><h3>${esc(p.name)}</h3><p>${p.orgIds.length} Arbeitgeber · ${p.criteria.length} Kriterien</p><p class="jw-small">Geändert ${date(p.updated_at)}</p><div class="jw-actions">${button('load-search', p.id === state.activeSearchProfileId ? 'Erneut anwenden' : 'Anwenden', p.id, true)}${button('update-search', 'Mit aktueller Suche aktualisieren', p.id)}${button('archive-search', 'Archivieren', p.id)}</div></article>`).join('') || '<div class="jw-empty">Noch keine Suchprofile. Richte deine erste Suche ein und speichere sie hier.</div>'}</div>`;
   }
   function selectedOrgIds() { return state.selectedOrgIds || activeProfile()?.orgIds || (typeof getFavs === 'function' ? getFavs() : []); }
-  function searchDialog() {
-    if (searching) { view = 'sources'; render(); return; }
-    const selected = new Set(selectedOrgIds());
+  function searchDialog(initialIds) {
+    if (searching) {
+      notice = 'Es läuft bereits eine Suche. Pausiere sie, um eine neue Arbeitgeberauswahl zu öffnen.';
+      view = 'sources'; render(); document.querySelector('#jwProgress [data-action=cancel]')?.focus(); return;
+    }
+    const selected = new Set(Array.isArray(initialIds) ? initialIds : selectedOrgIds());
     const orgs = allOrgs().filter(o => o.jobs);
-    const d = dialog('Arbeitgeber für diesen Suchlauf', `<p>Alle ausgewählten Arbeitgeber werden in Paketen von drei geprüft. Nicht lesbare Portale werden im Quellenstatus ausgewiesen.</p><div class="jw-toolbar">${button('choose-favorites', 'Favoriten übernehmen')}${button('choose-region', 'Aktuelle Kartenregionen übernehmen')}${button('choose-all', 'Alle auswählen')}${button('choose-none', 'Auswahl leeren')}</div><label>Arbeitgeber suchen<input type="search" id="jwOrgQuery" placeholder="Name oder Ort"></label><form data-form="search" class="jw-form"><div class="jw-org-list">${orgs.map(o => `<label class="jw-org-row" data-org-name="${esc(C.normalize(o.name + ' ' + o.loc))}"><input type="checkbox" name="org" value="${esc(o.id)}"${selected.has(o.id) ? ' checked' : ''}> <span><strong>${esc(o.name)}</strong><small> ${esc(o.loc)}</small></span></label>`).join('')}</div><p id="jwSelectedCount" class="jw-small"></p><button class="jw-btn primary" type="submit">Ausgewählte Arbeitgeber prüfen</button></form>`);
+    const d = dialog('Arbeitgeber für diesen Suchlauf', `<p>Alle ausgewählten Arbeitgeber werden in Paketen von drei geprüft. Nicht lesbare Portale werden im Quellenstatus ausgewiesen.</p><div class="jw-toolbar">${button('choose-favorites', 'Favoriten übernehmen')}${button('choose-region', 'Aktuelle Kartenfilter übernehmen')}${button('choose-all', 'Alle auswählen')}${button('choose-none', 'Auswahl leeren')}</div><label>Arbeitgeber suchen<input type="search" id="jwOrgQuery" placeholder="Name oder Ort"></label><form data-form="search" class="jw-form"><div class="jw-org-list">${orgs.map(o => `<label class="jw-org-row" data-org-name="${esc(C.normalize(o.name + ' ' + o.loc))}"><input type="checkbox" name="org" value="${esc(o.id)}"${selected.has(o.id) ? ' checked' : ''}> <span><strong>${esc(o.name)}</strong><small> ${esc(o.loc)}</small></span></label>`).join('')}</div><p id="jwSelectedCount" class="jw-small"></p><button class="jw-btn primary" type="submit">Ausgewählte Arbeitgeber prüfen</button></form>`);
     const updateCount = () => d.querySelector('#jwSelectedCount').textContent = `${d.querySelectorAll('[name=org]:checked').length} Arbeitgeber ausgewählt`;
     updateCount(); d.addEventListener('change', updateCount);
     d.querySelector('#jwOrgQuery').addEventListener('input', e => d.querySelectorAll('.jw-org-row').forEach(row => { row.hidden = !row.dataset.orgName.includes(C.normalize(e.target.value)); }));
@@ -273,7 +276,7 @@
       const d = target.closest('dialog'); let ids = [];
       if (action === 'choose-favorites') ids = getFavs();
       if (action === 'choose-all') ids = allOrgs().map(o => o.id);
-      if (action === 'choose-region') ids = allOrgs().filter(o => typeof activeLocs !== 'undefined' && activeLocs.length && activeLocs.some(l => o.loc.includes(l))).map(o => o.id);
+      if (action === 'choose-region') ids = getFilteredOrganizations().filter(o => o.jobs).map(o => o.id);
       d.querySelectorAll('[name=org]').forEach(el => { el.checked = ids.includes(el.value); }); d.dispatchEvent(new Event('change'));
     }
   }
@@ -316,7 +319,7 @@
     else if (type === 'search') { const ids = new FormData(form).getAll('org'); if (!ids.length) { form.querySelector('#jwSelectedCount').textContent = 'Bitte mindestens einen Arbeitgeber wählen.'; return; } state.selectedOrgIds = ids; persist(); form.closest('dialog').close(); startSearch(ids); }
   });
   window.HealthJobs = {
-    render, startSearch, cancelSearch, sync: syncCloud, getJob: jobId => state.jobs[jobId], getApplication: jobId => state.applications[jobId], patchApplication,
+    render, startSearch, cancelSearch, openEmployerSelection: searchDialog, sync: syncCloud, getJob: jobId => state.jobs[jobId], getApplication: jobId => state.applications[jobId], patchApplication,
     getDrafts: jobId => state.drafts[jobId] || [], saveDraft, getSender: () => state.sender,
     saveSender: sender => { state.sender = { ...sender }; persist(); return state.sender; }, getCriteria: matches,
     getOwner: () => owner, exportState

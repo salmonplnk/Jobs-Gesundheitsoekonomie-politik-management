@@ -19,7 +19,7 @@ Stand: 22. September 2026. Ausgangspunkt: `7d97a09a13a28eeb99f447e97027cbdce3ca6
 
 ## Ausgeführte Prüfungen
 
-`npm ci --ignore-scripts` und `npm test`: **46 Tests bestanden**.
+`npm ci --ignore-scripts` und `npm test`: **57 Tests bestanden**, einschliesslich elf zusätzlicher Karten- und Übergabetests.
 
 - Stellenextraktion, Einzelinserat-/Übersichtsunterscheidung, stabile IDs, Grenzen und Quellenfehler.
 - Profilspeichern, ausstehende Speicherungen, Kontotrennung, verspätete Antworten, CV-Ersetzung und Wiederherstellung.
@@ -30,6 +30,14 @@ Stand: 22. September 2026. Ausgangspunkt: `7d97a09a13a28eeb99f447e97027cbdce3ca6
 - Suchlauf mit elf Arbeitgebern, Quellenfehler, Abbruch/Neustart sowie verspätete Cloud-Leseantwort nach erfolgreicher Speicherung.
 
 Zusätzlich alle Browser-JavaScript-Dateien und vier TypeScript-Handler auf Syntax geprüft; `git diff --check` ohne Befund.
+
+## Kartenüberarbeitung
+
+- Geografische Schweizer Landesform, 16 belegte Ortsanker und separate Westschweiz-Auswahl; Daten und Lizenz dokumentiert.
+- Neun Karten-DOM-Tests: eindeutige Organisationenzahlen, Mehrfachauswahl, Suchtext/Kategorie, Favoriten, Nulltreffer und Reset, Tastatur, 390-Pixel-Startansicht, Ansichtswechsel und Übergabe ausschliesslich suchbarer Arbeitgeber.
+- Zwei zusätzliche Tests im vollständigen Skriptverbund: tatsächlicher Arbeitgeberdialog erhält genau die gefilterten IDs, Abbrechen verändert keine gespeicherte Auswahl; bei laufender Suche bleiben Suchlauf und API-Aufruf unverändert und der Pausieren-Button erhält Fokus.
+- Die SVG-Karte separat mit Inkscape in hellen und dunklen Farben gerendert und visuell auf Ortszuordnung, lesbare Beschriftungen und Überschneidungen geprüft. Dies ist keine vollständige Browserprüfung des responsiven Layouts.
+- Keine neue Backend-Funktion oder Migration für die Karte nötig; die Anforderungen des gesamten Änderungspakets bleiben bestehen.
 
 ## Noch erforderliche Prüfung bei Bereitstellung
 

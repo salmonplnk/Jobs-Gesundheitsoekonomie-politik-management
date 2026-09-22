@@ -18,6 +18,16 @@ Die App wird als statische Website ausgeliefert. Browser-JavaScript nutzt Supaba
 | `supabase/functions/assess-job/` | Optionale KI-Einschätzung einer Stelle anhand Profil, CV und belegbarer Inseratsangaben |
 | `supabase/functions/generate-cover-letter/` | Anschreiben anhand Inserat und bereitgestellter Erfahrungen |
 
+## Arbeitgeberkarte
+
+Die Schweizer Landesform (Natural Earth) und 16 Ortsanker (© swisstopo) liegen in `js/map-geography.js`. Es werden keine externen Karten-APIs geladen. Beide verwenden dieselbe Projektion; nur die mit Linien verbundenen Beschriftungen sind zur Lesbarkeit verschoben. [Herkunft, Lizenz und Projektionsformel](data/map-geography-source.md).
+
+`getFilteredOrganizations()` in `js/map.js` ist die gemeinsame Grundlage für Verzeichnis, Favoritenanzeige und Übergabe an `HealthJobs.openEmployerSelection(ids)`. Eine leere Standortauswahl bedeutet alle Standorte. Marker- und Listenzahlen berücksichtigen Suchtext und Kategorien; die Ergebniszeile berücksichtigt zusätzlich die Standortauswahl. Die Zahlen stehen für Organisationen, nicht für offene Stellen. Von 85 Verzeichniseinträgen haben 81 eine hinterlegte Stellenportal-URL. Favoriten-Duplikate werden nie mitgezählt.
+
+«Westschweiz» bleibt der vorhandene Sammelfilter mit acht Organisationen und erhält keinen einzelnen Stadtpunkt. Neuenburg mit zwei Organisationen ist separat. Community-Vorschläge stehen in einem ausdrücklich als ungefiltert gekennzeichneten Abschnitt und werden nicht in die Suchauswahl übernommen.
+
+Bis 600 Pixel startet die Ansicht mit einer Standortliste; die Karte bleibt über einen Umschalter zugänglich und horizontal scrollbar. Standortmarker sind auch per Enter/Leertaste bedienbar. Einzelne Standortchips oder alle Filter lassen sich entfernen. Der Arbeitgeberbutton öffnet eine vorausgewählte Liste; erst deren Bestätigung startet einen Suchlauf. Das Schliessen des Dialogs ändert keine gespeicherte Auswahl. Bei bereits laufender Suche werden ein Hinweis und der Pausieren-Button im Workspace fokussiert.
+
 ## Dauerhafte Daten
 
 | Tabelle | Inhalt | Benutzerzugriff |

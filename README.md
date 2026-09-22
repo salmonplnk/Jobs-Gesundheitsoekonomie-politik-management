@@ -4,7 +4,7 @@ Stellen suchen, die Passung zum eigenen Profil prüfen und Bewerbungen organisie
 
 ## Funktionen
 
-- Arbeitgeber nach Standort und Kategorie finden und als Favoriten speichern.
+- Arbeitgeber auf einer geografischen Schweizer Karte oder in der mobilen Standortliste auswählen. Suchtext und Kategorien grenzen die Auswahl ein; gefilterte Arbeitgeber direkt in den Suchdialog übernehmen und als Favoriten speichern.
 - Einzelne Stellen mit Direktlink, Inseratstext und verfügbaren Angaben zu Pensum, Ort und Frist durchsuchen und vergleichen.
 - Suchprofile mit eigenen Kriterien und Arbeitgebern speichern; Anforderungen als zwingend oder bevorzugt gewichten.
 - Für eine einzelne Stelle eine zusätzliche KI-Einschätzung mit Belegen aus Inserat und CV anfordern.
@@ -51,6 +51,7 @@ Der GitHub-Workflow prüft zusätzlich die Syntax aller Browser-JavaScript-Datei
 |---|---|
 | `index.html`, `css/styles.css` | Oberfläche und Darstellung |
 | `js/` | Arbeitgeberkatalog, Auth, Profil, Suche und persönliche Arbeitsfläche |
+| `js/map-geography.js`, `css/map.css` | Lokale Kartengeometrie, Ortsanker und Darstellung; [Quellen](data/map-geography-source.md) |
 | `data/organizations.json` | Organisationsdaten für die serverseitige Quellenauswahl |
 | `supabase/functions/` | Stellensuche, Dokumentanalyse und Anschreiben |
 | `supabase/schema.sql` | Vollständiges Schema für eine neue Installation |

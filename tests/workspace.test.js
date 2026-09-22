@@ -37,10 +37,10 @@ async function setup({ account = null, state, cloudRead, rpc, fetcher } = {}) {
   };
   w.supabase = { createClient: () => client };
   w.fetch = fetcher || (async () => { throw new Error('Unexpected network request'); });
-  const files = ['auth.js', 'app.js', 'map.js', 'profile.js', 'job-core.js', 'workspace.js', 'letters.js', 'matching.js', 'community.js'];
+  const files = ['auth.js', 'app.js', 'map-geography.js', 'map.js', 'profile.js', 'job-core.js', 'workspace.js', 'letters.js', 'matching.js', 'community.js'];
   for (const file of files) vm.runInContext(fs.readFileSync(path.join(root, 'js', file), 'utf8'), dom.getInternalVMContext(), { filename: file });
   await tick(); await tick();
-  return { dom, w, errors, client, remote, emitAccount(next) { user = next ? { id: next, email: next + '@example.org' } : null; callbacks.forEach(fn => fn(user ? 'SIGNED_IN' : 'SIGNED_OUT', session())); }, click(selector) { const el = w.document.querySelector(selector); assert.ok(el, selector); el.click(); }, submit(selector, values) { const form = w.document.querySelector(selector); assert.ok(form, selector); for (const [name, value] of Object.entries(values)) form.elements.namedItem(name).value = value; form.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true })); } };
+  return { dom, w, errors, client, remote, emitAccount(next) { user = next ? { id: next, email: next + '@example.org' } : null; callbacks.forEach(fn => fn(user ? 'SIGNED_IN' : 'SIGNED_OUT', session())); }, click(selector) { const el = w.document.querySelector(selector); assert.ok(el, selector); if (typeof el.click === 'function') el.click(); else el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true })); }, submit(selector, values) { const form = w.document.querySelector(selector); assert.ok(form, selector); for (const [name, value] of Object.entries(values)) form.elements.namedItem(name).value = value; form.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true })); } };
 }
 
 test('full script stack supports manual capture, filters, application notes, saved search and reload data', async t => {
@@ -132,4 +132,34 @@ test('comparison, result filters and deliberately empty criteria work together',
   const saved = JSON.parse(w.localStorage.getItem('healthjobs.workspace.v1.guest')).data;
   assert.equal(saved.criteriaConfigured, true); assert.deepEqual(saved.criteria, []);
   assert.equal(w.document.querySelectorAll('#jwJobList .jw-card').length, 2);
+});
+
+test('map opens the real employer chooser with filtered IDs and cancellation keeps saved selection', async t => {
+  const state = C.emptyState(); state.selectedOrgIds = ['suva']; let requests = 0;
+  const x = await setup({ state, fetcher: async () => { requests++; throw new Error('Unexpected search'); } });
+  t.after(() => x.dom.window.close());
+  x.click('.city-bubble[data-loc="Bern"]'); x.click('.cat-chip[data-cat="versicherungen"]');
+  x.click('#mapChooseEmployers');
+  const checked = () => [...x.w.document.querySelectorAll('.jw-dialog [name=org]:checked')].map(el => el.value).sort();
+  assert.deepEqual(checked(), ['atupri', 'kpt', 'visana']);
+  x.click('[data-action=choose-none]'); assert.deepEqual(checked(), []);
+  x.click('[data-action=choose-region]'); assert.deepEqual(checked(), ['atupri', 'kpt', 'visana']);
+  x.w.document.querySelector('.jw-dialog').close();
+  assert.deepEqual(JSON.parse(x.w.localStorage.getItem('healthjobs.workspace.v1.guest')).data.selectedOrgIds, ['suva']);
+  x.click('#mapReset'); x.click('#mapChooseEmployers'); assert.equal(checked().length, 81);
+  assert.equal(requests, 0); assert.deepEqual(x.errors, []);
+});
+
+test('map handoff during an active search explains the state and focuses pause without replacing the run', async t => {
+  const pending = deferred(); let requests = 0;
+  const x = await setup({ account: 'user-a', fetcher: () => { requests++; return pending.promise; } });
+  t.after(() => x.dom.window.close());
+  const run = x.w.HealthJobs.startSearch(['bag']); await tick();
+  x.click('.city-bubble[data-loc="Basel"]'); x.click('#mapChooseEmployers');
+  assert.match(x.w.document.getElementById('jwNotice').textContent, /bereits eine Suche/);
+  assert.equal(x.w.document.activeElement.dataset.action, 'cancel');
+  assert.equal(x.w.document.querySelector('.jw-dialog[open]'), null);
+  assert.equal(requests, 1);
+  pending.resolve({ ok: true, json: async () => ({ jobs: [], sources: [{ org_id: 'bag', status: 'empty' }] }) }); await run;
+  assert.deepEqual(x.errors, []);
 });
