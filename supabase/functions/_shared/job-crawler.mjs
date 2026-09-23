@@ -167,6 +167,10 @@ export async function crawlOrganization(org,fetchPage,{signal,limits:configuredL
       if (parsed.dynamicPagination || parsed.blockedPagination) { unresolved.add(entry.url); notes.add('Weitere Ergebnisse benötigen einen Datenadapter oder einen unverändert gefilterten Folgeseitenlink.'); }
       if (usedAdapter && parsed.hasPagination && !parsed.nextApiUrl) { unresolved.add(entry.url); notes.add('Der Datenadapter meldet weitere Ergebnisse ohne sicher auslesbaren Folgeseitenlink.'); }
       if (parsed.blockedEntries) { unresolved.add(entry.url); notes.add('Mindestens ein Karriereportal konnte nicht sicher im Arbeitgeberfilter verfolgt werden.'); }
+      if (parsed.unresolvedInlineListings) {
+        unresolved.add(entry.url);
+        notes.add(`${parsed.unresolvedInlineListings} eingebettete Stellenkarten benötigen einen Datenadapter für vollständige Beschriebe und verifizierbare Einzellinks.`);
+      }
       if (parsed.unsupportedDetails?.length) {
         for (const link of parsed.unsupportedDetails) unresolved.add(link.url);
         notes.add(`${parsed.unsupportedDetails.length} Stellenbeschriebe in Dokumentdateien benötigen einen eigenen Extraktor.`);

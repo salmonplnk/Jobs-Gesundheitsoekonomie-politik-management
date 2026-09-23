@@ -83,6 +83,27 @@ test('limited runs preserve previous full shards and mark unvisited sources pend
   await assert.rejects(runFeed({organizations:[org],only:['unknown']}),/Unbekannte Quelle/);
 });
 
+test('targeted reruns preserve unrelated fresh sources while existing errors and pending sources remain stale', async () => {
+  const failed={...org,id:'failed'}, target={...org,id:'target'}, pending={...org,id:'pending'};
+  const fresh=mergeSourceSnapshot(org,{jobs:[job()],source:{status:'ok',coverage:'complete'}},prior,time);
+  const oldError=mergeSourceSnapshot(failed,{jobs:[],source:{status:'error',coverage:'unknown'}},{},oldTime);
+  const calls=[];
+  const result=await runFeed({organizations:[org,failed,target,pending],only:['target'],
+    previous:new Map([[org.id,fresh],[failed.id,oldError]]),now:()=>time,
+    crawl:async organization=>{calls.push(organization.id);return {jobs:[],source:{status:'error'}};}});
+  const sources=new Map(result.index.sources.map(source=>[source.org_id,source]));
+  assert.deepEqual(calls,['target']);
+  assert.equal(sources.get('health').status,'ok');
+  assert.equal(sources.get('health').stale,false);
+  assert.equal(sources.get('health').last_success_at,time);
+  assert.equal(sources.get('failed').status,'error');
+  assert.equal(sources.get('failed').stale,true);
+  assert.equal(sources.get('failed').checked_at,oldTime);
+  assert.equal(sources.get('target').stale,true);
+  assert.equal(sources.get('pending').status,'pending');
+  assert.equal(sources.get('pending').stale,true);
+});
+
 test('worker concurrency is bounded and a thrown source failure does not stop other employers', async () => {
   let active=0, maximum=0;
   const organizations=Array.from({length:9},(_,i)=>({...org,id:`org${i}`}));

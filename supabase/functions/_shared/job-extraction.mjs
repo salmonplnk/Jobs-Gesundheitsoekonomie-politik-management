@@ -256,8 +256,13 @@ export function scopedListingUrl(raw, pageUrl, org, {pagination = false} = {}) {
 
 /** Listing routes, pagers and career iframes are distinct from vacancy details. */
 export function discoverJobPages(html, pageUrl, org) {
-  html = String(html).replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
+  html = String(html).replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
   const details = new Map(), listings = new Map(), unsupportedDetails = new Map();
+  const inlineIds = new Set();
+  for (const match of html.matchAll(/<[a-z][\w:-]*\b([^>]*)>/gi)) {
+    const id = attributes(match[1])['data-job-id'];
+    if (id && /^[\w-]+$/.test(id)) inlineIds.add(id);
+  }
   let blockedPagination = 0, blockedEntries = 0;
   const current = canonicalUrl(pageUrl);
   const addListing = (raw, label, kind) => {
@@ -302,7 +307,7 @@ export function discoverJobPages(html, pageUrl, org) {
     /<(?:button|a)\b[^>]*(?:data-(?:next-page|cursor)|(?:class|id)=["'][^"']*load[-_]?more)/i.test(html);
   const listingLinks = [...listings.values()];
   return {links:[...details.values()],listingLinks,paginationLinks:listingLinks.filter(link => link.kind === 'pagination'),
-    unsupportedDetails:[...unsupportedDetails.values()],dynamicPagination,blockedPagination,blockedEntries};
+    unsupportedDetails:[...unsupportedDetails.values()],inlineVacancyCount:inlineIds.size,dynamicPagination,blockedPagination,blockedEntries};
 }
 
 export function extractDetailLinks(html,pageUrl,org) { return discoverJobPages(html,pageUrl,org).links; }
@@ -350,10 +355,16 @@ export function extractVacancies(html, org, pageUrl, options = {}) {
   const discovery = discoverJobPages(html, pageUrl, org);
   const links = discovery.links.filter(link => !unique.some(job => job.url === link.url));
   const visible = cleanText(html);
-  const explicitEmpty = /(?:keine (?:offenen |passenden |freien |aktuellen )?(?:Stellen|Vakanzen)|aktuell (?:keine|nicht auf der Suche)|no (?:open |current |matching )?(?:jobs|vacancies|positions)|aucun(?:e)? (?:poste|offre|emploi))/i.test(visible);
+  // Filter widgets often ship a hidden "no matches" message beside real cards.
+  const emptyEvidence = cleanText(String(html)
+    .replace(/<template\b[^>]*>[\s\S]*?<\/template\s*>/gi, '')
+    .replace(/<([a-z][\w:-]*)\b(?=[^>]*\shidden(?:\s|=|>))[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<([a-z][\w:-]*)\b(?=[^>]*\saria-hidden\s*=\s*["']true["'])[^>]*>[\s\S]*?<\/\1\s*>/gi, ''));
+  const explicitEmpty = !nodes.length && !discovery.links.length && !discovery.inlineVacancyCount && /(?:keine (?:offenen |passenden |freien |aktuellen )?(?:Stellen|Vakanzen)|aktuell (?:keine|nicht auf der Suche)|no (?:open |current |matching )?(?:jobs|vacancies|positions)|aucun(?:e)? (?:poste|offre|emploi))/i.test(emptyEvidence);
+  const unresolvedInlineListings = Math.max(0, discovery.inlineVacancyCount - new Set([...unique.map(job => job.url),...discovery.links.map(link => link.url)]).size);
   const hasPagination = discovery.paginationLinks.length > 0 || discovery.dynamicPagination || discovery.blockedPagination > 0;
-  const listingEvidence = explicitEmpty || discovery.links.length > 0 || nodes.length > 1 || (nodes.length > 0 && !looksLikeDetailUrl(pageUrl));
+  const listingEvidence = explicitEmpty || discovery.links.length > 0 || discovery.inlineVacancyCount > 0 || nodes.length > 1 || (nodes.length > 0 && !looksLikeDetailUrl(pageUrl));
   const countMatch = visible.match(/\b(\d{1,5})\s+(?:offene Stellen|Stellenangebote|open positions|jobs found|offres d.emploi)\b/i) ||
     visible.match(/(?:Ergebnisse|results|Stellen)\s+\d+\s*[-–]\s*\d+\s+(?:von|of|sur)\s+(\d{1,5})\b/i);
-  return {jobs:unique,...discovery,links,explicitEmpty,hasPagination,listingEvidence,expectedCount:countMatch ? Number(countMatch[1]) : null,malformed,rejected};
+  return {jobs:unique,...discovery,links,explicitEmpty,hasPagination,listingEvidence,unresolvedInlineListings,expectedCount:countMatch ? Number(countMatch[1]) : null,malformed,rejected};
 }

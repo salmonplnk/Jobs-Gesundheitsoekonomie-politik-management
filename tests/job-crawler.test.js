@@ -189,3 +189,23 @@ test('Swissmedic observed responsibilities heading produces a complete HTML desc
     assert.match(result.jobs[0].description,/Ihre neue Herausforderung/);
   }
 });
+
+test('hidden no-match templates beside inline job cards cannot certify an empty employer',async () => {
+  const {extractVacancies} = await helpers;
+  const {crawlOrganization} = await crawler;
+  const hidden = '<p class="jobs-loxo__empty" data-empty hidden>No positions match your filters.</p>';
+  const card = '<div class="accordion__item jobs-loxo__item" data-job-id="944848" data-department="Operations" data-location="Switzerland"><button>Customer Success Manager</button><div class="jobs-loxo__description" data-description>Loading description…</div><button data-apply>Apply for this position</button></div>';
+  const parsed = extractVacancies(card + hidden,org,org.jobs);
+  assert.equal(parsed.explicitEmpty,false);
+  assert.equal(parsed.inlineVacancyCount,1);
+  assert.equal(parsed.unresolvedInlineListings,1);
+  assert.equal(extractVacancies(hidden,org,org.jobs).explicitEmpty,false);
+  assert.equal(extractVacancies(`<template>${hidden}</template>`,org,org.jobs).explicitEmpty,false);
+  assert.equal(extractVacancies(card + '<p>No positions match your filters.</p>',org,org.jobs).explicitEmpty,false);
+  const result = await crawlOrganization(org,async url=>({url,html:card+hidden,truncated:false}));
+  assert.equal(result.jobs.length,0);
+  assert.equal(result.source.status,'unsupported');
+  assert.equal(result.source.coverage,'partial');
+  assert.equal(result.source.pending_pages,1);
+  assert.match(result.source.message,/eingebettete Stellenkarten/);
+});

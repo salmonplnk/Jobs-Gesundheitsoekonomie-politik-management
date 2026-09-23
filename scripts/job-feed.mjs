@@ -165,7 +165,7 @@ export async function runFeed({organizations, previous = new Map(), only = [], m
           source:{...pick(prior?.source || {}, SOURCE_FIELDS), org_id:org.id, name:org.name, url:org.jobs || org.main || '',
             has_portal:Boolean(org.jobs), status:prior?.source?.status || 'pending', checked_at:prior?.source?.checked_at || null,
             job_count:jobs.filter(job => job.status !== 'closed').length,
-            last_success_at:prior?.source?.last_success_at || null, stale:true,
+            last_success_at:prior?.source?.last_success_at || null, stale:prior?.source ? Boolean(prior.source.stale) : true,
             message:prior?.source?.message || 'In diesem begrenzten Testlauf nicht abgerufen.'}};
         continue;
       }
