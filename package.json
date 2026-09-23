@@ -2,8 +2,17 @@
   "name": "schweizer-gesundheits-jobs",
   "version": "2.0.0",
   "private": true,
-  "description": "Static health-sector career workspace; Node dependencies are for tests only.",
-  "scripts": { "test": "node --test tests/*.test.*" },
-  "devDependencies": { "jsdom": "26.1.0" },
-  "engines": { "node": ">=22.13" }
+  "description": "Static health-sector career workspace with a scheduled public vacancy feed.",
+  "scripts": {
+    "test": "node --test tests/*.test.*",
+    "feed:refresh": "node scripts/job-feed.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0",
+    "playwright": "1.63.0",
+    "robots-parser": "3.0.1"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
 }

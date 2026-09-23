@@ -2,11 +2,15 @@
 // Deploy after the job-workspace SQL migration; requires SUPABASE_SERVICE_ROLE_KEY.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import catalog from '../../../data/organizations.json' with { type: 'json' }
-import { CACHE_VERSION, isAllowedUrl } from '../_shared/job-extraction.mjs'
-import { crawlOrganization, fetchPublicPage } from '../_shared/job-crawler.mjs'
+import sourceOverrides from '../../../data/job-source-overrides.json' with { type: 'json' }
+import { CACHE_VERSION, isAllowedUrl, matchesOrganizationScope } from '../_shared/job-extraction.mjs'
+import { crawlOrganization, fetchPublicPage, fetchPublicJson } from '../_shared/job-crawler.mjs'
 
-type Organization = { id: string; name: string; main: string; jobs: string }
-const organizations = new Map<string, Organization>(catalog.flatMap(category => category.orgs).map(org => [org.id, org]))
+type Organization = { id: string; name: string; main: string; jobs: string; allowed_hosts?: string[]; scope_terms?: string[]; adapter?: string }
+const organizations = new Map<string, Organization>(catalog.flatMap(category => category.orgs).map(org => {
+  const overrides = (sourceOverrides.sources as Record<string, Partial<Organization>>)[org.id] || {}
+  return [org.id, {...org, ...Object.fromEntries(['jobs','allowed_hosts','scope_terms','adapter'].filter(key => key in overrides).map(key => [key, overrides[key as keyof Organization]]))}]
+}))
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -71,11 +75,12 @@ Deno.serve(async req => {
       if (input.refresh !== true && !readError && row?.url === org.jobs && cached?.version === CACHE_VERSION &&
           Array.isArray(cached.jobs) && cached.source?.org_id === org.id &&
           ['ok','empty','partial'].includes(cached.source.status) &&
-          cached.jobs.every((job: {org_id:string;url:string;description:string}) => job.org_id === org.id && typeof job.description === 'string' && isAllowedUrl(job.url, org))) {
+          cached.jobs.every((job: {org_id:string;url:string;description:string}) => job.org_id === org.id && typeof job.description === 'string' && isAllowedUrl(job.url, org) && matchesOrganizationScope(job, org))) {
         return {jobs:cached.jobs, source:{...cached.source, cached:true}}
       }
       const fresh = await crawlOrganization(org, (url: string, source: Organization, options: {signal?:AbortSignal}) =>
-        fetchPublicPage(url, source, {...options, resolver:publicAddresses}), {signal})
+        fetchPublicPage(url, source, {...options, resolver:publicAddresses}), {signal,
+          fetchJson: (url: string, source: Organization, options: {signal?:AbortSignal}) => fetchPublicJson(url, source, {...options, resolver:publicAddresses})})
       if (['ok','empty','partial'].includes(fresh.source.status)) {
         const {error:writeError} = await admin.from('job_cache').upsert({
           org_id:org.id, url:org.jobs, raw_html:null,

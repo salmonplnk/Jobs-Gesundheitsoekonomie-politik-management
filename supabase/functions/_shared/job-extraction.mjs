@@ -1,11 +1,12 @@
 /** Deterministic vacancy extraction, shared by the Edge function and Node tests. */
-export const CACHE_VERSION = 2;
+export const CACHE_VERSION = 4;
 export const DESCRIPTION_LIMIT = 30000;
 const ATS_DOMAINS = [
   'umantis.com', 'rexx-systems.com', 'successfactors.eu', 'successfactors.com',
   'myworkdayjobs.com', 'solique.ch', 'csod.com', 'recruitee.com', 'softgarden.io',
   'jobbase.io', 'jobcloud.io', 'jobs.ch', 'hr4you.org', 'hr4you.com',
   'recruitingapp-2721.umantis.com', 'apply.admin.ch', 'stellen.admin.ch',
+  'greenhouse.io', 'lever.co',
 ];
 const ENTITIES = {amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:' ',
   auml:'ä', ouml:'ö', uuml:'ü', Auml:'Ä', Ouml:'Ö', Uuml:'Ü', szlig:'ß',
@@ -30,7 +31,7 @@ export function cleanText(html) {
     .replace(/[\t\r\f ]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-function attributes(tag) {
+export function attributes(tag) {
   const attrs = {};
   for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) {
     attrs[match[1].toLowerCase()] = decodeEntities(match[2] ?? match[3] ?? match[4]);
@@ -76,14 +77,17 @@ export function isAllowedUrl(raw, org, base = org.jobs) {
   const url = safePublicUrl(raw, base);
   if (!url) return false;
   const roots = [org.jobs, org.main].map(x => safePublicUrl(x)?.hostname.replace(/^www\./, '')).filter(Boolean);
-  return roots.some(root => hostWithin(url.hostname, root)) || ATS_DOMAINS.some(root => hostWithin(url.hostname, root));
+  // Supplied only by the server-owned source registry, never by requesting browsers.
+  const extra = (Array.isArray(org.allowed_hosts) ? org.allowed_hosts : []).map(host =>
+    safePublicUrl(String(host).includes('://') ? host : `https://${host}`)?.hostname).filter(Boolean);
+  return roots.some(root => hostWithin(url.hostname, root)) || extra.includes(url.hostname) || ATS_DOMAINS.some(root => hostWithin(url.hostname, root));
 }
 
 export function canonicalUrl(raw, base) {
   const u = safePublicUrl(raw, base);
   if (!u) return null;
   for (const key of [...u.searchParams.keys()]) {
-    if (/^(?:utm_|pk_|mtm_)/i.test(key) || /^(?:fbclid|gclid|msclkid|dclid|referrer|tracking|source)$/i.test(key)) u.searchParams.delete(key);
+    if (/^(?:utm_|pk_|mtm_)/i.test(key) || /^(?:fbclid|gclid|msclkid|dclid|referrer|tracking)$/i.test(key)) u.searchParams.delete(key);
   }
   u.searchParams.sort();
   // Preserve meaningful SPA job routes, discard ordinary section anchors.
@@ -100,8 +104,19 @@ export function stableJobId(orgId, url) {
 
 const genericTitle = /^(?:jobs?|karriere|career[s]?|offene stellen(?:angebote)?|stellen(?:markt|angebote|portal)?|vacanc(?:y|ies)|join us|emplois?|nos offres|offres d.emploi|arbeiten bei .+)$/i;
 const overviewTitle = /\b(?:Karriere|Careers?|Stellenangebote|Stellenportal|Stellenmarkt|Jobsuche|offene Stellen|our vacancies|nos offres)\b/i;
-const detailPath = /(?:\/(?:jobs?|positions?|stellen?|vacanc(?:y|ies)|requisition|offres?)(?:\/|[-_])[^/?#]{4,}|\/Vacancies\/\d+|[?&](?:job_?id|vacancy_?id|position_?id|requisition_?id)=\w+|\/(?:job|stelle|emploi)[-_][^/?#]{4,}|\/[a-z\d-]+-j\d+\.html)/i;
-export function looksLikeDetailUrl(url) { return detailPath.test(url); }
+const detailPath = /(?:\/(?:jobs?|positions?|stellen?|vacanc(?:y|ies)|requisition|offene-stellen|stellenangebote)\/[^/?#]{4,}|\/(?:Vacancies|liste-offres)\/\d+|[?&](?:job_?id|vacancy_?id|position_?id|requisition_?id|jid)=\w+|\/(?:job|stelle|emploi)[-_][^/?#]{4,}|\/[a-z\d-]+-j\d+\.html)/i;
+const listingEnd = /\/(?:careers?|karriere|jobs?|jobs?-karriere|jobs?-und-karriere|stellen(?:angebote|portal|markt)?|offene-stellen|vacancies|positions?|job-search|jobboerse|emplois?|offres?|offres-d-?emploi)(?:\.html?)?\/?$/i;
+const pageParameter = /^(?:page|p|offset|start|skip|from|cursor|next|pageNumber|pageIndex|currentPage|tx_[^\[]+\[(?:page|currentPage)\])$/i;
+const paginationPath = /\/(?:page|seite)\/\d+(?:\/|$)/i;
+const blockedLink = /(?:bewerbungsprozess|job[-_]?alert|privacy|datenschutz|login|register|anmelden|\/apply(?:\/|$)|\/application(?:\/|$))/i;
+const careerNavigation = /\/(?:[^/]*(?:bewerbung|benefit|vorteile|kultur|werte|entwicklung|arbeiten-|berufsbild|lehrstellen|ausbildung|arbeitswelt|stellenvermittlung|job-finder|sitesearch|offres-stage|uebrige-institutionen|personalvermittler)[^/]*)$/i;
+export function looksLikeDetailUrl(raw) {
+  const url = safePublicUrl(raw);
+  if (!url || paginationPath.test(url.pathname)) return false;
+  if ([...url.searchParams.keys()].some(key => /^(?:job_?id|vacancy_?id|position_?id|requisition_?id|jid)$/i.test(key))) return true;
+  if (listingEnd.test(url.pathname) || [...url.searchParams.keys()].some(key => pageParameter.test(key)) || careerNavigation.test(url.pathname)) return false;
+  return detailPath.test(url.href);
+}
 
 function jsonPostings(html) {
   const nodes = [];
@@ -213,24 +228,92 @@ function jobRecord(node, org, pageUrl, sourceUrl, fetchedAt, allowPageUrl) {
     ...inferMetadata(title, description, node)};
 }
 
-/** Extract detail links, never external links supplied by the requesting browser. */
-export function extractDetailLinks(html, pageUrl, org) {
-  const links = new Map();
-  for (const match of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi)) {
-    const a = attributes(match[1]);
+/** Preserve employer and search filters when a pager emits only its changing cursor. */
+export function scopedListingUrl(raw, pageUrl, org, {pagination = false} = {}) {
+  const target = safePublicUrl(raw, pageUrl), current = safePublicUrl(pageUrl), root = safePublicUrl(org.jobs);
+  if (!target || !current || !isAllowedUrl(target.href, org)) return null;
+  if (pagination && target.origin !== current.origin) return null;
+  if (pagination) {
+    for (const [key] of current.searchParams) {
+      if (pageParameter.test(key) || /^(?:utm_|pk_|mtm_)/i.test(key)) continue;
+      const values = current.searchParams.getAll(key), incoming = target.searchParams.getAll(key);
+      if (incoming.length && (incoming.length !== values.length || incoming.some((value, i) => value !== values[i]))) return null;
+      if (!incoming.length) for (const value of values) target.searchParams.append(key, value);
+    }
+  }
+  for (const scope of [root, current].filter(Boolean)) {
+    if (!scope.search) continue;
+    for (const [key] of scope.searchParams) {
+      if (pageParameter.test(key) || /^(?:utm_|pk_|mtm_|lang(?:uage)?$|locale$)/i.test(key)) continue;
+      // A career iframe can narrow a department beyond the original catalog URL.
+      if (scope === root && scope.hostname !== target.hostname && scope.hostname !== current.hostname) continue;
+      const expected = scope.searchParams.getAll(key), actual = target.searchParams.getAll(key);
+      if (actual.length !== expected.length || actual.some((value, i) => value !== expected[i])) return null;
+    }
+  }
+  return canonicalUrl(target.href);
+}
+
+/** Listing routes, pagers and career iframes are distinct from vacancy details. */
+export function discoverJobPages(html, pageUrl, org) {
+  html = String(html).replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
+  const details = new Map(), listings = new Map(), unsupportedDetails = new Map();
+  let blockedPagination = 0, blockedEntries = 0;
+  const current = canonicalUrl(pageUrl);
+  const addListing = (raw, label, kind) => {
+    const url = scopedListingUrl(raw, pageUrl, org, {pagination:kind === 'pagination'});
+    if (!url) { if (kind === 'pagination') blockedPagination++; else blockedEntries++; return; }
+    if (url !== current) listings.set(url, {url, label, kind});
+  };
+  for (const match of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>|<link\b([^>]*)>/gi)) {
+    const a = attributes(match[1] ?? match[3]);
     if (!a.href || /^(?:#|mailto:|tel:|javascript:)/i.test(a.href)) continue;
-    const label = cleanText(match[2]);
-    if (!isAllowedUrl(a.href, org, pageUrl)) continue;
+    const label = cleanText(match[2] || a.title || a['aria-label'] || '');
     const url = canonicalUrl(a.href, pageUrl);
-    if (!url || url === canonicalUrl(pageUrl) || /\.(?:pdf|docx?|xlsx?|zip|png|jpg|svg)(?:$|\?)/i.test(url)) continue;
+    if (!url || blockedLink.test(url)) continue;
+    if (/\.(?:pdf|docx?|xlsx?|zip|png|jpe?g|svg)(?:$|\?)/i.test(url)) {
+      if (/\.(?:pdf|docx?)(?:$|\?)/i.test(url) && isAllowedUrl(url, org) && (looksLikeDetailUrl(url) || /\d{1,3}\s*%/.test(label))) unsupportedDetails.set(url,{url,label});
+      continue;
+    }
+    const target = new URL(url);
     const signals = `${a.class || ''} ${a['data-testid'] || ''} ${a.itemprop || ''}`;
+    if (match[3] != null && !/(?:^|\s)next(?:\s|$)/i.test(a.rel || '')) continue;
+    const isPager = /(?:^|\s)next(?:\s|$)/i.test(a.rel || '') || paginationPath.test(target.pathname) ||
+      [...target.searchParams.keys()].some(key => pageParameter.test(key) && (!/^p$/i.test(key) || /^\d+$/.test(label))) ||
+      (/^(?:next(?: page)?|weiter|nächste(?: seite)?|suivant(?:e)?|›|»|→)$/i.test(label) && /(?:pag|next|weiter)/i.test(signals + ' ' + (a.rel || '')));
+    if (isPager) { addListing(a.href,label,'pagination'); continue; }
+    if (match[3] != null || !isAllowedUrl(url,org) || url === current) continue;
+    const careerLabel = (genericTitle.test(label) && !/^arbeiten bei .+/i.test(label)) || /^(?:alle|aktuelle|unsere|zu den|see all|view all|search|find|open|current|toutes les|tous les)\s+(?:offenen?\s+)?(?:stellen(?:angebote)?|jobs|vacancies|positions|offres|emplois)(?:\s+.+)?$/i.test(label);
+    const isListing = careerLabel || listingEnd.test(target.pathname) || /\/(?:jobs?|stellen|vacancies)\/(?:all|search|overview)\/?$/i.test(target.pathname);
+    if (isListing) { addListing(a.href,label,'career'); continue; }
     const jobClass = /(?:job|vacancy|position|stelle)[_-]?(?:title|link|detail|item|card)/i.test(signals);
     const jobLabel = /\d{1,3}\s*%|\b(?:m\/w|w\/m|all genders|PhD|Doktorand|Projektleiter|Scientist|Analyst)\b/i.test(label);
-    if (!looksLikeDetailUrl(url) && !jobClass && !jobLabel) continue;
-    if (genericTitle.test(label) || /(?:bewerbungsprozess|job[-_]?alert|privacy|datenschutz|login|register|anmelden)/i.test(url)) continue;
-    links.set(url, {url, label});
+    if (looksLikeDetailUrl(url) || jobClass || jobLabel) details.set(url,{url,label});
   }
-  return [...links.values()];
+  for (const match of html.matchAll(/<iframe\b([^>]*)>/gi)) {
+    const a = attributes(match[1]), raw = a.src || a['data-src'];
+    if (!raw) continue;
+    const target = safePublicUrl(raw,pageUrl);
+    if (!target || !isAllowedUrl(target.href,org) || /\/(?:header|footer|tracking|captcha|cookie)[^/]*(?:\/|$)/i.test(target.pathname)) continue;
+    if (/job|career|karriere|stellen|vacanc|recruit|solique|umantis|rexx|greenhouse|lever\.co|recruitee|softgarden|successfactors|csod/i.test(`${target.href} ${a.title || ''} ${a.id || ''}`)) addListing(raw,a.title || 'Karriereportal','iframe');
+  }
+  const visible = cleanText(html);
+  const dynamicPagination = /(?:mehr (?:Stellen|Jobs) laden|load more(?: (?:jobs|positions))?|weitere Stellen anzeigen|plus d.offres|mehr laden)/i.test(visible) ||
+    /<(?:button|a)\b[^>]*(?:data-(?:next-page|cursor)|(?:class|id)=["'][^"']*load[-_]?more)/i.test(html);
+  const listingLinks = [...listings.values()];
+  return {links:[...details.values()],listingLinks,paginationLinks:listingLinks.filter(link => link.kind === 'pagination'),
+    unsupportedDetails:[...unsupportedDetails.values()],dynamicPagination,blockedPagination,blockedEntries};
+}
+
+export function extractDetailLinks(html,pageUrl,org) { return discoverJobPages(html,pageUrl,org).links; }
+
+/** A registry-owned department scope must be evidenced by the vacancy itself. */
+export function matchesOrganizationScope(job,org) {
+  const terms = (Array.isArray(org.scope_terms) ? org.scope_terms : []).filter(term => typeof term === 'string' && term.trim());
+  if (!terms.length) return true;
+  const normalize = text => String(text || '').normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+  const evidence = ` ${normalize(`${job.title || ''}\n${job.hiring_organization || ''}\n${job.description || ''}`)} `;
+  return terms.some(term => { const wanted = normalize(term); return wanted && evidence.includes(` ${wanted} `); });
 }
 
 export function extractVacancies(html, org, pageUrl, options = {}) {
@@ -248,9 +331,13 @@ export function extractVacancies(html, org, pageUrl, options = {}) {
     if (job && (job.url !== canonicalUrl(pageUrl) || ownPageIsDetail)) jobs.push(job); else rejected++;
   }
   if (!jobs.length && !nodes.length && options.detail === true && h1 && !genericTitle.test(h1) && !overviewTitle.test(h1)) {
-    const main = (html.match(/<(?:main|article)\b[^>]*>([\s\S]*?)<\/(?:main|article)\s*>/i) || [null, html])[1];
+    // Some employer templates split one vacancy across several sibling articles.
+    // Match the corresponding main closing tag; an inner article must not cut it short.
+    const mainRegion = html.match(/<main\b[^>]*>([\s\S]*?)<\/main\s*>/i)?.[1];
+    const articles = [...html.matchAll(/<article\b[^>]*>([\s\S]*?)<\/article\s*>/gi)].map(match => match[1]);
+    const main = mainRegion || (articles.length ? articles.join('\n') : html);
     const description = cleanText(main);
-    const hasTasks = /(?:Ihre Aufgaben|Deine Aufgaben|Aufgabenbereich|Your (?:tasks|responsibilities)|Responsibilities|Vos missions|Vos tâches|Ce qui vous attend)/i.test(description);
+    const hasTasks = /(?:Ihre Aufgaben|Deine Aufgaben|Aufgabenbereich|Ihre neue Herausforderung|Your (?:tasks|responsibilities)|Responsibilities|Vos missions|Vos tâches|Ce qui vous attend)/i.test(description);
     const hasRequirements = /(?:Ihr Profil|Dein Profil|Anforderungen|Voraussetzungen|Requirements|Qualifications|Votre profil|Your profile|Das bringen Sie mit)/i.test(description);
     const hasApplication = /(?:bewerben|Bewerbung|apply|application|postuler|candidature)/i.test(description);
     if (description.length >= 150 && hasTasks && hasRequirements && hasApplication) {
@@ -260,9 +347,13 @@ export function extractVacancies(html, org, pageUrl, options = {}) {
     }
   }
   const unique = [...new Map(jobs.map(j => [j.id, j])).values()];
-  const links = extractDetailLinks(html, pageUrl, org).filter(link => !unique.some(job => job.url === link.url));
+  const discovery = discoverJobPages(html, pageUrl, org);
+  const links = discovery.links.filter(link => !unique.some(job => job.url === link.url));
   const visible = cleanText(html);
   const explicitEmpty = /(?:keine (?:offenen |passenden |freien |aktuellen )?(?:Stellen|Vakanzen)|aktuell (?:keine|nicht auf der Suche)|no (?:open |current |matching )?(?:jobs|vacancies|positions)|aucun(?:e)? (?:poste|offre|emploi))/i.test(visible);
-  const hasPagination = /<a\b[^>]*(?:rel\s*=\s*["']next["']|[?&](?:page|offset|start)=\d+)[^>]*>/i.test(html) || /(?:mehr (?:Stellen|Jobs) laden|load more (?:jobs|positions)|weitere Stellen anzeigen)/i.test(visible);
-  return {jobs:unique, links, explicitEmpty, hasPagination, malformed, rejected};
+  const hasPagination = discovery.paginationLinks.length > 0 || discovery.dynamicPagination || discovery.blockedPagination > 0;
+  const listingEvidence = explicitEmpty || discovery.links.length > 0 || nodes.length > 1 || (nodes.length > 0 && !looksLikeDetailUrl(pageUrl));
+  const countMatch = visible.match(/\b(\d{1,5})\s+(?:offene Stellen|Stellenangebote|open positions|jobs found|offres d.emploi)\b/i) ||
+    visible.match(/(?:Ergebnisse|results|Stellen)\s+\d+\s*[-–]\s*\d+\s+(?:von|of|sur)\s+(\d{1,5})\b/i);
+  return {jobs:unique,...discovery,links,explicitEmpty,hasPagination,listingEvidence,expectedCount:countMatch ? Number(countMatch[1]) : null,malformed,rejected};
 }

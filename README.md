@@ -4,6 +4,8 @@ Stellen suchen, die Passung zum eigenen Profil prüfen und Bewerbungen organisie
 
 ## Funktionen
 
+- Öffentlicher Jobfeed ohne Anmeldung: alle 85 Katalogquellen werden regelmässig geprüft; einzelne Stellen durchsuchen, filtern und bei Bedarf in die persönliche Arbeitsfläche übernehmen.
+
 - Arbeitgeber auf einer geografischen Schweizer Karte oder in der mobilen Standortliste auswählen. Suchtext und Kategorien grenzen die Auswahl ein; gefilterte Arbeitgeber direkt in den Suchdialog übernehmen und als Favoriten speichern.
 - Einzelne Stellen mit Direktlink, Inseratstext und verfügbaren Angaben zu Pensum, Ort und Frist durchsuchen und vergleichen.
 - Suchprofile mit eigenen Kriterien und Arbeitgebern speichern; Anforderungen als zwingend oder bevorzugt gewichten.
@@ -14,7 +16,7 @@ Stellen suchen, die Passung zum eigenen Profil prüfen und Bewerbungen organisie
 - Anschreiben auf Deutsch oder Französisch erstellen, bearbeiten und als Versionen je Stelle speichern; Export als TXT, HTML und DOCX sowie PDF über den Druckdialog.
 - CV und bis zu fünf weitere Dokumente im privaten Benutzerkonto verwalten.
 
-Die Stellensuche läuft auf Anforderung. Es gibt keinen täglichen Hintergrund-Scraper und keinen automatischen E-Mail-Versand. Dynamische oder geschützte Karriereseiten lassen sich teilweise nicht vollständig auslesen; die Oberfläche weist dies aus. Ein fehlgeschlagener oder unvollständiger Abruf schliesst keine gespeicherten Stellen.
+Der öffentliche Jobfeed wird zweimal täglich im Hintergrund aktualisiert. Persönliche Suchläufe bleiben zusätzlich auf Anforderung möglich. Es gibt keinen automatischen E-Mail-Versand. Dynamische oder geschützte Karriereseiten lassen sich teilweise nicht vollständig auslesen; die Oberfläche weist dies aus. Ein fehlgeschlagener oder unvollständiger Abruf schliesst keine gespeicherten Stellen.
 
 ## Lokal öffnen
 
@@ -25,6 +27,8 @@ python3 -m http.server 8080
 ```
 
 Danach `http://localhost:8080` öffnen. Es ist kein Frontend-Build nötig. Anmeldung, Stellensuche, Dokumentanalyse, Anschreiben und Synchronisierung benötigen eine konfigurierte Supabase-Instanz und Internetzugang. Die Supabase-Bibliothek wird über CDN geladen. DOCX-Dateien entstehen lokal im Browser; für PDF wird die Druckansicht geöffnet.
+
+Details zu Quellen, Abruf, Datenveröffentlichung und Betrieb stehen in [docs/JOBFEED.md](docs/JOBFEED.md). Der öffentliche Feed benötigt kein Supabase-Konto und keinen KI-Schlüssel.
 
 ## Supabase einrichten
 
@@ -52,6 +56,9 @@ Der GitHub-Workflow prüft zusätzlich die Syntax aller Browser-JavaScript-Datei
 | `index.html`, `css/styles.css` | Oberfläche und Darstellung |
 | `js/` | Arbeitgeberkatalog, Auth, Profil, Suche und persönliche Arbeitsfläche |
 | `js/map-geography.js`, `css/map.css` | Lokale Kartengeometrie, Ortsanker und Darstellung; [Quellen](data/map-geography-source.md) |
+| `js/feed.js`, `css/feed.css` | Öffentlicher Jobfeed mit Quellenstatus und Übernahme einzelner Inserate |
+| `scripts/job-feed.mjs`, `scripts/feed-network.mjs` | Regelmässiger Abruf und begrenzter öffentlicher Netzwerkzugriff |
+| `data/job-source-overrides.json` | Verifizierte Portaladressen und Abteilungsfilter |
 | `data/organizations.json` | Organisationsdaten für die serverseitige Quellenauswahl |
 | `supabase/functions/` | Stellensuche, Dokumentanalyse und Anschreiben |
 | `supabase/schema.sql` | Vollständiges Schema für eine neue Installation |

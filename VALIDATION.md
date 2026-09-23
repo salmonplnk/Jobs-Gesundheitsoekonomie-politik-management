@@ -47,3 +47,14 @@ Zusätzlich alle Browser-JavaScript-Dateien und vier TypeScript-Handler auf Synt
 - Die DOM-Prüfungen ersetzen keine visuelle Browserabnahme. Chromium war nicht installiert; der Download lieferte kein gültiges Archiv. Layout, Druckdialog und DOCX-Darstellung sind zusätzlich in einem echten Browser bzw. Word zu prüfen.
 
 Migration und vier Edge Functions müssen vor Aktivierung des Frontends bereitgestellt werden. Reihenfolge und Abnahmeschritte stehen in [DEPLOYMENT.md](DEPLOYMENT.md).
+
+
+## Öffentlicher Feed – 23. September 2026
+
+- Feed-Oberfläche ohne Anmeldung, alle 85 Quellen im Statusbereich, Filter, Mehrquellen-Zuordnung und Übernahme vollständiger Inserate in die echte persönliche Arbeitsfläche geprüft.
+- Kontowechsel einschliesslich A→B→A, verspätete Antworten, unsichere Detailverweise, unerwartete URLs und Identitätskonflikte geprüft. Neuere bzw. manuelle Stellenbeschriebe und persönliche Bewerbungsnotizen bleiben beim Import erhalten.
+- Runner, öffentliche Netzwerkanfragen, robots.txt, Weiterleitungen, Zeit-/Grössenlimits, vollständige und eingeschränkte Abrufe, vorherige Bestände, fehlende Quelldateien, Duplikate und 90-Tage-Aufbewahrung geschlossener Stellen geprüft.
+- Gemeinsamer Crawler mit Folgeseiten, Karriere-Einstiegen und Detailseiten sowie öffentlichen Recruitee-, Lever-, Greenhouse-, Prospective-, USB-, AG- und CHUV-Adaptern geprüft. Der Swissmedic-Aufgabenabschnitt «Ihre neue Herausforderung» wird berücksichtigt.
+- `npm test`: **127 Tests bestanden**. TypeScript-Syntax des geänderten Such-Endpunkts und `git diff --check` ohne Befund.
+- Der erneute Chromium-Download lieferte ein ungültiges Archiv. Die Browserprüfung bleibt offen; die DOM-Tests sind keine visuelle Browserabnahme.
+- Der Live-Abruf aller 85 Quellen läuft separat mit echten Quellen und konservativen Fehlermeldungen. Sein abschliessendes Ergebnis wird nach Abschluss ergänzt.

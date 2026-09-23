@@ -105,3 +105,10 @@ Die App verschickt keine Bewerbungen. Es gibt keinen zeitgesteuerten Scraper und
 Neue Projekte verwenden `supabase/schema.sql`; bestehende Projekte die additive Migration `supabase/migrations/202609220001_job_workspace.sql`. Das vollständige Schema enthält exakt dieselbe Migration am Ende. Migration und Edge Functions müssen zusammen ausgerollt werden, bevor die neue Oberfläche produktiv verwendet wird. Siehe [DEPLOYMENT.md](DEPLOYMENT.md).
 
 Lokale Tests prüfen die Logik ohne API-Kosten. Ein bestandener JavaScript-Testlauf bestätigt keine produktiven RLS-Policies, Storage-Berechtigungen, PDF-Auslesung durch Anthropic oder Erreichbarkeit jeder Karriereseite; dafür sind die dokumentierten Abnahmefälle in einer Supabase-Testinstanz vorgesehen.
+
+
+## Öffentlicher Jobfeed
+
+`js/feed.js` lädt einen öffentlichen kompakten Index und bei bewusster Übernahme die vollständige Quelldatei. `HealthJobs.importPublicJobs(jobs, sources)` prüft bekannte Organisationen, IDs, URLs und Zeitstempel, erhält neuere/manuelle Stellenstände und persönliche Bewerbungsnotizen. Abrufe überstehen Konto- und Aktualisierungswechsel ohne Übernahme ins falsche Konto.
+
+Der Node-Runner in `scripts/` und der serverseitige Such-Endpunkt verwenden denselben Extraktionscode. Der regelmässige Feed wird getrennt vom Anwendungscode veröffentlicht. Beschreibung, Quellenstatus, Abdeckungsgrenzen und Betrieb: [docs/JOBFEED.md](docs/JOBFEED.md).

@@ -73,7 +73,12 @@
         change_fields: Array.isArray(raw.change_fields) ? raw.change_fields.filter(x => typeof x === 'string') : [],
         changes: Array.isArray(raw.changes) ? raw.changes.filter(c => c && typeof c.at === 'string' && Array.isArray(c.fields)).map(c => ({ at: c.at, fields: c.fields.filter(x => typeof x === 'string') })).slice(-30) : [] };
     }
-    for (const [key, raw] of entries(value.sources)) if (raw && typeof raw === 'object') base.sources[key] = { org_id: key, name: text(raw.name, 300), url: safeUrl(raw.url), status: ['ok','empty','partial','error','unsupported'].includes(raw.status) ? raw.status : 'error', checked_at: text(raw.checked_at), job_count: Math.max(0, Number(raw.job_count) || 0), message: text(raw.message, 2000), cached: !!raw.cached };
+    for (const [key, raw] of entries(value.sources)) if (raw && typeof raw === 'object') base.sources[key] = {
+      org_id: key, name: text(raw.name, 300), url: safeUrl(raw.url), status: ['pending','ok','empty','partial','error','unsupported'].includes(raw.status) ? raw.status : 'error',
+      checked_at: text(raw.checked_at), last_success_at: text(raw.last_success_at), job_count: Math.max(0, Number(raw.job_count) || 0), message: text(raw.message, 2000), cached: !!raw.cached, stale: !!raw.stale,
+      coverage: ['complete','partial','unknown'].includes(raw.coverage) ? raw.coverage : 'unknown', method: text(raw.method, 100),
+      pages_scanned: Math.max(0, Number(raw.pages_scanned) || 0), detail_pages_scanned: Math.max(0, Number(raw.detail_pages_scanned) || 0), pending_pages: Math.max(0, Number(raw.pending_pages) || 0)
+    };
     for (const [key, raw] of entries(value.applications)) if (base.jobs[key] && raw && typeof raw === 'object') base.applications[key] = Object.fromEntries(['contact','notes','next_step','next_date','applied_at','created_at','updated_at'].map(k => [k, text(raw[k])]).concat([['stage', stages[raw.stage] ? raw.stage : 'interested']]));
     for (const [key, drafts] of entries(value.drafts)) if (base.jobs[key] && Array.isArray(drafts)) base.drafts[key] = drafts.filter(d => d && typeof d.text === 'string').map(d => ({ ...d, id: safeKey(d.id) ? d.id : 'draft_' + hash(d.text), name: text(d.name, 200), text: text(d.text, 50000), created_at: text(d.created_at), language: d.language === 'fr' ? 'fr' : 'de' }));
     if (value.sender && typeof value.sender === 'object') base.sender = Object.fromEntries(['name','address','postcode','city'].map(k => [k, text(value.sender[k], 500)]));

@@ -10,7 +10,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
 const vacancy = { id: 'fixture', title: 'Projektleitung Gesundheitsökonomie', organization: 'Testorganisation', url: 'https://example.org/jobs/1', description: 'Projektmanagement und Datenanalyse im Gesundheitswesen.', location: 'Bern', pensum: '80–100%' };
 
-async function setup({ account = null, state, cloudRead, rpc, fetcher } = {}) {
+async function setup({ account = null, state, cloudRead, rpc, fetcher, feedData } = {}) {
   const errors = [], console = new VirtualConsole(); console.on('jsdomError', err => { errors.push(err.message); });
   const dom = new JSDOM(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), { url: 'https://workspace.test', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole: console });
   const w = dom.window; w.structuredClone = structuredClone; w.TextEncoder = TextEncoder; w.AbortController = AbortController;
@@ -36,8 +36,11 @@ async function setup({ account = null, state, cloudRead, rpc, fetcher } = {}) {
     }
   };
   w.supabase = { createClient: () => client };
-  w.fetch = fetcher || (async () => { throw new Error('Unexpected network request'); });
-  const files = ['auth.js', 'app.js', 'map-geography.js', 'map.js', 'profile.js', 'job-core.js', 'workspace.js', 'letters.js', 'matching.js', 'community.js'];
+  w.fetch = (url, options) => {
+    if (String(url).includes('/job-feed-data/data/job-feed/index.json')) return Promise.resolve({ ok: true, status: 200, text: async () => JSON.stringify(feedData || { version: 1, generated_at: new Date().toISOString(), run: {}, jobs: [], sources: [] }) });
+    return fetcher ? fetcher(url, options) : Promise.reject(new Error('Unexpected network request'));
+  };
+  const files = ['auth.js', 'app.js', 'map-geography.js', 'map.js', 'profile.js', 'job-core.js', 'feed.js', 'workspace.js', 'letters.js', 'matching.js', 'community.js'];
   for (const file of files) vm.runInContext(fs.readFileSync(path.join(root, 'js', file), 'utf8'), dom.getInternalVMContext(), { filename: file });
   await tick(); await tick();
   return { dom, w, errors, client, remote, emitAccount(next) { user = next ? { id: next, email: next + '@example.org' } : null; callbacks.forEach(fn => fn(user ? 'SIGNED_IN' : 'SIGNED_OUT', session())); }, click(selector) { const el = w.document.querySelector(selector); assert.ok(el, selector); if (typeof el.click === 'function') el.click(); else el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true })); }, submit(selector, values) { const form = w.document.querySelector(selector); assert.ok(form, selector); for (const [name, value] of Object.entries(values)) form.elements.namedItem(name).value = value; form.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true })); } };
@@ -161,5 +164,46 @@ test('map handoff during an active search explains the state and focuses pause w
   assert.equal(x.w.document.querySelector('.jw-dialog[open]'), null);
   assert.equal(requests, 1);
   pending.resolve({ ok: true, json: async () => ({ jobs: [], sources: [{ org_id: 'bag', status: 'empty' }] }) }); await run;
+  assert.deepEqual(x.errors, []);
+});
+
+test('public feed loads without login and imports full text into the real workspace only on request', async t => {
+  const stamp = '2026-09-23T18:00:00Z';
+  const item = { ...vacancy, id: 'bag:abc', org_id: 'bag', fetched_at: stamp, first_seen: stamp, last_seen: stamp, detail_file: './bag.json' };
+  const source = { org_id: 'bag', name: 'BAG', url: 'https://jobs.admin.ch/', status: 'ok', coverage: 'complete', checked_at: stamp, job_count: 1 };
+  const full = { ...item, description: 'Vollständiger Originalbeschrieb mit Aufgaben und Anforderungen.', description_truncated: false };
+  const requests = [];
+  const x = await setup({ feedData: { version: 1, generated_at: stamp, run: { total_sources: 85, checked_sources: 1 }, jobs: [item], sources: [source] }, fetcher: async url => {
+    requests.push(String(url));
+    assert.match(String(url), /\/job-feed-data\/data\/job-feed\/bag\.json$/);
+    return { ok: true, status: 200, text: async () => JSON.stringify({ version: 1, org_id: 'bag', source, jobs: [full] }) };
+  } }); t.after(() => x.dom.window.close());
+  assert.equal(x.w.document.querySelectorAll('#publicJobFeed .jf-job').length, 1);
+  assert.equal(x.w.HealthJobs.getJob(item.id), undefined); assert.equal(requests.length, 0);
+  await x.w.PublicJobFeed.importJob(item.id);
+  assert.equal(requests.length, 1);
+  assert.equal(x.w.HealthJobs.getJob(item.id).description, full.description);
+  assert.match(x.w.document.querySelector('#jwDialog').textContent, /Vollständiger Originalbeschrieb/);
+  assert.equal(x.w.HealthJobs.getOwner(), null);
+  assert.deepEqual(x.errors, []);
+});
+
+test('public imports preserve personal notes and newer or manual text, and reject conflicting identities', async t => {
+  const item = { ...vacancy, id: 'bag:one', org_id: 'bag', fetched_at: '2026-09-23T10:00:00Z' };
+  const manual = { ...item, id: 'manual', url: 'https://example.org/jobs/manual', source_type: 'manual', description: 'Mein Originaltext' };
+  const state = C.emptyState(); C.ingest(state, [item, manual]);
+  state.applications[item.id] = { stage: 'applied', notes: 'Meine Notizen' };
+  const x = await setup({ state }); t.after(() => x.dom.window.close());
+  const counts = x.w.HealthJobs.importPublicJobs([{ ...item, description: 'Veralteter Beschrieb', fetched_at: '2026-09-22T10:00:00Z' }]);
+  assert.equal(counts.changed, 0); assert.equal(x.w.HealthJobs.getJob(item.id).description, item.description);
+  x.w.HealthJobs.importPublicJobs([{ ...item, description: 'Aktualisierter Beschrieb', fetched_at: '2026-09-24T10:00:00Z' }]);
+  assert.equal(x.w.HealthJobs.getJob(item.id).description, 'Aktualisierter Beschrieb');
+  assert.equal(x.w.HealthJobs.getApplication(item.id).notes, 'Meine Notizen');
+  x.w.HealthJobs.importPublicJobs([{ ...manual, id: 'bag:manual', source_type: 'scraped', description: 'Nicht überschreiben', fetched_at: '2026-09-24T10:00:00Z' }]);
+  assert.equal(x.w.HealthJobs.getJob('manual').description, 'Mein Originaltext');
+  assert.throws(() => x.w.HealthJobs.importPublicJobs([{ ...item, id: 'unknown:one', org_id: 'unknown' }]), /Quelle/);
+  assert.throws(() => x.w.HealthJobs.importPublicJobs([{ ...item, url: 'https://example.org/different' }]), /anderen Link/);
+  assert.equal(x.w.HealthJobs.getJob(item.id).url, item.url);
+  assert.equal(x.w.HealthJobs.getJob('unknown:one'), undefined);
   assert.deepEqual(x.errors, []);
 });

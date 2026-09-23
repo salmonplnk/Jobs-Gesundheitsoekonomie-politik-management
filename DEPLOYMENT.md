@@ -62,7 +62,13 @@ Mit zwei separaten Testkonten prüfen:
 
 Zusätzlich `npm ci --ignore-scripts` und danach `npm test` ausführen und die GitHub-Prüfungen bestehen lassen. Nicht produktive Kontingente für einen Lasttest verbrauchen.
 
-## 5. Frontend veröffentlichen
+## 5. Öffentlichen Jobfeed aktivieren
+
+Nach Übernahme des Workflows auf den Hauptbranch `Refresh public job feed` in GitHub Actions starten bzw. den ersten geplanten Lauf prüfen. Entwicklungsbranches erzeugen nur Artefakte; die Datenveröffentlichung nach `job-feed-data` erfolgt ausschliesslich vom Hauptbranch. Der Workflow benötigt die normale Schreibberechtigung für Repository-Inhalte, keine Supabase- oder KI-Secrets. Den Quellenstatus aller 85 Organisationen kontrollieren und zwei echte Inserate gegen ihre Originale prüfen. Fehlende Portalzugänge sind keine leeren Stellenlisten.
+
+Betrieb und Datenadresse: [docs/JOBFEED.md](docs/JOBFEED.md).
+
+## 6. Frontend veröffentlichen
 
 Nach erfolgreicher Testabnahme dieselbe Migration und dieselben Functions im Produktionsprojekt installieren, dann die statischen Dateien über das bestehende Hosting veröffentlichen. Falls GitHub Pages direkt aus `main` veröffentlicht, diese Reihenfolge vor dem Merge koordinieren. Eine kurze Suche, das erneute Speichern eines Profils und das erneute Laden eines Entwurfs nach dem Rollout kontrollieren.
 

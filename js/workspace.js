@@ -197,7 +197,7 @@
     const fields = [['organization', 'Arbeitgeber'], ['location', 'Arbeitsort'], ['pensum', 'Pensum'], ['remote_mode', 'Arbeitsmodell'], ['languages', 'Sprachen'], ['employment_type', 'Anstellung'], ['salary_hint', 'Lohnangabe'], ['deadline', 'Bewerbungsfrist'], ['seniority', 'Erfahrungsniveau']];
     return `<div class="jw-compare-wrapper"><table class="jw-table"><thead><tr><th>Vergleich</th>${jobs.map(j => `<th>${esc(j.title)}<br>${button('compare-remove', 'Entfernen', j.id)}</th>`).join('')}</tr></thead><tbody>${fields.map(([f, label]) => `<tr><th>${label}</th>${jobs.map(j => `<td>${esc(j[f] && j[f] !== 'unknown' ? j[f] : 'Unbekannt')}</td>`).join('')}</tr>`).join('')}<tr><th>Kriterienpassung</th>${jobs.map(j => `<td>${matches(j).score == null ? 'Keine Kriterien' : matches(j).score + '% · ' + matches(j).coverage + '% beurteilbar'}</td>`).join('')}</tr><tr><th>Aufgaben / Beschreibung</th>${jobs.map(j => `<td><details><summary>Beschreibung lesen</summary><div class="jw-description">${esc(j.description || 'Unbekannt')}</div></details></td>`).join('')}</tr><tr><th>Nächster Schritt</th>${jobs.map(j => `<td>${button('application', 'Bewerbung verwalten', j.id)}${button('detail', 'Details', j.id)}</td>`).join('')}</tr></tbody></table></div>`;
   }
-  const sourceLabels = { ok: 'Erfolgreich geprüft', empty: 'Keine offenen Stellen', partial: 'Teilweise geprüft', error: 'Abruf fehlgeschlagen', unsupported: 'Nicht automatisch lesbar' };
+  const sourceLabels = { pending: 'Noch nicht geprüft', ok: 'Erfolgreich geprüft', empty: 'Keine offenen Stellen', partial: 'Teilweise geprüft', error: 'Abruf fehlgeschlagen', unsupported: 'Nicht automatisch lesbar' };
   function sourcesHtml() {
     const sources = Object.values(state.sources).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de'));
     return `<p class="jw-small jw-muted">Ein erfolgloser Abruf schliesst keine gespeicherte Stelle. Auch ein erfolgreicher Abruf garantiert nicht, dass ein Portal vollständig erfasst wurde.</p><div class="jw-stack">${sources.map(s => `<article class="jw-source"><div><strong>${esc(s.name || s.org_id)}</strong><span class="jw-badge ${s.status === 'ok' || s.status === 'empty' ? 'success' : 'warning'}">${sourceLabels[s.status] || 'Unbekannt'}</span><p class="jw-small">${Number(s.job_count) || 0} Inserate · ${dateTime(s.checked_at)}${s.cached ? ' · Zwischengespeichert' : ''}</p><p class="jw-small">${esc(s.message || '')}</p></div><div class="jw-actions">${button('retry-source', 'Erneut prüfen', s.org_id)}<a class="jw-btn" href="${esc(C.safeUrl(s.url))}" target="_blank" rel="noopener noreferrer">Karriereseite ↗</a></div></article>`).join('') || '<div class="jw-empty">Nach dem ersten Suchlauf siehst du hier die Ergebnisse pro Arbeitgeber.</div>'}</div><h3>Suchverlauf</h3>${state.runs.slice().reverse().map(r => `<div class="jw-history"><strong>${dateTime(r.started_at)}</strong> · ${r.checked || 0}/${r.total} Arbeitgeber · ${r.added || 0} neu · ${r.changed || 0} geändert · ${esc(r.status)}</div>`).join('') || '<p>Noch kein Suchlauf.</p>'}`;
@@ -318,11 +318,30 @@
     else if (type === 'save-search') { const profile = { id: id(), name: data.name.trim(), orgIds: selectedOrgIds().slice(), criteria: structuredClone(criteria()), filters: { ...state.filters }, updated_at: C.now() }; state.searchProfiles.push(profile); state.activeSearchProfileId = profile.id; persist(); form.closest('dialog').close(); view = 'searches'; render(); }
     else if (type === 'search') { const ids = new FormData(form).getAll('org'); if (!ids.length) { form.querySelector('#jwSelectedCount').textContent = 'Bitte mindestens einen Arbeitgeber wählen.'; return; } state.selectedOrgIds = ids; persist(); form.closest('dialog').close(); startSearch(ids); }
   });
+  function importPublicJobs(rawJobs, rawSources = []) {
+    if (!Array.isArray(rawJobs) || !rawJobs.length || rawJobs.length > 100) throw new Error('Bitte 1 bis 100 gültige Inserate übernehmen.');
+    const known = new Set(allOrgs().map(org => org.id));
+    const incoming = rawJobs.map(raw => {
+      const job = C.cleanJob(raw);
+      if (!job || !known.has(job.org_id) || !job.id.startsWith(job.org_id + ':') || !Number.isFinite(Date.parse(raw.fetched_at))) throw new Error('Ungültiges Inserat oder unbekannte Quelle.');
+      const byId = state.jobs[job.id];
+      if (byId && C.canonicalUrl(byId.url) !== C.canonicalUrl(job.url)) throw new Error('Die Inserat-ID gehört bereits zu einem anderen Link.');
+      const previous = byId || Object.values(state.jobs).find(item => C.canonicalUrl(item.url) === C.canonicalUrl(job.url));
+      return { job, previous, keepPrevious: previous && (previous.source_type === 'manual' || Date.parse(previous.fetched_at) > Date.parse(job.fetched_at)) };
+    });
+    const relevant = new Set(incoming.map(item => item.job.org_id));
+    const sanitized = C.hydrate({ sources: Object.fromEntries((Array.isArray(rawSources) ? rawSources : []).filter(source => relevant.has(source?.org_id)).map(source => [source.org_id, source])) }).sources;
+    const sources = Object.values(sanitized).filter(source => !state.sources[source.org_id] || (Date.parse(source.checked_at) || 0) >= (Date.parse(state.sources[source.org_id].checked_at) || 0));
+    const counts = C.ingest(state, incoming.filter(item => !item.keepPrevious).map(item => item.job), sources);
+    persist(); view = 'jobs'; notice = `${counts.added} Inserate ergänzt · ${counts.changed} aktualisiert. Deine Bewerbungsnotizen bleiben erhalten.`; render();
+    if (incoming.length === 1) openDetail(incoming[0].previous?.id || incoming[0].job.id);
+    return counts;
+  }
   window.HealthJobs = {
     render, startSearch, cancelSearch, openEmployerSelection: searchDialog, sync: syncCloud, getJob: jobId => state.jobs[jobId], getApplication: jobId => state.applications[jobId], patchApplication,
     getDrafts: jobId => state.drafts[jobId] || [], saveDraft, getSender: () => state.sender,
     saveSender: sender => { state.sender = { ...sender }; persist(); return state.sender; }, getCriteria: matches,
-    getOwner: () => owner, exportState
+    getOwner: () => owner, exportState, importPublicJobs
   };
   window.addEventListener('healthjobs:auth', e => switchOwner(e.detail?.userId || null));
   window.addEventListener('online', () => { if (owner) loadCloud(); });
