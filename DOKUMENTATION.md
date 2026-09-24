@@ -1,545 +1,116 @@
-# Schweizer Gesundheits-Jobs – Technische Dokumentation
-
-## Überblick
-
-Single-Page-Applikation für Stellensuchende im Schweizer Gesundheitswesen. Bietet eine durchsuchbare Datenbank von 85+ Organisationen, KI-gestütztes Job-Matching via Claude API, CV/Zeugnisse-Upload, und automatisierte Bewerbungsschreiben-Generierung.
-
-**Stack:** HTML5 · CSS3 · Vanilla JS (ES6+) · Supabase (Auth, DB, Storage, Edge Functions) · Claude API
-
----
+# Technische Dokumentation
 
 ## Architektur
 
-```
-┌──────────────────────────────────────────────────────┐
-│                    Frontend (SPA)                     │
-│  index.html · css/styles.css · js/*.js               │
-├──────────┬───────────┬────────────┬──────────────────┤
-│  app.js  │  auth.js  │  map.js   │  profile.js      │
-│  (Data,  │  (Supa-   │  (Search, │  (Profil-Form,   │
-│  Render) │  base     │  Filter,  │  CV-Upload)      │
-│          │  Auth)    │  Favs)    │                   │
-├──────────┴───────────┴────────────┴──────────────────┤
-│  matching.js          │  community.js                │
-│  (KI-Matching,        │  (Community Orgs/Cats)       │
-│  Cover Letter Modal)  │                              │
-└──────────┬────────────┴──────────────┬───────────────┘
-           │  Supabase Client          │
-           ▼                           ▼
-┌──────────────────────┐  ┌────────────────────────────┐
-│  Supabase Auth       │  │  Supabase Edge Functions    │
-│  (E-Mail, Google)    │  │  ├─ match-jobs              │
-├──────────────────────┤  │  ├─ parse-cv                │
-│  Supabase DB (RLS)   │  │  └─ generate-cover-letter   │
-│  ├─ profiles         │  └──────────┬─────────────────┘
-│  ├─ favorites        │             │
-│  ├─ community_orgs   │             ▼
-│  ├─ community_cats   │  ┌────────────────────────────┐
-│  ├─ cv_uploads       │  │  Claude API (Anthropic)     │
-│  ├─ job_cache        │  │  claude-sonnet-4-20250514   │
-│  └─ search_logs      │  └────────────────────────────┘
-├──────────────────────┤
-│  Supabase Storage    │
-│  └─ cv-uploads/      │
-└──────────────────────┘
-```
+Die App wird als statische Website ausgeliefert. Browser-JavaScript nutzt Supabase Auth, PostgREST/RPC und Storage. Die Edge Functions authentifizieren die Benutzer. Die Stellensuche liest freigegebene Quellen aus; Dokumentanalyse, optionale KI-Einschätzungen einzelner Stellen und Anschreiben führen Anthropic-Anfragen aus. Die Erfüllung gewichteter Kriterien wird direkt im Browser berechnet. Eine zusätzlich angeforderte KI-Einschätzung ergänzt diesen Vergleich mit Profil- und CV-Belegen; sie verändert den deterministischen Kriterienwert nicht. Der Service-Role-Key bleibt ausschliesslich im Backend; er wird für den gemeinsamen Quellencache benötigt.
 
----
+| Modul | Verantwortung |
+|---|---|
+| `js/app.js`, `js/map.js` | Organisationskatalog, Karte, Suche und Favoriten |
+| `js/auth.js` | Authentifizierung, Benutzerwechsel und Synchronisierung |
+| `js/profile.js` | Profil und persönliche Dokumente |
+| `js/matching.js` | Anschluss der neuen Arbeitsfläche an die bestehende Oberfläche |
+| `js/job-core.js` | Stellenidentität, Änderungserkennung, Filter und deterministischer Kriterienvergleich |
+| `js/workspace.js` | Stellensuche, Suchprofile, Vergleich, Bewerbungen und Cloud-Synchronisierung |
+| `js/letters.js` | Anschreiben, Entwurfsversionen und Exporte |
+| `supabase/functions/match-jobs/` | Quellenauslesung, Stellenextraktion, Cache und Suchabdeckung |
+| `supabase/functions/parse-cv/` | PDF-Analyse und überprüftes Speichern der Dokumente |
+| `supabase/functions/assess-job/` | Optionale KI-Einschätzung einer Stelle anhand Profil, CV und belegbarer Inseratsangaben |
+| `supabase/functions/generate-cover-letter/` | Anschreiben anhand Inserat und bereitgestellter Erfahrungen |
 
-## Dateien
+## Arbeitgeberkarte
 
-| Datei | Zeilen | Beschreibung |
-|-------|--------|-------------|
-| `index.html` | 245 | HTML-Template, SVG-Karte, alle Sections |
-| `css/styles.css` | 527 | Komplettes Styling inkl. Dark Mode, Responsive, Modals |
-| `js/app.js` | ~400 | Daten (85 Orgs), Rendering, Favoriten, Onboarding |
-| `js/auth.js` | 429 | Supabase Auth, Sync, Fehlermeldungen (DE) |
-| `js/map.js` | 199 | Suche (Fuzzy), Filter (Standort + Kategorie), Keyboard-Shortcuts |
-| `js/profile.js` | 542 | Profil-Formular, CV/Zeugnis-Upload, Dokument-Verwaltung |
-| `js/matching.js` | 559 | KI-Matching, Ergebnis-Persistenz, Bewerbungsschreiben-Modal |
-| `js/community.js` | 285 | Community-Vorschläge (Orgs + Kategorien) |
-| `supabase/functions/match-jobs/index.ts` | 283 | Job-Matching via Claude (Karriereseiten crawlen + analysieren) |
-| `supabase/functions/parse-cv/index.ts` | 221 | PDF-Text-Extraktion + Claude-Klassifikation |
-| `supabase/functions/generate-cover-letter/index.ts` | 212 | Bewerbungsschreiben via Claude (DE/FR) |
-| `supabase/schema.sql` | 171 | 7 Tabellen, RLS-Policies, Trigger |
+Die Schweizer Landesform (Natural Earth) und 16 Ortsanker (© swisstopo) liegen in `js/map-geography.js`. Es werden keine externen Karten-APIs geladen. Beide verwenden dieselbe Projektion; nur die mit Linien verbundenen Beschriftungen sind zur Lesbarkeit verschoben. [Herkunft, Lizenz und Projektionsformel](data/map-geography-source.md).
 
----
+`getFilteredOrganizations()` in `js/map.js` ist die gemeinsame Grundlage für Verzeichnis, Favoritenanzeige und Übergabe an `HealthJobs.openEmployerSelection(ids)`. Eine leere Standortauswahl bedeutet alle Standorte. Marker- und Listenzahlen berücksichtigen Suchtext und Kategorien; die Ergebniszeile berücksichtigt zusätzlich die Standortauswahl. Die Zahlen stehen für Organisationen, nicht für offene Stellen. Von 85 Verzeichniseinträgen haben 81 eine hinterlegte Stellenportal-URL. Favoriten-Duplikate werden nie mitgezählt.
 
-## Datenmodell
+«Westschweiz» bleibt der vorhandene Sammelfilter mit acht Organisationen und erhält keinen einzelnen Stadtpunkt. Neuenburg mit zwei Organisationen ist separat. Community-Vorschläge stehen in einem ausdrücklich als ungefiltert gekennzeichneten Abschnitt und werden nicht in die Suchauswahl übernommen.
 
-### Organisations-Datenbank (`js/app.js`)
+Bis 600 Pixel startet die Ansicht mit einer Standortliste; die Karte bleibt über einen Umschalter zugänglich und horizontal scrollbar. Standortmarker sind auch per Enter/Leertaste bedienbar. Einzelne Standortchips oder alle Filter lassen sich entfernen. Der Arbeitgeberbutton öffnet eine vorausgewählte Liste; erst deren Bestätigung startet einen Suchlauf. Das Schliessen des Dialogs ändert keine gespeicherte Auswahl. Bei bereits laufender Suche werden ein Hinweis und der Pausieren-Button im Workspace fokussiert.
 
-85 Organisationen in 7 Kategorien:
+## Dauerhafte Daten
 
-```javascript
-const DATA = [
-  { key: 'bund',          emoji: '🏛️', title: 'Bund / bundesnahe Institutionen',       orgs: [/* 10 */] },
-  { key: 'kantone',       emoji: '🏔️', title: 'Kantonale Verwaltungen',                orgs: [/* 16 */] },
-  { key: 'versicherungen',emoji: '🛡️', title: 'Versicherungen',                        orgs: [/* 13 */] },
-  { key: 'branchen',      emoji: '⚖️', title: 'Branchen- / Tariforganisationen',       orgs: [/* 9 */]  },
-  { key: 'spitaeler',     emoji: '🏥', title: 'Leistungserbringer (Spitäler/Kliniken)', orgs: [/* 14 */] },
-  { key: 'beratung',      emoji: '🔬', title: 'Beratung / Forschung',                  orgs: [/* 12 */] },
-  { key: 'stiftungen',    emoji: '💚', title: 'Stiftungen / Non-Profits',              orgs: [/* 11 */] },
-];
-```
+| Tabelle | Inhalt | Benutzerzugriff |
+|---|---|---|
+| `profiles` | Ausbildung, Erfahrung, Regionen, Pensum und weitere Präferenzen | Eigenes Profil lesen/schreiben |
+| `favorites` | Ausgewählte Arbeitgeber | Eigene lesen; atomarer Ersatz via RPC |
+| `job_workspaces` | Stellen, Suchprofile, Bewerbungen, Entwürfe, Quellenstatus und Verlauf | Eigene lesen; revisionsgeprüfter Ersatz via RPC |
+| `cv_uploads` | Metadaten und extrahierte Inhalte der eigenen Dokumente | Eigene lesen/löschen; Registrierung via RPC |
+| `job_cache` | Profilunabhängige Stellen- und Quellendaten mit Ablaufdatum | Lesen; schreiben nur Service Role |
+| `search_logs` | Eigene Suchereignisse und Ergebniszahlen | Eigene lesen/einfügen |
+| `community_orgs`, `community_categories` | Organisations- und Kategorievorschläge | Genehmigte oder eigene lesen; eigene einreichen |
+| `private.job_quotas` | Verbrauch pro Benutzer und Aktion | Kein direkter Benutzerzugriff |
 
-Jede Organisation:
-```javascript
-{
-  id: 'bag',
-  name: 'Bundesamt für Gesundheit (BAG)',
-  loc: 'Bern',
-  main: 'https://www.bag.admin.ch',
-  jobs: 'https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083353',
-  desc: 'Nationale Gesundheitspolitik, Prävention und Krankenversicherung.'
-}
-```
+`job_workspaces.data` ist ein JSON-Objekt mit den Bereichen `jobs`, `searchProfiles`, `applications`, `drafts`, `sources` und `runs` sowie Kriterien, Filter und eine fortsetzbare Suchwarteschlange. Die Arbeitsfläche wird als Ganzes gespeichert. Browserdaten sind benutzerbezogen; der Cloud-Stand wird bei der Anmeldung geladen. Fehlgeschlagene Speicherungen dürfen nicht als erfolgreich angezeigt werden. Bei einem neueren Cloud-Stand verhindert die Revision ein stilles Überschreiben.
 
-### Supabase-Tabellen (`supabase/schema.sql`)
+Bestehende Profile, Favoriten und Dokumente werden durch die Migration erhalten. Historische Daten mit unbekannten Feldern bleiben gespeichert. Die Dateien in `cv-uploads` sind privat und liegen unter `cvs/<auth.uid()>/<Dateiname>`.
 
-```sql
--- Benutzerprofil (erweitert auth.users)
-profiles (id, email, education, field_of_study, experience,
-          desired_regions[], workload_min, workload_max,
-          languages JSONB, keywords, exclusions[], start_date, cv_path)
+## RPC-Verträge
 
--- Favoriten
-favorites (id, user_id, org_id, created_at)  -- UNIQUE(user_id, org_id)
+### `save_job_workspace(payload jsonb, expected_revision bigint)`
 
--- Community-Vorschläge
-community_orgs (id, submitted_by, name, url, description, category, canton, city, org_type, approved)
-community_categories (id, user_id, name, slug UNIQUE, description, approved)
+Nur für authentifizierte Aufrufer. Die Benutzer-ID stammt aus `auth.uid()` und ist kein übergebbarer Parameter. Der erste Schreibvorgang erwartet Revision `0` und erzeugt Revision `1`. Jeder erfolgreiche Schreibvorgang erhöht die Revision um eins und liefert ein einzelnes JSON-Objekt:
 
--- Job-Cache (24h TTL)
-job_cache (id, org_id UNIQUE, url, raw_html, extracted_jobs JSONB, fetched_at, expires_at)
-
--- CV-Uploads
-cv_uploads (id, user_id, file_name, storage_path, extracted_profile JSONB, uploaded_at)
-
--- Such-Logs (Rate Limiting + Analytics)
-search_logs (id, user_id, search_params JSONB, results_count, clicked_jobs JSONB, created_at)
-```
-
-### localStorage-Keys
-
-| Key | Inhalt | Lifetime |
-|-----|--------|----------|
-| `favOrgs` | `["bag","css","usz"]` | Permanent |
-| `darkMode` | `"1"` oder `"0"` | Permanent |
-| `onboardingDismissed` | `"1"` | Permanent |
-| `userProfile` | JSON-Profildaten mit `updated_at` | Permanent |
-| `userDocuments` | Array von CV/Zeugnis-Objekten | Gelöscht bei Logout |
-| `lastMatchResults` | Matching-Ergebnisse mit Timestamp | 24h TTL, gelöscht bei Logout |
-
----
-
-## Features & Code-Snippets
-
-### 1. Interaktive SVG-Karte
-
-14 Städte-Bubbles mit Multi-Select. Bubble-Grösse proportional zur Org-Anzahl.
-
-```html
-<!-- index.html -->
-<g class="city-bubble" data-loc="Bern">
-  <circle class="bubble-fill" cx="330" cy="218" r="48"/>
-  <text class="city-name" x="330" y="214">Bern</text>
-  <text class="city-count" x="330" y="230" id="count-Bern">29 Unternehmen</text>
-</g>
-```
-
-```javascript
-// js/map.js – Klick-Toggle
-function toggleLocation(loc) {
-  if (loc === 'alle') { activeLocs = []; }
-  else if (activeLocs.includes(loc)) { activeLocs = activeLocs.filter(x => x !== loc); }
-  else { activeLocs.push(loc); }
-  syncLocationUI();
-}
-
-// Responsive Labels je nach Org-Anzahl
-function updateBubbleCounts() {
-  Object.entries(locationCounts).forEach(([loc, count]) => {
-    if (count >= 12) el.textContent = count + ' Unternehmen';
-    else if (count >= 5) el.textContent = count + ' Orgs';
-    else el.textContent = count;
-  });
-}
-```
-
-### 2. Fuzzy-Suche mit Umlaut-Normalisierung
-
-```javascript
-// js/map.js
-function normalize(str) {
-  return str.toLowerCase()
-    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
-    .replace(/é|è|ê/g, 'e').replace(/à|â/g, 'a').replace(/ç/g, 'c')
-    .replace(/ß/g, 'ss');
-}
-
-function fuzzyMatch(text, query) {
-  if (!query) return true;
-  const normText = normalize(text);
-  const words = normalize(query).split(/\s+/).filter(Boolean);
-  return words.every(w => normText.includes(w));  // alle Wörter müssen vorkommen
-}
-```
-
-**Keyboard-Shortcuts:** `/` fokussiert Suche, `Escape` leert sie.
-
-### 3. Kategorie-Filter
-
-```javascript
-// js/map.js – Chips werden dynamisch aus DATA erzeugt
-function buildCategoryChips() {
-  container.innerHTML = `<button class="cat-chip active" data-cat="alle">Alle</button>`
-    + DATA.map(c => `<button class="cat-chip" data-cat="${c.key}">${c.emoji} ${c.title.split('/')[0].trim()}</button>`).join('');
-}
-
-// Filterlogik: Kategorie UND Standort gleichzeitig
-function filterAll() {
-  document.querySelectorAll('.org-card').forEach(card => {
-    const matchQ = fuzzyMatch(text, q);
-    const matchL = activeLocs.length === 0 || activeLocs.some(l => loc.includes(l));
-    card.style.display = (matchQ && matchL) ? '' : 'none';
-  });
-  document.querySelectorAll('.category').forEach(sec => {
-    const catMatch = activeCats.length === 0 || activeCats.includes(sec.dataset.cat);
-    if (!catMatch) { sec.style.display = 'none'; return; }
-    sec.style.display = sec.querySelectorAll('.org-card:not([style*="display: none"])').length ? '' : 'none';
-  });
-}
-```
-
-### 4. Authentifizierung (Supabase)
-
-```javascript
-// js/auth.js
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// E-Mail + Passwort
-async function handleAuthSubmit(e) {
-  if (authMode === 'login') {
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  } else {
-    const { error } = await supabaseClient.auth.signUp({ email, password });
-  }
-}
-
-// Google OAuth
-async function handleGoogleLogin() {
-  await supabaseClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin + window.location.pathname }
-  });
-}
-
-// Auth-State-Change → Sync Favoriten + Profil
-supabaseClient.auth.onAuthStateChange((event, session) => {
-  currentUser = session?.user || null;
-  if (event === 'SIGNED_IN') {
-    syncFavoritesOnLogin();
-    syncProfileOnLogin();
-  }
-  if (event === 'SIGNED_OUT') { renderAll(); }
-});
-```
-
-**13 deutsche Fehlermeldungen:**
-```javascript
-const AUTH_ERRORS = {
-  'Invalid login credentials': 'E-Mail oder Passwort falsch.',
-  'User already registered': 'Diese E-Mail ist bereits registriert.',
-  'Email rate limit exceeded': 'Zu viele Versuche – bitte warte einen Moment.',
-  // ... 10 weitere
-};
-```
-
-### 5. Profil-System
-
-```javascript
-// js/profile.js – Datenstruktur
-{
-  education: "master",
-  field_of_study: "Gesundheitsökonomie",
-  experience: "5-10",
-  desired_regions: ["BE", "ZH"],
-  workload_min: 80, workload_max: 100,
-  languages: { de: "muttersprachlich", fr: "fliessend" },
-  keywords: "Tarifwesen, Datenanalyse",
-  exclusions: ["klinisch"],
-  start_date: "sofort",
-  updated_at: "2026-04-08T..."
-}
-```
-
-**Pensum-Validierung** (min kann max nicht übersteigen):
-```javascript
-function constrainPensum(which, val) {
-  if (which === 'min' && minVal > maxVal) { maxVal = minVal; maxEl.value = maxVal; }
-  if (which === 'max' && maxVal < minVal) { minVal = maxVal; minEl.value = minVal; }
-}
-```
-
-### 6. Dokument-Upload (CV + Arbeitszeugnisse)
-
-```javascript
-// js/profile.js – Multi-Dokument-Support
-// Max: 1 CV + 5 Arbeitszeugnisse
-async function handleDocUpload(file) {
-  const formData = new FormData();
-  formData.append('cv', file);
-  const resp = await fetch(`${SUPABASE_URL}/functions/v1/parse-cv`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_KEY },
-    body: formData
-  });
-  // Response: { doc_type, person_name, summary, key_skills, raw_text, ... }
-}
-```
-
-**Edge Function (parse-cv)** – PDF-Text-Extraktion + Claude-Klassifikation:
-```typescript
-// supabase/functions/parse-cv/index.ts
-// 1. PDF-Text extrahieren (BT/ET Regex)
-// 2. Claude klassifiziert: "cv" | "zeugnis" | "andere"
-// 3. Extrahiert: Name, Zusammenfassung, Skills, Arbeitgeber, Zitate
-// 4. Speichert in cv_uploads + Supabase Storage
-```
-
-### 7. KI-Matching (Kernfunktion)
-
-**Frontend → Edge Function → Claude → Ergebnisse**
-
-```javascript
-// js/matching.js
-async function startMatching() {
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/match-jobs`, {
-    method: 'POST',
-    body: JSON.stringify({
-      profile: getProfile(),
-      orgs: selectedOrgs.map(o => ({ id: o.id, name: o.name, jobs: o.jobs, loc: o.loc })),
-      documents: getDocuments()
-        .filter(d => d.raw_text)
-        .map(d => ({ doc_type: d.doc_type, raw_text: d.raw_text, employer: d.employer, period: d.period }))
-    })
-  });
-}
-```
-
-**Edge Function – Ablauf:**
-```typescript
-// supabase/functions/match-jobs/index.ts
-// 1. Auth-Check + Rate-Limit (5/Stunde)
-// 2. Karriereseiten PARALLEL fetchen (max 10 Orgs, 8s Timeout, 3.5k chars/Org)
-// 3. Cache prüfen (job_cache Tabelle, 24h TTL)
-// 4. Claude-Prompt zusammenbauen:
-//    - Profil-Präferenzen (buildProfileText)
-//    - CV + Arbeitszeugnisse (buildDocumentsText)
-//    - Karriereseiten-Inhalte
-// 5. Claude antwortet mit JSON: matches[], summary, tips
-```
-
-**Claude-Prompt-Aufbau:**
-```
-PROFIL DES STELLENSUCHENDEN (Präferenzen):
-Ausbildung: master
-Pensum: 80% – 100%
-Sprachen: DE: muttersprachlich, FR: fliessend
-...
-
-LEBENSLAUF:
-[CV raw_text, max 4000 Zeichen]
-
-ARBEITSZEUGNISSE:
---- santésuisse (2018–2023) ---
-[Zeugnis-Text, max 2000 Zeichen]
-
-KARRIERESEITEN-INHALTE:
---- 1. Insel Gruppe (https://jobs.inselgruppe.ch) ---
-[Karriereseite-Text, max 3500 Zeichen]
-```
-
-**Match-Ergebnis-Struktur:**
 ```json
 {
-  "matches": [{
-    "title": "Projektleiter/in Tarifwesen",
-    "organization": "santésuisse",
-    "url": "https://...",
-    "score": 4,
-    "reason": "Erfahrung im Tarifwesen passt perfekt",
-    "highlights": ["5+ Jahre Erfahrung", "Region Bern"],
-    "concerns": ["Evtl. Überqualifiziert"],
-    "pensum": "80–100%",
-    "location": "Bern",
-    "languages": "DE (fliessend), FR (Grundkenntnisse)",
-    "salary_hint": "Lohnklasse 18–22",
-    "deadline": "30.04.2026"
-  }],
-  "summary": "3 passende Stellen im Tarifbereich gefunden.",
-  "tips": "Auch bei Versicherungen nach Tarifpositionen suchen."
+  "data": {"jobs": {}, "searchProfiles": []},
+  "revision": 1,
+  "updated_at": "2026-09-22T12:00:00+00:00"
 }
 ```
 
-**Match-Card-Rendering mit Score-Differenzierung:**
-```javascript
-const scoreClass = m.score >= 4 ? 'match-score-high'   // grüner Rand
-                 : m.score >= 3 ? 'match-score-mid'    // blauer Rand
-                 : 'match-score-low';                    // grauer Rand
+Ein veralteter Schreibversuch endet mit SQLSTATE `40001` und Meldung `WORKSPACE_CONFLICT`; weder die bestehenden Daten noch die lokale, noch nicht gespeicherte Arbeit sollen dadurch verloren gehen. Ein erneutes Speichern muss vom aktuellen Cloud-Stand ausgehen. Direkte INSERT-, UPDATE- und DELETE-Rechte auf der Tabelle fehlen für Browser-Clients.
 
-// Badges für neue Felder
-if (m.pensum) badges.push(`<span class="match-badge match-badge-pensum">⏱ ${m.pensum}</span>`);
-if (m.location) badges.push(`<span class="match-badge match-badge-loc">📍 ${m.location}</span>`);
-if (m.languages) badges.push(`<span class="match-badge match-badge-lang">🌐 ${m.languages}</span>`);
-if (m.salary_hint) badges.push(`<span class="match-badge match-badge-salary">💰 ${m.salary_hint}</span>`);
-if (m.deadline) badges.push(`<span class="match-badge match-badge-deadline">📅 bis ${m.deadline}</span>`);
-```
+### `replace_favorites(org_ids text[])`
 
-### 8. Bewerbungsschreiben-Generator
+Ersetzt die eigenen Favoriten in einer Transaktion. Leere Einträge werden entfernt, IDs bereinigt und dedupliziert. Gleichzeitige Aufrufe desselben Benutzers werden serialisiert. Bereits vorhandene Favoriten behalten ihr ursprüngliches Erstellungsdatum. Rückgabe: `{"org_ids":["bag","usz"]}`. Ein leeres Array entfernt die eigenen Favoriten.
 
-```javascript
-// js/matching.js – Jede Match-Card hat einen Button
-<button class="match-apply-btn" onclick="openCoverLetterForMatch(${i})">
-  ✍️ Bewerbung
-</button>
-```
+### `register_cv_upload(file_name text, storage_path text, extracted_profile jsonb)`
 
-**Edge Function:**
-```typescript
-// supabase/functions/generate-cover-letter/index.ts
-// Input: cv_text, person_name, zeugnisse[], job, language ("de"|"fr")
-// Claude generiert fertigen Schweizer Geschäftsbrief:
-//   - Name + Datum direkt eingesetzt (keine Platzhalter)
-//   - Arbeitszeugnisse als Hintergrundwissen (nicht zitiert)
-//   - Schweizer Hochdeutsch (kein ß)
-//   - Optional Französisch für Westschweiz-Stellen
-```
+Voraussetzung: Die PDF-Datei wurde erfolgreich in den privaten Bucket hochgeladen. Die Funktion prüft Pfad, Existenz und Eigentümerschaft; `extracted_profile.doc_type` ist `cv`, `zeugnis` oder `andere`. Maximal ein CV und fünf weitere Dokumente sind erlaubt. Ein neues CV ersetzt die alten CV-Metadaten atomar. Rückgabe: der gespeicherte `cv_uploads`-Datensatz samt `replaced_storage_paths` als Array. Erst nach erfolgreicher Registrierung bereinigt das Backend die alten Dateien. Ein Fehler vor der Registrierung lässt das bisherige CV unverändert.
 
-**Cover-Letter-Modal:**
-```javascript
-// Kopieren, Download als .txt oder .html (druckbar)
-function copyCoverLetter() {
-  navigator.clipboard.writeText(editor.value);
-}
-function downloadCoverLetterHtml() {
-  // Generiert standalone HTML mit Times New Roman, @media print
-  const html = `<!DOCTYPE html>
-    <html><head><style>
-      body{font-family:'Times New Roman';max-width:680px;margin:50px auto;line-height:1.7;font-size:12pt;}
-      @media print{body{margin:20mm;padding:0;}}
-    </style></head><body>${text}</body></html>`;
-}
-```
+### `consume_job_quota(action_name text, max_requests integer, window_seconds integer)`
 
-### 9. Community-Vorschläge
+Reserviert atomar einen Aufruf und liefert `true` oder bei erschöpftem Kontingent `false`. Die beiden Zahlenparameter gehören zum Aufrufvertrag; die Datenbank ignoriert ihren Inhalt und erzwingt diese festen Regeln:
 
-```javascript
-// js/community.js
-async function submitOrg(e) {
-  await supabaseClient.from('community_orgs').insert({
-    submitted_by: currentUser.id,
-    name, url: website, description: desc, category: cat,
-    canton, city, org_type: type, approved: false
-  });
-}
-// Genehmigte Orgs werden in separater Sektion angezeigt
-```
+| Aktion | Aufrufe pro Stunde und Benutzer |
+|---|---:|
+| `match-jobs` | 60 |
+| `generate-cover-letter` | 10 |
+| `parse-cv` | 10 |
+| `assess-job` | 10 |
 
-### 10. Dark Mode
+Das Stundenfenster beginnt mit dem ersten reservierten Aufruf. Unbekannte Aktionen werden abgewiesen. Parallel eingehende Anfragen teilen denselben Zähler. Fehlgeschlagene Anbieteraufrufe verbrauchen ihre Reservierung ebenfalls. Pro Matching-Aufruf werden höchstens drei Arbeitgeber verarbeitet; eine grössere Suche nutzt mehrere Aufrufe.
 
-```javascript
-// js/app.js
-const isDark = localStorage.getItem('darkMode') === '1';
-document.body.classList.toggle('dark', isDark);
-themeBtn.addEventListener('click', () => {
-  const dark = document.body.classList.toggle('dark');
-  localStorage.setItem('darkMode', dark ? '1' : '0');
-});
-```
+## Stellen und Suchabdeckung
 
-```css
-/* css/styles.css – CSS Custom Properties */
-:root { --bg:#f4f7fb; --card:#fff; --text:#1a2332; --accent:#0b83d9; }
-body.dark { --bg:#12151a; --card:#1c2029; --text:#e2e6ed; --accent:#5ab0ff; }
-```
+Die Suchoberfläche arbeitet die gesamte ausgewählte Arbeitgeberliste in Paketen ab und zeigt den tatsächlichen Fortschritt. Ein Quellenstatus dokumentiert den erfolgreichen Abruf, eine nur teilweise Auslesung oder einen Fehler. Der Cache speichert nur profilunabhängige Quellendaten; persönliche Bewertungen entstehen anhand der aktuell gewählten Kriterien im Browser.
 
-### 11. Favoriten-Sync (Local ↔ Supabase)
+Eine Stelle wird über ihre Quellenidentität bzw. ihren kanonischen Direktlink wiedererkannt. Änderungen werden gegenüber dem gespeicherten Inserat sichtbar. Nicht vorhandene Angaben erscheinen als unbekannt; sie werden nicht durch vermutete Löhne, Fristen oder Homeoffice-Zusagen ergänzt. Filter für verfügbare Kriterien sowie ein Vergleich von zwei bis vier Stellen unterstützen die Auswahl.
 
-```javascript
-// js/auth.js – Bidirektionaler Merge bei Login
-async function syncFavoritesOnLogin() {
-  const localFavs = JSON.parse(localStorage.getItem('favOrgs') || '[]');
-  const { data: remoteFavs } = await supabase.from('favorites')
-    .select('org_id').eq('user_id', user.id);
-  // Merge: Union beider Sets
-  const merged = [...new Set([...localFavs, ...remoteFavs.map(r => r.org_id)])];
-  localStorage.setItem('favOrgs', JSON.stringify(merged));
-}
-```
+Ein fehlendes Inserat in einer Teilmenge, ein Timeout oder ein Abruffehler ist kein Schliessungsnachweis. Das Verschwinden aus einer Suche schliesst eine Stelle auch bei einem erfolgreichen Abruf nicht automatisch. Ein Schliessungsstatus wird ausdrücklich hinterlegt, etwa durch die entsprechende Aktion in den Stellendetails. Blockierte und ausschliesslich im Browser gerenderte Seiten können unvollständig bleiben; die Originalquelle ist direkt verlinkt.
 
-### 12. XSS-Schutz
+Suchprofile speichern Kriterien und Arbeitgeberauswahl getrennt vom persönlichen Grundprofil. Matching-Kriterien unterscheiden erfüllt, unklar und nicht erfüllt sowie zwingend und bevorzugt. Die Kriterienpassung ist eine gewichtete Text- und Feldprüfung, keine KI-Einschätzung der beruflichen Eignung. Inserat- und CV-Textbelege werden angezeigt, sofern vorhanden; ein Texttreffer bestätigt keine vollständige Qualifikation.
 
-```javascript
-// js/app.js – Zentrale Escape-Funktion, überall verwendet
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-```
+Über «KI-Einschätzung mit CV» kann für eine einzelne Stelle zusätzlich eine Analyse angefordert werden. Sie verwendet das Inserat, das persönliche Profil und bereitgestellte Dokumenttexte. Angezeigte Quellenzitate müssen im jeweiligen Ausgangstext vorkommen; unbelegte Aussagen dürfen nicht als verifizierter Nachweis erscheinen. Die Einschätzung dient der persönlichen Prüfung und ergänzt die bestehenden Kriterien und Filter.
 
----
+## Bewerbungen und Entwürfe
 
-## Rate Limits
+Gespeicherte Stellen können mit Bewerbungsstatus, Notizen, Datum, Kontakt und nächstem Schritt ergänzt werden. Bewerbungsentwürfe gehören zur jeweiligen Stelle, enthalten deren Inseratstext als Grundlage und werden als Versionen gespeichert. Bearbeitung, Kopieren und Exporte ermöglichen die weitere Verwendung ausserhalb der App. Der DOCX-Export erzeugt ein echtes OOXML-Dokument lokal im Browser. Für PDF öffnet die App eine Druckansicht; im Druckdialog wird «Als PDF speichern» gewählt. Diese Exporte benötigen keine zusätzlichen Bibliotheken.
 
-| Aktion | Limit | Zeitraum |
-|--------|-------|----------|
-| KI-Matching | 5 Anfragen | pro Stunde |
-| Bewerbungsschreiben | 15 Aktionen (total) | pro Tag |
-| Dokument-Upload | 5 Dokumente | pro Tag |
+Die App verschickt keine Bewerbungen und keine automatischen Benachrichtigungen. Neben der Prüfung des Anwendungscodes gibt es einen getrennten Workflow für den öffentlichen Jobfeed. Dessen Zeitplan wird erst nach Übernahme auf den Hauptbranch aktiv.
 
----
+## Installation und Betrieb
 
-## Responsive Design
+Neue Projekte verwenden `supabase/schema.sql`; bestehende Projekte die additive Migration `supabase/migrations/202609220001_job_workspace.sql`. Das vollständige Schema enthält exakt dieselbe Migration am Ende. Migration und Edge Functions müssen zusammen ausgerollt werden, bevor die neue Oberfläche produktiv verwendet wird. Siehe [DEPLOYMENT.md](DEPLOYMENT.md).
 
-| Breakpoint | Verhalten |
-|------------|-----------|
-| `≤400px` | Kleine Header-Buttons, kompakte Auth |
-| `≤500px` | Sprach-Grid 1 Spalte |
-| `≤600px` | SVG-Karte → Canton-Chips, E-Mail ausgeblendet |
-| `≤700px` | Card-Grid 1 Spalte, Stats vertikal |
-| `≤768px` | iOS Zoom-Fix (font-size 16px auf Inputs) |
-| `≥900px` | Card-Grid 3 Spalten |
-| `≥1100px` | Max-Width 1200px |
+Lokale Tests prüfen die Logik ohne API-Kosten. Ein bestandener JavaScript-Testlauf bestätigt keine produktiven RLS-Policies, Storage-Berechtigungen, PDF-Auslesung durch Anthropic oder Erreichbarkeit jeder Karriereseite; dafür sind die dokumentierten Abnahmefälle in einer Supabase-Testinstanz vorgesehen.
 
----
 
-## Accessibility
+## Öffentlicher Jobfeed
 
-- `aria-label` auf Profil-Button, Theme-Toggle, Favoriten-Sterne
-- `role="button"` + `tabindex="0"` auf Stern-Favoriten
-- Keyboard: Enter/Space toggled Favoriten, `/` fokussiert Suche, `Escape` leert Suche
-- `:focus-visible` Outlines auf allen interaktiven Elementen
-- `touch-action: manipulation` auf SVG-Bubbles (kein iOS 300ms Delay)
+`js/feed.js` lädt einen öffentlichen kompakten Index und bei bewusster Übernahme die vollständige Quelldatei. `HealthJobs.importPublicJobs(jobs, sources)` prüft bekannte Organisationen, IDs, URLs und Zeitstempel, erhält neuere/manuelle Stellenstände und persönliche Bewerbungsnotizen. Abrufe überstehen Konto- und Aktualisierungswechsel ohne Übernahme ins falsche Konto.
 
----
+`js/job-relevance.js` wird vor der Veröffentlichung auf die vollständigen Aufgaben und Anforderungen angewendet. Nur Stellen mit belegtem Fachbezug zu Gesundheitsökonomie, Politik, Public Health, Gesundheitsmanagement, fachlichen Gesundheitsprojekten oder Gesundheitsdaten gelangen in den Feed. Klinische Tätigkeiten und fachfremde Funktionen werden ausgeschlossen. Der Browser prüft beim Import den Volltext erneut. Technische Abdeckung, Rohbestand und fachlich passende Treffer besitzen getrennte Zähler.
 
-## Deployment
-
-```bash
-# Edge Functions deployen
-supabase functions deploy match-jobs
-supabase functions deploy parse-cv
-supabase functions deploy generate-cover-letter
-
-# Secrets setzen
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-
-# Storage Bucket erstellen
-# → Supabase Dashboard: Storage → "cv-uploads" Bucket erstellen
-
-# Schema ausführen
-# → Supabase Dashboard: SQL Editor → schema.sql einfügen und ausführen
-```
+Der Node-Runner in `scripts/` und der serverseitige Such-Endpunkt verwenden denselben Extraktionscode. Der regelmässige Feed wird getrennt vom Anwendungscode veröffentlicht. Beschreibung, Quellenstatus, Abdeckungsgrenzen und Betrieb: [docs/JOBFEED.md](docs/JOBFEED.md).

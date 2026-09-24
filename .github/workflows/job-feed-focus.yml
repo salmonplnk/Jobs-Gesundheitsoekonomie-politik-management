@@ -1,0 +1,223 @@
+name: Publish focused public job feed once
+
+on:
+  push:
+    branches:
+      - codex/feed-focus-20260924
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-job-feed
+  cancel-in-progress: false
+
+jobs:
+  focus:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/feed-focus-20260924'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the explicitly selected correction commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Require and load the existing public feed
+        id: previous
+        env:
+          EXPECTED_PREVIOUS_COMMIT: b2570a9916f891791ae4a2370ef2f4ac853234e5
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/job-feed-data:refs/remotes/origin/job-feed-data
+          previous_commit=$(git rev-parse refs/remotes/origin/job-feed-data)
+          if [ "$previous_commit" != "$EXPECTED_PREVIOUS_COMMIT" ]; then
+            echo "The public data branch changed; this one-off correction requires review of the new snapshot." >&2
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/job-feed-focus-previous"
+          git archive "$previous_commit" data/job-feed | tar -x -C "$RUNNER_TEMP/job-feed-focus-previous"
+          test -s "$RUNNER_TEMP/job-feed-focus-previous/data/job-feed/index.json"
+          test ! -e data/job-feed
+          echo "commit=$previous_commit" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install the public PDF text reader
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y poppler-utils
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run regression tests
+        run: npm test
+
+      - name: Install Chromium for required browser checks
+        run: npx playwright install --with-deps chromium
+
+      - name: Check the browser with fixtures before the full crawl
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/browser-smoke.mjs
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFile } from 'node:fs/promises';
+          const report = JSON.parse(await readFile('browser-smoke/report.json', 'utf8'));
+          assert.equal(report.dataset, 'fixture');
+          assert.equal(report.status, 'passed');
+          assert.deepEqual(report.errors, []);
+          NODE
+          cp browser-smoke/report.json browser-smoke/fixture-report.json
+
+      - name: Scrape all 85 public sources with the current adapters and subject filter
+        run: npm run feed:refresh -- --browser --source-timeout-ms 600000 --previous "$RUNNER_TEMP/job-feed-focus-previous/data/job-feed" --output data/job-feed
+
+      - name: Validate source inventory, relevance, counts and linked full texts
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFile, readdir, stat, appendFile } from 'node:fs/promises';
+          import { catalogOrganizations, compactIndexJobs, FEED_BYTE_LIMITS } from './scripts/job-feed.mjs';
+          import Relevance from './js/job-relevance.js';
+          const json = async path => JSON.parse(await readFile(path, 'utf8'));
+          const organizations = catalogOrganizations(await json('data/organizations.json'), await json('data/job-source-overrides.json'));
+          const byId = new Map(organizations.map(org => [org.id, org]));
+          const ids = [...byId.keys()].sort();
+          assert.equal(ids.length, 85, 'This correction must check the entire 85-source catalog.');
+          const directory = 'data/job-feed';
+          assert.deepEqual((await readdir(directory)).sort(), [...ids.map(id => `${id}.json`), 'index.json'].sort());
+          const index = await json(`${directory}/index.json`);
+          assert.equal(index.version, 1);
+          assert.equal(Relevance.POLICY_VERSION, 1);
+          assert.equal(index.scope?.policy_version, Relevance.POLICY_VERSION);
+          assert.deepEqual(index.sources.map(source => source.org_id).sort(), ids);
+          assert.equal(index.run.checked_sources, ids.length);
+          assert.equal(index.run.total_sources, ids.length);
+          assert.equal(index.run.limited, false);
+          assert.equal(index.run.browser, 'enabled');
+          const started = Date.parse(index.run.started_at), finished = Date.parse(index.run.finished_at);
+          assert.ok(Number.isFinite(started) && Number.isFinite(finished) && started <= finished);
+          assert.equal(index.generated_at, index.run.finished_at);
+          const age = Date.now() - finished;
+          assert.ok(age >= -300000 && age < 3 * 60 * 60 * 1000, 'Publication requires the fresh crawl from this run.');
+          assert.ok(index.jobs.length > 0, 'Do not replace the public feed with an empty result.');
+          assert.ok((await stat(`${directory}/index.json`)).size <= FEED_BYTE_LIMITS.index);
+          const statuses = ['ok', 'empty', 'partial', 'unsupported', 'error'];
+          const sourceCounts = Object.fromEntries([...statuses, 'pending'].map(status => [status, 0]));
+          const shards = [];
+          const nonNegativeInteger = (value, label) => assert.ok(Number.isSafeInteger(value) && value >= 0, label);
+          for (const source of index.sources) {
+            assert.ok(statuses.includes(source.status), `Unchecked source: ${source.org_id}`);
+            sourceCounts[source.status]++;
+            const checked = Date.parse(source.checked_at);
+            assert.ok(checked >= started && checked <= finished, `Source was not checked in this run: ${source.org_id}`);
+            const file = `${directory}/${source.org_id}.json`;
+            assert.ok((await stat(file)).size <= FEED_BYTE_LIMITS.shard);
+            const shard = await json(file);
+            assert.equal(shard.version, 1);
+            assert.equal(shard.org_id, source.org_id);
+            assert.deepEqual(shard.source, source);
+            assert.equal(new Set(shard.jobs.map(job => job.id)).size, shard.jobs.length);
+            const open = shard.jobs.filter(job => job.status !== 'closed');
+            for (const field of ['job_count', 'raw_job_count', 'relevant_job_count', 'filtered_out_count', 'retained_count', 'scraped_count']) {
+              nonNegativeInteger(source[field], `Invalid ${field}: ${source.org_id}`);
+            }
+            assert.equal(source.job_count, open.length);
+            assert.equal(source.relevant_job_count, open.length);
+            assert.equal(source.raw_job_count, source.relevant_job_count + source.filtered_out_count);
+            assert.ok(source.raw_job_count >= source.scraped_count);
+            assert.equal(source.retained_count, open.filter(job => job.last_seen !== source.checked_at).length);
+            assert.equal(source.cached, source.retained_count > 0);
+            for (const job of shard.jobs) {
+              assert.equal(job.org_id, source.org_id);
+              assert.ok(job.id.startsWith(`${source.org_id}:`));
+              assert.ok(typeof job.description === 'string' && job.description.trim().length > 0);
+              const classified = Relevance.classify(job, byId.get(source.org_id));
+              assert.equal(classified.eligible, true, `Off-topic full job: ${job.id}`);
+              assert.deepEqual(job.relevance, classified, `Classification mismatch: ${job.id}`);
+            }
+            shards.push(shard);
+          }
+          assert.deepEqual(index.run.counts, sourceCounts);
+          // This rebuild checks every compact field, source link, category and
+          // explanation against its full text, including cross-source URL deduplication.
+          assert.deepEqual(index.jobs, compactIndexJobs(shards));
+          assert.equal(new Set(index.jobs.map(job => job.url)).size, index.jobs.length);
+          for (const field of ['scanned_jobs', 'relevant_jobs', 'excluded_jobs', 'retained_jobs']) {
+            nonNegativeInteger(index.scope[field], `Invalid scope counter: ${field}`);
+          }
+          assert.equal(index.scope.relevant_jobs, index.jobs.length);
+          assert.equal(index.scope.scanned_jobs, index.scope.relevant_jobs + index.scope.excluded_jobs);
+          assert.ok(index.scope.scanned_jobs <= index.sources.reduce((total, source) => total + source.raw_job_count, 0));
+          assert.equal(index.scope.retained_jobs, index.jobs.filter(job => job.last_seen !== shards.find(shard => shard.org_id === job.org_id).source.checked_at).length);
+          const summary = `Validated ${index.jobs.length} relevant vacancies, ${index.scope.excluded_jobs} excluded vacancies and all ${ids.length} checked sources. Source statuses: ${JSON.stringify(sourceCounts)}.\n`;
+          console.log(summary);
+          await appendFile(process.env.GITHUB_STEP_SUMMARY, summary);
+          NODE
+
+      - name: Check the website with the newly scraped focused feed in Chromium
+        run: node scripts/browser-smoke.mjs --require-feed
+
+      - name: Require successful browser evidence using the real focused feed
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFile } from 'node:fs/promises';
+          const report = JSON.parse(await readFile('browser-smoke/report.json', 'utf8'));
+          const index = JSON.parse(await readFile('data/job-feed/index.json', 'utf8'));
+          assert.equal(report.dataset, 'live');
+          assert.equal(report.status, 'passed');
+          assert.equal(report.jobs, index.jobs.length);
+          assert.equal(report.sources, index.sources.length);
+          assert.equal(report.generated_at, index.generated_at);
+          assert.deepEqual(report.errors, []);
+          NODE
+
+      - name: Upload public feed and browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-job-feed-focus-${{ github.run_id }}
+          path: |
+            data/job-feed/*.json
+            browser-smoke/*.png
+            browser-smoke/report.json
+            browser-smoke/fixture-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish only the validated public data as a non-forced update
+        if: success()
+        env:
+          PREVIOUS_COMMIT: ${{ steps.previous.outputs.commit }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PREVIOUS_COMMIT"
+          remote_commit=$(git ls-remote --exit-code --heads origin refs/heads/job-feed-data | cut -f1)
+          if [ "$remote_commit" != "$PREVIOUS_COMMIT" ]; then
+            echo "The public data branch changed during validation; refusing to replace it." >&2
+            exit 1
+          fi
+          export GIT_INDEX_FILE="$RUNNER_TEMP/job-feed-focus-publish-index"
+          git read-tree --empty
+          git add --force -- data/job-feed
+          tree=$(git write-tree)
+          commit=$(git commit-tree "$tree" -p "$PREVIOUS_COMMIT" -m "Filter public job feed by health economics, policy and management")
+          git push origin "$commit:refs/heads/job-feed-data"
+          echo "Published the checked public data after regression, full-crawl, relevance and Chromium validation. The application release remains separate." >> "$GITHUB_STEP_SUMMARY"

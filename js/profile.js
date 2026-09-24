@@ -9,15 +9,16 @@ const CANTONS = [
 ];
 
 function getProfile() {
-  return JSON.parse(localStorage.getItem(LS_PROFILE) || '{}');
+  return readStoredJSON(LS_PROFILE, {});
 }
 
-function saveProfile(data) {
+async function saveProfile(data) {
   const enriched = { ...data, updated_at: new Date().toISOString() };
   localStorage.setItem(LS_PROFILE, JSON.stringify(enriched));
   if (typeof syncProfileToSupabase === 'function' && isLoggedIn()) {
-    syncProfileToSupabase(enriched);
+    return syncProfileToSupabase(enriched);
   }
+  return { synced: false, local: true };
 }
 
 function isProfileFilled() {
@@ -161,6 +162,7 @@ function buildProfileModal() {
           </div>
           <div class="pf-cv-status" id="cvStatus" style="display:none;"></div>
           <div class="pf-doc-list" id="docList"></div>
+          <button type="button" class="pf-btn-secondary" onclick="refreshDocumentList()">Dokumentliste aktualisieren</button>
           ` : `
           <div class="pf-cv-placeholder">
             <p><a onclick="openAuthModal()" style="color:var(--accent);cursor:pointer;font-weight:600;">Anmelden</a> um Dokumente hochzuladen.</p>
@@ -169,6 +171,7 @@ function buildProfileModal() {
         </fieldset>
 
         <!-- Actions -->
+        <p id="profileSaveStatus" role="status" aria-live="polite"></p>
         <div class="pf-actions">
           <button type="button" class="pf-btn-secondary" onclick="resetProfile()">Zurücksetzen</button>
           <button type="submit" class="pf-btn-primary">💾 Profil speichern</button>
@@ -203,7 +206,7 @@ function constrainPensum(which, val) {
 /* ======== Interactions ======== */
 function initProfileInteractions() {
   // Single-select button groups
-  document.querySelectorAll('.pf-btn-group:not(.pf-multi)').forEach(group => {
+  document.querySelectorAll('#profileForm .pf-btn-group:not(.pf-multi)').forEach(group => {
     group.querySelectorAll('.pf-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const wasActive = btn.classList.contains('active');
@@ -214,7 +217,7 @@ function initProfileInteractions() {
   });
 
   // Multi-select button groups (exclusions)
-  document.querySelectorAll('.pf-btn-group.pf-multi').forEach(group => {
+  document.querySelectorAll('#profileForm .pf-btn-group.pf-multi').forEach(group => {
     group.querySelectorAll('.pf-btn').forEach(btn => {
       btn.addEventListener('click', () => btn.classList.toggle('active'));
     });
@@ -242,14 +245,14 @@ function collectProfileData() {
   const data = {};
 
   // Single-select groups
-  document.querySelectorAll('.pf-btn-group:not(.pf-multi)').forEach(group => {
+  document.querySelectorAll('#profileForm .pf-btn-group:not(.pf-multi)').forEach(group => {
     const name = group.dataset.name;
     const active = group.querySelector('.pf-btn.active');
     data[name] = active ? active.dataset.value : '';
   });
 
   // Multi-select groups
-  document.querySelectorAll('.pf-btn-group.pf-multi').forEach(group => {
+  document.querySelectorAll('#profileForm .pf-btn-group.pf-multi').forEach(group => {
     const name = group.dataset.name;
     data[name] = Array.from(group.querySelectorAll('.pf-btn.active')).map(b => b.dataset.value);
   });
@@ -280,92 +283,73 @@ function collectProfileData() {
 /* ======== Populate Form from Saved Data ======== */
 function populateProfile() {
   const data = getProfile();
-  if (!data || !data.updated_at) return;
-
   const form = document.getElementById('profileForm');
   if (!form) return;
-
-  // Single-select groups
-  ['education', 'experience', 'start_date'].forEach(name => {
-    if (data[name]) {
-      const group = document.querySelector(`.pf-btn-group[data-name="${name}"]`);
-      if (group) {
-        group.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('active'));
-        const btn = group.querySelector(`[data-value="${data[name]}"]`);
-        if (btn) btn.classList.add('active');
-      }
-    }
+  form.reset();
+  form.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
+  form.querySelectorAll('.pf-btn-group').forEach(group => {
+    const value = data[group.dataset.name];
+    group.querySelectorAll('.pf-btn').forEach(btn => {
+      btn.classList.toggle('active', Array.isArray(value) ? value.includes(btn.dataset.value) : value === btn.dataset.value);
+    });
   });
-
-  // Multi-select (exclusions)
-  if (data.exclusions && data.exclusions.length) {
-    const group = document.querySelector('.pf-btn-group[data-name="exclusions"]');
-    if (group) {
-      data.exclusions.forEach(val => {
-        const btn = group.querySelector(`[data-value="${val}"]`);
-        if (btn) btn.classList.add('active');
-      });
-    }
+  form.querySelectorAll('#regionChips .pf-chip').forEach(chip => {
+    chip.classList.toggle('active', (data.desired_regions || []).includes(chip.dataset.region));
+  });
+  for (const name of ['field_of_study', 'keywords', 'exclusions_freetext']) {
+    form.querySelector(`[name="${name}"]`).value = data[name] || '';
   }
-
-  // Regions
-  if (data.desired_regions && data.desired_regions.length) {
-    data.desired_regions.forEach(r => {
-      const chip = document.querySelector(`#regionChips .pf-chip[data-region="${r}"]`);
-      if (chip) chip.classList.add('active');
-    });
+  for (const [name, fallback, label] of [['workload_min', 50, 'pensumMinVal'], ['workload_max', 100, 'pensumMaxVal']]) {
+    form.querySelector(`[name="${name}"]`).value = data[name] ?? fallback;
+    document.getElementById(label).textContent = data[name] ?? fallback;
   }
-
-  // Text inputs
-  if (data.field_of_study) form.querySelector('[name="field_of_study"]').value = data.field_of_study;
-  if (data.keywords) form.querySelector('[name="keywords"]').value = data.keywords;
-  if (data.exclusions_freetext) form.querySelector('[name="exclusions_freetext"]').value = data.exclusions_freetext;
-
-  // Pensum
-  if (data.workload_min) {
-    form.querySelector('[name="workload_min"]').value = data.workload_min;
-    document.getElementById('pensumMinVal').textContent = data.workload_min;
-  }
-  if (data.workload_max) {
-    form.querySelector('[name="workload_max"]').value = data.workload_max;
-    document.getElementById('pensumMaxVal').textContent = data.workload_max;
-  }
-
-  // Languages
-  if (data.languages) {
-    Object.entries(data.languages).forEach(([lang, val]) => {
-      const sel = form.querySelector(`[name="lang_${lang}"]`);
-      if (sel) sel.value = val;
-    });
+  for (const lang of ['de', 'fr', 'it', 'en']) {
+    form.querySelector(`[name="lang_${lang}"]`).value = data.languages?.[lang] || '';
   }
 }
 
 /* ======== Submit / Reset / Open / Close ======== */
-function submitProfile(e) {
+async function submitProfile(e) {
   e.preventDefault();
   const btn = e.target.querySelector('[type="submit"]');
-  if (btn && btn.disabled) return;
-  if (btn) { btn.disabled = true; btn.textContent = 'Speichern...'; }
-  const data = collectProfileData();
-  saveProfile(data);
-  updateProfileButton();
-  if (typeof buildMatchingSection === 'function') buildMatchingSection();
-  setTimeout(() => closeProfile(), 200);
+  if (btn?.disabled) return;
+  const uid = currentUser?.id || null;
+  if (btn) { btn.disabled = true; btn.textContent = 'Speichern…'; }
+  try {
+    const result = await saveProfile(collectProfileData());
+    if ((currentUser?.id || null) !== uid) return;
+    updateProfileButton();
+    if (typeof buildMatchingSection === 'function') buildMatchingSection();
+    const status = document.getElementById('profileSaveStatus');
+    if (status) status.textContent = result.pending
+      ? 'Lokal gesichert. Synchronisierung ausstehend; deine Änderungen bleiben erhalten.'
+      : result.synced ? 'Profil gespeichert.' : 'Profil lokal gespeichert.';
+    if (!result.pending) closeProfile();
+  } catch (err) {
+    const status = document.getElementById('profileSaveStatus');
+    if (status) status.textContent = 'Profil konnte nicht gespeichert werden: ' + err.message;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Profil speichern'; }
+  }
 }
 
-function resetProfile() {
-  localStorage.removeItem(LS_PROFILE);
-  const form = document.getElementById('profileForm');
-  if (form) form.reset();
-  document.querySelectorAll('.pf-btn.active, .pf-chip.active').forEach(el => el.classList.remove('active'));
-  document.getElementById('pensumMinVal').textContent = '50';
-  document.getElementById('pensumMaxVal').textContent = '100';
+async function resetProfile() {
+  // An explicit empty profile is a real update and must also clear remote fields.
+  const uid = currentUser?.id || null;
+  const result = await saveProfile({});
+  if ((currentUser?.id || null) !== uid) return;
+  populateProfile();
   updateProfileButton();
+  if (typeof buildMatchingSection === 'function') buildMatchingSection();
+  const status = document.getElementById('profileSaveStatus');
+  if (status) status.textContent = result.pending ? 'Profil lokal zurückgesetzt. Synchronisierung ausstehend.' : 'Profil zurückgesetzt.';
 }
 
 function openProfile() {
   buildProfileModal();
   populateProfile();
+  const btn = document.querySelector('#profileForm [type="submit"]');
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Profil speichern'; }
   document.getElementById('profileModal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -388,10 +372,11 @@ function updateProfileButton() {
 const LS_DOCS = 'userDocuments';
 
 function getDocuments() {
-  return JSON.parse(localStorage.getItem(LS_DOCS) || '[]');
+  return isLoggedIn() ? readStoredJSON(LS_DOCS, []) : [];
 }
 function saveDocuments(docs) {
   localStorage.setItem(LS_DOCS, JSON.stringify(docs));
+  if (typeof rememberAccountData === 'function') rememberAccountData();
 }
 
 function initCvUpload() {
@@ -415,83 +400,121 @@ function initCvUpload() {
   renderDocList();
 }
 
+let _docUploadController = null;
+let _documentGeneration = 0;
+let _documentBusy = false;
+
+function cancelDocumentUpload() {
+  _documentGeneration++;
+  _docUploadController?.abort();
+  _docUploadController = null;
+  _documentBusy = false;
+}
+
+async function refreshDocumentList() {
+  if (_documentBusy) return;
+  try { await syncDocumentsOnLogin(); }
+  catch { showCvStatus('error', 'Dokumente konnten nicht geladen werden. Bitte erneut versuchen.'); }
+}
+
+function normalizedDocument(row) {
+  const metadata = row.extracted_profile || row;
+  return { ...metadata, id: row.id, file_name: row.file_name, storage_path: row.storage_path, uploaded_at: row.uploaded_at };
+}
+
+async function syncDocumentsOnLogin() {
+  if (!currentUser || !supabaseClient) return;
+  const uid = currentUser.id;
+  const generation = _documentGeneration;
+  const { data, error } = await supabaseClient.from('cv_uploads')
+    .select('id,file_name,storage_path,extracted_profile,uploaded_at').eq('user_id', uid).order('uploaded_at', { ascending: false });
+  if (error) {
+    if (currentUser?.id === uid) showCvStatus('error', 'Dokumente konnten nicht geladen werden. Bitte erneut versuchen.');
+    throw error;
+  }
+  if (currentUser?.id !== uid || generation !== _documentGeneration) return;
+  const docs = (data || []).map(normalizedDocument);
+  docs.sort((a, b) => Number(b.doc_type === 'cv') - Number(a.doc_type === 'cv'));
+  saveDocuments(docs);
+  renderDocList();
+}
+
 async function handleDocUpload(file) {
-  if (file.type !== 'application/pdf') {
-    showCvStatus('error', 'Nur PDF-Dateien werden akzeptiert.');
-    return;
+  if (_documentBusy) { showCvStatus('error', 'Bitte warte, bis der aktuelle Dokumentvorgang abgeschlossen ist.'); return; }
+  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+    showCvStatus('error', 'Nur PDF-Dateien werden akzeptiert.'); return;
   }
-  if (file.size > 5 * 1024 * 1024) {
-    showCvStatus('error', 'Datei zu gross. Maximal 5 MB.');
-    return;
+  if (!file.size || file.size > 5 * 1024 * 1024) {
+    showCvStatus('error', 'Bitte wähle eine PDF-Datei mit maximal 5 MB.'); return;
   }
-  if (!isLoggedIn()) {
-    showCvStatus('error', 'Bitte melde dich zuerst an.');
-    return;
-  }
-
-  const docs = getDocuments();
-  const cvCount = docs.filter(d => d.doc_type === 'cv').length;
-  const zeugnisCount = docs.filter(d => d.doc_type === 'zeugnis').length;
-  if (docs.length >= 6) {
-    showCvStatus('error', 'Maximal 6 Dokumente (1 CV + 5 Zeugnisse). Bitte entferne zuerst ein Dokument.');
-    return;
-  }
-
-  showCvStatus('loading', `Analysiere "${file.name}"...`);
-
+  if (!isLoggedIn() || !supabaseClient) { showCvStatus('error', 'Bitte melde dich zuerst an.'); return; }
+  // Capacity is checked after classification on the server: a CV may replace a CV even at six documents.
+  const uid = currentUser.id;
+  const generation = ++_documentGeneration;
+  const controller = new AbortController();
+  _docUploadController = controller;
+  _documentBusy = true;
+  showCvStatus('loading', `Analysiere «${file.name}»…`);
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) { showCvStatus('error', 'Sitzung abgelaufen.'); return; }
-
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    if (!session || session.user.id !== uid) throw new Error('Sitzung abgelaufen.');
+    if (currentUser?.id !== uid || generation !== _documentGeneration) return;
     const formData = new FormData();
     formData.append('cv', file);
-
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/parse-cv`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'apikey': SUPABASE_KEY
-      },
-      body: formData
+      method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_KEY },
+      body: formData, signal: controller.signal
     });
-
     const result = await resp.json();
-    if (!resp.ok) { showCvStatus('error', result.error || 'Fehler.'); return; }
-
-    // Validate: max 1 CV
-    if (result.doc_type === 'cv' && cvCount >= 1) {
-      // Replace existing CV
-      const filtered = docs.filter(d => d.doc_type !== 'cv');
-      filtered.unshift({ ...result, uploaded_at: new Date().toISOString() });
-      saveDocuments(filtered);
-      showCvStatus('success', 'CV wurde ersetzt.');
-    } else if (result.doc_type === 'zeugnis' && zeugnisCount >= 5) {
-      showCvStatus('error', 'Maximal 5 Arbeitszeugnisse. Bitte entferne zuerst eines.');
-      return;
-    } else {
-      const doc = { ...result, uploaded_at: new Date().toISOString() };
-      // CV always first
-      if (doc.doc_type === 'cv') {
-        docs.unshift(doc);
-      } else {
-        docs.push(doc);
-      }
-      saveDocuments(docs);
-      const typeLabel = result.doc_type === 'cv' ? 'CV' : result.doc_type === 'zeugnis' ? 'Arbeitszeugnis' : 'Dokument';
-      showCvStatus('success', `${typeLabel} "${file.name}" gespeichert.`);
-    }
-
+    if (!resp.ok) throw new Error(result.error || 'Dokument konnte nicht gespeichert werden.');
+    if (!result.id || !['cv', 'zeugnis', 'andere'].includes(result.doc_type)) throw new Error('Unvollständige Antwort. Bitte lade die Dokumentliste neu.');
+    if (currentUser?.id !== uid || generation !== _documentGeneration) return;
+    const docs = getDocuments().filter(doc => String(doc.id) !== String(result.id) && !(result.doc_type === 'cv' && doc.doc_type === 'cv'));
+    const doc = normalizedDocument(result);
+    if (doc.doc_type === 'cv') docs.unshift(doc); else docs.push(doc);
+    saveDocuments(docs);
     renderDocList();
+    showCvStatus('success', `${result.doc_type === 'cv' ? 'CV' : 'Dokument'} «${file.name}» gespeichert.`);
+    if (typeof buildMatchingSection === 'function') buildMatchingSection();
   } catch (err) {
-    showCvStatus('error', 'Netzwerkfehler: ' + err.message);
+    if (currentUser?.id === uid && generation === _documentGeneration) {
+      showCvStatus('error', err.name === 'AbortError' ? 'Upload abgebrochen.' : err.message || 'Upload fehlgeschlagen.');
+    }
+  } finally {
+    if (generation === _documentGeneration) { _documentBusy = false; _docUploadController = null; }
   }
 }
 
-function removeDocument(index) {
-  const docs = getDocuments();
-  docs.splice(index, 1);
-  saveDocuments(docs);
-  renderDocList();
+async function removeDocument(index) {
+  if (_documentBusy) { showCvStatus('error', 'Bitte warte, bis der aktuelle Dokumentvorgang abgeschlossen ist.'); return; }
+  const doc = getDocuments()[index];
+  if (!doc || !currentUser || !supabaseClient) return;
+  const uid = currentUser.id;
+  const generation = ++_documentGeneration;
+  _documentBusy = true;
+  try {
+    const client = await getAccountClient(uid);
+    if (!client || generation !== _documentGeneration) return;
+    if (doc.id) {
+      const { error } = await client.from('cv_uploads').delete().eq('id', doc.id).eq('user_id', uid);
+      if (error) throw error;
+    }
+    if (currentUser?.id !== uid || generation !== _documentGeneration) return;
+    saveDocuments(getDocuments().filter(item => doc.id ? String(item.id) !== String(doc.id) : item !== doc && item.file_name !== doc.file_name));
+    renderDocList();
+    if (typeof buildMatchingSection === 'function') buildMatchingSection();
+    if (doc.storage_path?.startsWith(`cvs/${uid}/`)) {
+      const { error } = await client.storage.from('cv-uploads').remove([doc.storage_path]);
+      if (error) {
+        if (currentUser?.id === uid) showCvStatus('error', 'Aus der Dokumentliste entfernt. Die PDF-Datei konnte noch nicht gelöscht werden.');
+        return;
+      }
+    }
+    if (currentUser?.id === uid) showCvStatus('success', 'Dokument entfernt.');
+  } catch (err) {
+    if (currentUser?.id === uid) showCvStatus('error', 'Dokument konnte nicht entfernt werden: ' + err.message);
+  } finally { if (generation === _documentGeneration) _documentBusy = false; }
 }
 
 function renderDocList() {
@@ -523,9 +546,11 @@ function renderDocList() {
     }).join('');
 }
 
+let _cvStatusVersion = 0;
 function showCvStatus(type, msg) {
   const el = document.getElementById('cvStatus');
   if (!el) return;
+  const version = ++_cvStatusVersion;
   el.style.display = 'block';
   if (type === 'loading') {
     el.innerHTML = `<div class="pf-cv-loading"><div class="match-spinner" style="width:24px;height:24px;margin:0;"></div> ${escapeHtml(msg)}</div>`;
@@ -533,9 +558,10 @@ function showCvStatus(type, msg) {
     el.innerHTML = `<div class="pf-cv-error">❌ ${escapeHtml(msg)}</div>`;
   } else {
     el.innerHTML = `<div class="pf-cv-success">✅ ${escapeHtml(msg)}</div>`;
-    setTimeout(() => { if (el) el.style.display = 'none'; }, 4000);
+    setTimeout(() => { if (_cvStatusVersion === version) el.style.display = 'none'; }, 4000);
   }
 }
 
 /* ======== Init ======== */
 updateProfileButton();
+if (currentUser && _appReady) syncDocumentsOnLogin().catch(() => {});

@@ -3,198 +3,90 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Schweizer Gesundheitswesen: 90+ Organisationen durchsuchen, KI-Matching für passende Stellen, Bewerbungsschreiben generieren. Bund, Kantone, Spitäler, Versicherungen.">
+  <meta name="description" content="Stellen in Schweizer Gesundheitsökonomie, Gesundheitspolitik und Management. Fachlich gefilterter Jobfeed, 85 Arbeitgeberquellen und regionale Karte.">
   <meta name="theme-color" content="#0b83d9">
-  <meta property="og:title" content="Schweizer Gesundheits-Jobs">
-  <meta property="og:description" content="90+ Organisationen im Schweizer Gesundheitswesen – KI-gestütztes Job-Matching und Bewerbungsschreiben.">
+  <meta property="og:title" content="Gesundheitsökonomie, Politik &amp; Management – Jobs">
+  <meta property="og:description" content="Fachlich gefilterte Stellen in Gesundheitsökonomie, Politik und Management – mit transparenter Quellenabdeckung.">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="de_CH">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
-  <title>Schweizer Gesundheits-Jobs – Kategorien, Suche & Karte</title>
+  <title>Gesundheitsökonomie, Politik &amp; Management – Jobs Schweiz</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/workspace.css">
+  <link rel="stylesheet" href="css/map.css">
+  <link rel="stylesheet" href="css/feed.css">
 </head>
 <body>
-  <header>
+  <header class="jw-site-header">
     <button class="profile-btn" id="profileBtn" onclick="openProfile()" aria-label="Profil" title="Profil erstellen">👤</button>
     <span class="auth-area" id="authArea">
       <button class="auth-btn" onclick="openAuthModal()">Anmelden</button>
     </span>
     <button class="theme-toggle" id="themeToggle" aria-label="Farbschema wechseln">🌙</button>
-    <h1>Schweizer Gesundheits-Ökosystem</h1>
-    <p>Organisationen · Karriereseiten · Interaktive Karte</p>
+    <h1>Dein nächster Schritt in Gesundheitsökonomie &amp; Management</h1>
+    <p>Stellen entdecken · Optionen vergleichen · Bewerbungen begleiten</p>
   </header>
 
-  <main>
-    <!-- Map -->
-    <section class="map-section">
-      <h2>🗺️ Klicke auf Standorte, um nach Region zu filtern</h2>
-      <div class="map-container">
-        <svg class="map-svg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
-          <!-- Switzerland outline (detailed) -->
-          <path class="ch-outline" stroke-linejoin="round" stroke-linecap="round" d="M82,332 L90,318 L98,298 L108,272 L118,252 L132,228 L150,200 L168,178
-            L188,152 L205,132 L220,112 L232,96 L248,80 L262,68 L280,58 L300,52
-            L328,46 L358,42 L390,40 L425,42 L458,40 L488,38 L510,36
-            L528,34 L542,36 L556,42 L568,48 L582,44 L598,48 L616,54
-            L638,62 L658,70 L678,82 L698,96 L712,110 L724,128
-            L738,150 L752,172 L766,196 L778,218 L790,242 L800,262
-            L808,284 L812,302 L808,320 L798,338 L784,352 L768,364
-            L748,376 L726,388 L704,398 L682,410 L664,422 L648,432
-            L632,438 L616,436 L602,428 L590,416 L578,406 L564,398
-            L546,394 L524,398 L500,406 L476,412 L450,418 L424,420
-            L396,418 L368,412 L340,404 L312,394 L284,382 L258,372
-            L232,362 L208,354 L184,348 L158,342 L134,338 L110,334 Z"/>
-
-          <!-- Decorative lake shapes -->
-          <ellipse class="ch-lakes" cx="118" cy="330" rx="28" ry="8" transform="rotate(-15,118,330)"/>
-          <ellipse class="ch-lakes" cx="475" cy="232" rx="18" ry="6" transform="rotate(25,475,232)"/>
-          <ellipse class="ch-lakes" cx="558" cy="148" rx="14" ry="5"/>
-
-          <!-- Connection lines (network effect) -->
-          <line class="connection" x1="330" y1="218" x2="560" y2="148"/>
-          <line class="connection" x1="330" y1="218" x2="475" y2="210"/>
-          <line class="connection" x1="560" y1="148" x2="475" y2="210"/>
-          <line class="connection" x1="560" y1="148" x2="595" y2="98"/>
-          <line class="connection" x1="560" y1="148" x2="680" y2="158"/>
-          <line class="connection" x1="475" y1="210" x2="515" y2="195"/>
-          <line class="connection" x1="330" y1="218" x2="220" y2="248"/>
-          <line class="connection" x1="330" y1="218" x2="260" y2="75"/>
-          <line class="connection" x1="330" y1="218" x2="345" y2="152"/>
-
-          <!-- === LARGE BUBBLES (≥12 orgs) === -->
-          <g class="city-bubble" data-loc="Bern">
-            <circle class="bubble-fill" cx="330" cy="218" r="48"/>
-            <text class="city-name" x="330" y="214">Bern</text>
-            <text class="city-count" x="330" y="230" id="count-Bern">29 Unternehmen</text>
-          </g>
-
-          <!-- === MEDIUM-LARGE BUBBLES === -->
-          <g class="city-bubble" data-loc="Zürich">
-            <circle class="bubble-fill" cx="560" cy="148" r="42"/>
-            <text class="city-name" x="560" y="144">Zürich</text>
-            <text class="city-count" x="560" y="160" id="count-Zürich">11 Orgs</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Westschweiz">
-            <circle class="bubble-fill" cx="145" cy="338" r="40"/>
-            <text class="city-name" x="145" y="334">Westschweiz</text>
-            <text class="city-count" x="145" y="350" id="count-Westschweiz">8 Orgs</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Basel">
-            <circle class="bubble-fill" cx="260" cy="75" r="38"/>
-            <text class="city-name" x="260" y="71">Basel</text>
-            <text class="city-count" x="260" y="87" id="count-Basel">7 Orgs</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Luzern">
-            <circle class="bubble-fill" cx="475" cy="210" r="38"/>
-            <text class="city-name" x="475" y="206">Luzern</text>
-            <text class="city-count" x="475" y="222" id="count-Luzern">7 Orgs</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Winterthur">
-            <circle class="bubble-fill" cx="595" cy="98" r="34"/>
-            <text class="city-name" x="595" y="94">Winterthur</text>
-            <text class="city-count" x="595" y="110" id="count-Winterthur">6 Orgs</text>
-          </g>
-
-          <!-- === MEDIUM BUBBLES (3-4 orgs) === -->
-          <g class="city-bubble" data-loc="St. Gallen">
-            <circle class="bubble-fill" cx="680" cy="158" r="32"/>
-            <text class="city-name" x="680" y="155">St. Gallen</text>
-            <text class="city-count" x="680" y="168" id="count-St. Gallen">3</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Solothurn">
-            <circle class="bubble-fill" cx="345" cy="152" r="30"/>
-            <text class="city-name" x="345" y="149">Solothurn</text>
-            <text class="city-count" x="345" y="162" id="count-Solothurn">3</text>
-          </g>
-
-          <!-- === SMALL BUBBLES (<3 orgs) === -->
-          <g class="city-bubble" data-loc="Aarau">
-            <circle class="bubble-fill" cx="415" cy="128" r="26"/>
-            <text class="city-name" x="415" y="125" style="font-size:10px;">Aarau</text>
-            <text class="city-count" x="415" y="138" id="count-Aarau">2</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Neuenburg">
-            <circle class="bubble-fill" cx="220" cy="248" r="26"/>
-            <text class="city-name" x="220" y="245" style="font-size:10px;">Neuenburg</text>
-            <text class="city-count" x="220" y="258" id="count-Neuenburg">2</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Chur">
-            <circle class="bubble-fill" cx="745" cy="242" r="26"/>
-            <text class="city-name" x="745" y="239" style="font-size:10px;">Chur</text>
-            <text class="city-count" x="745" y="252" id="count-Chur">2</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Zug">
-            <circle class="bubble-fill" cx="520" cy="195" r="24"/>
-            <text class="city-name" x="520" y="192" style="font-size:10px;">Zug</text>
-            <text class="city-count" x="520" y="204" id="count-Zug">1</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Frauenfeld">
-            <circle class="bubble-fill" cx="625" cy="68" r="24"/>
-            <text class="city-name" x="625" y="65" style="font-size:9px;">Frauenfeld</text>
-            <text class="city-count" x="625" y="77" id="count-Frauenfeld">1</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Schwyz">
-            <circle class="bubble-fill" cx="535" cy="248" r="22"/>
-            <text class="city-name" x="535" y="245" style="font-size:9px;">Schwyz</text>
-            <text class="city-count" x="535" y="257" id="count-Schwyz">1</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Altdorf">
-            <circle class="bubble-fill" cx="530" cy="290" r="22"/>
-            <text class="city-name" x="530" y="287" style="font-size:9px;">Altdorf</text>
-            <text class="city-count" x="530" y="299" id="count-Altdorf">1</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Appenzell">
-            <circle class="bubble-fill" cx="735" cy="100" r="20"/>
-            <text class="city-name" x="735" y="97" style="font-size:9px;">Appenzell</text>
-            <text class="city-count" x="735" y="109" id="count-Appenzell">1</text>
-          </g>
-
-          <g class="city-bubble" data-loc="Herisau">
-            <circle class="bubble-fill" cx="698" cy="135" r="18"/>
-            <text class="city-name" x="698" y="132" style="font-size:9px;">Herisau</text>
-            <text class="city-count" x="698" y="143" id="count-Herisau">1</text>
-          </g>
-        </svg>
-
-        <div class="map-hint">💡 Klick = Standort hinzufügen/entfernen · Mehrere Standorte gleichzeitig wählbar</div>
-
-        <!-- Mobile: Canton chip selector (shown on small screens instead of map) -->
-        <div class="mobile-canton-selector" id="mobileCantonSelector">
-          <div class="canton-chips" id="cantonChips"></div>
+  <main class="jw-site-main">
+    <section id="publicJobFeed" aria-label="Öffentlicher Jobfeed"></section>
+    <section id="jobWorkspace" aria-label="Deine Stellensuche"></section>
+    <details class="jw-directory" id="organisationDirectory">
+      <summary>Arbeitgeberverzeichnis & regionale Karte</summary>
+    <section class="map-section" aria-labelledby="mapHeading">
+      <div class="map-heading">
+        <div>
+          <p class="map-eyebrow">Regional entdecken</p>
+          <h2 id="mapHeading">Wo möchtest du arbeiten?</h2>
+          <p>Wähle einen oder mehrere Standorte und entdecke passende Arbeitgeber.</p>
+        </div>
+        <div class="map-view-switch" role="group" aria-label="Standortansicht">
+          <button type="button" id="mapViewMap" aria-pressed="true" aria-controls="mapCanvas">Karte</button>
+          <button type="button" id="mapViewList" aria-pressed="false" aria-controls="mapLocationList">Standortliste</button>
         </div>
       </div>
-    </section>
-
-    <!-- Search & Filter -->
-    <div class="search-bar">
-      <input type="search" id="searchInput" placeholder="🔍 Organisation, Ort, Stichwort suchen... (/ = Fokus)">
-      <div class="loc-filter" id="locFilter">
-        <button class="loc-btn active" data-loc="alle">Alle</button>
-        <button class="loc-btn" data-loc="Bern">Bern</button>
-        <button class="loc-btn" data-loc="Zürich">Zürich</button>
-        <button class="loc-btn" data-loc="Basel">Basel</button>
-        <button class="loc-btn" data-loc="Luzern">Luzern</button>
-        <button class="loc-btn" data-loc="St. Gallen">St. Gallen</button>
-        <button class="loc-btn" data-loc="Winterthur">Winterthur</button>
-        <button class="loc-btn" data-loc="Westschweiz">Westschweiz</button>
+      <div class="search-bar map-search">
+        <label for="searchInput">Verzeichnis durchsuchen</label>
+        <input type="search" id="searchInput" placeholder="Organisation, Ort oder Stichwort" aria-keyshortcuts="/">
+        <div class="cat-filter" id="catFilter" role="group" aria-label="Kategorien"></div>
       </div>
-      <div class="cat-filter" id="catFilter"></div>
-    </div>
-    <div id="activeLocs" style="display:none;"></div>
+      <div class="map-container">
+        <div id="mapCanvas">
+          <div class="map-scroll" tabindex="0" role="region" aria-label="Interaktive Schweizer Standortkarte" aria-describedby="mapHint">
+            <svg class="map-svg" id="swissMap" viewBox="0 0 900 560" role="group" aria-labelledby="swissMapTitle swissMapDesc" xmlns="http://www.w3.org/2000/svg">
+              <title id="swissMapTitle">Arbeitgeberstandorte in der Schweiz</title>
+              <desc id="swissMapDesc">Standorte mit der Maus, Enter oder Leertaste auswählen. Die Zahlen zeigen Organisationen nach Suchtext und Kategorie, keine offenen Stellen.</desc>
+              <path class="ch-outline" id="swissMapOutline"/>
+              <g id="mapMarkers"></g>
+            </svg>
+          </div>
+          <p class="map-hint" id="mapHint">Mehrfachauswahl möglich · Markierungen zeigen Stadtzentren, keine Geschäftsadressen.</p>
+          <p class="map-mobile-hint">Karte seitlich verschieben oder zur Standortliste wechseln.</p>
+        </div>
+        <div id="mapLocationList" hidden>
+          <div class="canton-chips" id="cantonChips" role="group" aria-label="Standorte auswählen"></div>
+        </div>
+      </div>
+      <div class="map-region">
+        <button type="button" class="map-region-btn" data-loc="Westschweiz" aria-pressed="false">Westschweiz <span class="map-region-count">0</span></button>
+        <p>Regional zugeordnete Organisationen. Neuenburg ist als eigener Standort wählbar.</p>
+      </div>
+      <div class="map-selection">
+        <div id="activeLocs" aria-label="Ausgewählte Standorte"></div>
+        <button type="button" id="mapReset">Alle Filter zurücksetzen</button>
+      </div>
+      <div class="map-results">
+        <div>
+          <p id="mapSummary" role="status" aria-live="polite" aria-atomic="true"></p>
+          <p class="map-count-hint">Standortzahlen berücksichtigen Suchtext und Kategorien.</p>
+        </div>
+        <button type="button" class="jw-btn primary" id="mapChooseEmployers">Arbeitgeberauswahl öffnen</button>
+      </div>
+      <p id="mapEmpty" class="map-empty" hidden>Keine Organisationen für diese Auswahl. Entferne einen Standort oder setze die Filter zurück.</p>
+      <p class="map-attribution">Kartengrundlage: <a href="https://www.naturalearthdata.com/about/terms-of-use/" target="_blank" rel="noopener">Natural Earth</a> · Orte: <a href="https://www.swisstopo.admin.ch/en/source-reference-ogd-swisstopo" target="_blank" rel="noopener">© swisstopo</a></p>
+    </section>
 
     <!-- Stats + Community Actions (inline) -->
     <div class="stats">
@@ -205,7 +97,7 @@
 
     <!-- Onboarding hint (dismissible, first-time users) -->
     <div class="onboarding-hint" id="onboardingHint" style="display:none;">
-      <span>💡 <strong>Tipp:</strong> Markiere Organisationen mit ⭐, wähle Standorte auf der Karte, und nutze dann das KI-Matching um passende Stellen zu finden.</span>
+      <span>💡 <strong>Tipp:</strong> Markiere Organisationen mit ⭐, wähle Standorte auf der Karte, und starte oben deine Suche nach passenden Stellen.</span>
       <button class="onboarding-dismiss" onclick="dismissOnboarding()">✕</button>
     </div>
 
@@ -215,8 +107,7 @@
       <div class="card-grid" id="fav-grid"></div>
     </section>
 
-    <!-- KI Matching (after favorites – user knows the orgs first) -->
-    <section class="match-section" id="matchingSection"></section>
+
 
     <!-- Categories rendered by JS -->
     <div id="categories"></div>
@@ -227,6 +118,7 @@
       <button class="community-btn" onclick="openCatModal()">📁 Kategorie vorschlagen</button>
     </div>
     <div id="communitySection"></div>
+    </details>
   </main>
 
   <footer>
@@ -237,8 +129,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/map-geography.js"></script>
   <script src="js/map.js"></script>
   <script src="js/profile.js"></script>
+  <script src="js/job-core.js"></script>
+  <script src="js/job-relevance.js"></script>
+  <script src="js/feed.js"></script>
+  <script src="js/workspace.js"></script>
+  <script src="js/letters.js"></script>
   <script src="js/matching.js"></script>
   <script src="js/community.js"></script>
 </body>

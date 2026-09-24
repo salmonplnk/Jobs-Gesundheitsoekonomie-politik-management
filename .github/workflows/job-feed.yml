@@ -1,0 +1,121 @@
+name: Refresh public job feed
+
+on:
+  schedule:
+    - cron: '17 5,17 * * *'
+  workflow_dispatch:
+  push:
+    branches-ignore:
+      - job-feed-data
+      - codex/job-feed-bootstrap-20260924
+      - codex/feed-focus-20260924
+      - codex/feed-review-20260924
+    paths:
+      - .github/workflows/job-feed.yml
+      - 'scripts/*feed*'
+      - scripts/job-pdf-text.mjs
+      - js/job-relevance.js
+      - 'supabase/functions/_shared/**'
+      - data/organizations.json
+      - data/job-source-overrides.json
+      - 'package*.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-job-feed
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install the public PDF text reader
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y poppler-utils
+
+      - name: Run regression tests
+        run: npm test
+
+      - name: Install optional Chromium browser
+        continue-on-error: true
+        run: npx playwright install --with-deps chromium
+
+      - name: Load previous public snapshots
+        id: previous
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/job-feed-previous"
+          if git ls-remote --exit-code --heads origin job-feed-data > "$RUNNER_TEMP/job-feed-remote"; then
+            git fetch --no-tags origin refs/heads/job-feed-data:refs/remotes/origin/job-feed-data
+            git archive refs/remotes/origin/job-feed-data data/job-feed | tar -x -C "$RUNNER_TEMP/job-feed-previous"
+            echo "commit=$(git rev-parse refs/remotes/origin/job-feed-data)" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              echo "Could not inspect the previous job-feed-data branch (exit $status)." >&2
+              exit "$status"
+            fi
+            echo "No previous public feed branch exists; creating the first snapshots."
+          fi
+
+      - name: Refresh public job snapshots
+        run: npm run feed:refresh -- --browser --source-timeout-ms 600000 --previous "$RUNNER_TEMP/job-feed-previous/data/job-feed" --output data/job-feed
+
+      - name: Upload public feed artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-job-feed-${{ github.run_id }}
+          path: data/job-feed/*.json
+          retention-days: 14
+
+      - name: Publish public snapshots to the data branch
+        if: success() && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        env:
+          PREVIOUS_COMMIT: ${{ steps.previous.outputs.commit }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GIT_INDEX_FILE="$RUNNER_TEMP/job-feed-publish-index"
+          git read-tree --empty
+          git add --force -- data/job-feed
+          tree=$(git write-tree)
+          parent_args=()
+          if [ -n "$PREVIOUS_COMMIT" ]; then
+            parent_args=(-p "$PREVIOUS_COMMIT")
+            if [ "$tree" = "$(git rev-parse "$PREVIOUS_COMMIT^{tree}")" ]; then
+              echo "Public feed snapshots are unchanged." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+          commit=$(git commit-tree "$tree" "${parent_args[@]}" -m "Refresh public job feed")
+          git push origin "$commit:refs/heads/job-feed-data"
+          echo "Published public snapshots to job-feed-data." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Explain artifact-only runs
+        if: always() && github.ref != format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          echo "This run is outside the default branch. Available public feed snapshots are uploaded as artifacts; only successful default-branch runs publish to job-feed-data." >> "$GITHUB_STEP_SUMMARY"

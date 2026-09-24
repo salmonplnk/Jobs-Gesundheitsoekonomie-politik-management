@@ -273,6 +273,7 @@ async function loadCommunityOrgs() {
           <span class="cat-title">Community-Vorschläge</span>
           <span class="cat-count">${orgs.length}</span>
         </div>
+        <p class="jw-small jw-muted" style="margin-bottom:1rem">Weitere Vorschläge aus der Community. Die Kartenfilter gelten für das Verzeichnis oben.</p>
         <div class="card-grid">${cards}</div>
       </section>`;
   } catch (err) {
@@ -282,3 +283,4 @@ async function loadCommunityOrgs() {
 
 /* ======== Init ======== */
 loadCommunityOrgs();
+

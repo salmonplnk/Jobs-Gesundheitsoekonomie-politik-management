@@ -1,0 +1,109 @@
+/* Public snapshot controls are scoped independently from the personal workspace. */
+#publicJobFeed {
+  --jf-ink: #203a45; --jf-teal: #146b64; --jf-teal-hover: #0e554f;
+  --jf-tint: #eaf4f1; --jf-surface: #f6f8f7; --jf-line: #dce5e2; --jf-muted: #5c706f;
+  --jf-warn: #875c17; --jf-warn-tint: #fff5df; --jf-danger: #aa3434; --jf-danger-tint: #fdf0ee;
+  margin-bottom: 1.6rem; color: var(--text);
+}
+body.dark #publicJobFeed {
+  --jf-ink: #e0eeec; --jf-teal: #83d5c7; --jf-teal-hover: #a8e7dc;
+  --jf-tint: #193832; --jf-surface: #19242b; --jf-line: #344347; --jf-muted: #afbfbe;
+  --jf-warn: #edc484; --jf-warn-tint: #3a3324; --jf-danger: #ffb2ac; --jf-danger-tint: #432826;
+}
+#publicJobFeed .jf-shell { padding: 1.5rem; border: 1px solid var(--jf-line); border-radius: 18px; background: var(--card); box-shadow: 0 8px 28px #203b4608; }
+#publicJobFeed .jf-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; margin-bottom: 1.25rem; }
+#publicJobFeed .jf-eyebrow { color: var(--jf-teal); font-size: .68rem; font-weight: 750; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .3rem; }
+#publicJobFeed h2 { color: var(--jf-ink); font-size: 1.4rem; font-weight: 750; letter-spacing: -.03em; }
+#publicJobFeed .jf-intro { color: var(--jf-muted); font-size: .84rem; margin-top: .3rem; max-width: 690px; }
+#publicJobFeed button, #publicJobFeed input, #publicJobFeed select { font: inherit; }
+#publicJobFeed button { cursor: pointer; }
+#publicJobFeed button:disabled { opacity: .5; cursor: default; }
+#publicJobFeed :is(button, input, select, a, summary):focus-visible { outline: 3px solid var(--jf-teal); outline-offset: 3px; }
+#publicJobFeed .jf-button { min-height: 40px; padding: .55rem .85rem; background: var(--jf-teal); color: #fff; border: 1px solid var(--jf-teal); border-radius: 8px; font-size: .78rem; font-weight: 650; line-height: 1.35; }
+#publicJobFeed .jf-button:not(:disabled):hover { background: var(--jf-teal-hover); }
+body.dark #publicJobFeed .jf-button { color: #102c28; }
+#publicJobFeed .jf-button-secondary { background: var(--card); color: var(--jf-teal); border-color: var(--jf-line); white-space: nowrap; }
+#publicJobFeed .jf-button-secondary:not(:disabled):hover { background: var(--jf-tint); }
+body.dark #publicJobFeed .jf-button-secondary { color: var(--jf-teal); }
+#publicJobFeed .jf-heading > button { flex-shrink: 0; }
+#publicJobFeed .jf-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--jf-line); border-radius: 10px; overflow: hidden; background: var(--jf-surface); }
+#publicJobFeed .jf-metrics > div { padding: .7rem 1rem; border-right: 1px solid var(--jf-line); }
+#publicJobFeed .jf-metrics > div:last-child { border-right: 0; }
+#publicJobFeed .jf-metrics strong { display: block; color: var(--jf-ink); font-size: 1.15rem; font-weight: 750; }
+#publicJobFeed .jf-metrics span { display: block; color: var(--jf-muted); font-size: .69rem; line-height: 1.4; margin-top: .1rem; }
+#publicJobFeed .jf-updated { margin: .6rem 0 0; font-size: .69rem; color: var(--jf-muted); }
+#publicJobFeed .jf-state, #publicJobFeed .jf-notice, #publicJobFeed .jf-error { border-radius: 8px; padding: .75rem 1rem; margin: .65rem 0; font-size: .82rem; background: var(--jf-tint); color: var(--jf-teal); }
+#publicJobFeed .jf-error { background: var(--jf-danger-tint); color: var(--jf-danger); }
+#publicJobFeed .jf-sources { margin: .75rem 0 1.25rem; padding-bottom: .8rem; border-bottom: 1px solid var(--jf-line); }
+#publicJobFeed .jf-sources summary { cursor: pointer; color: var(--jf-teal); font-size: .77rem; font-weight: 650; width: fit-content; }
+#publicJobFeed .jf-sources summary span { color: var(--jf-muted); font-weight: 400; }
+#publicJobFeed .jf-source-help { margin: .7rem 0; font-size: .74rem; color: var(--jf-muted); max-width: 900px; }
+#publicJobFeed .jf-source-list { max-height: 420px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--jf-line); border-radius: 8px; }
+#publicJobFeed .jf-source { display: flex; align-items: flex-start; gap: 1rem; justify-content: space-between; padding: .7rem .85rem; border-bottom: 1px solid var(--jf-line); }
+#publicJobFeed .jf-source:last-child { border-bottom: 0; }
+#publicJobFeed .jf-source h3 { font-size: .77rem; font-weight: 650; }
+#publicJobFeed .jf-source a { color: var(--jf-teal); text-underline-offset: .2em; }
+#publicJobFeed .jf-source p { font-size: .67rem; color: var(--jf-muted); margin-top: .2rem; overflow-wrap: anywhere; }
+#publicJobFeed .jf-source-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; flex: 0 0 165px; }
+#publicJobFeed .jf-badge { font-size: .63rem; font-weight: 600; background: var(--jf-surface); color: var(--jf-muted); border-radius: 5px; padding: .2rem .4rem; }
+#publicJobFeed .jf-ok, #publicJobFeed .jf-empty { background: var(--jf-tint); color: var(--jf-teal); }
+#publicJobFeed .jf-partial, #publicJobFeed .jf-unsupported { background: var(--jf-warn-tint); color: var(--jf-warn); }
+#publicJobFeed .jf-error.jf-badge { margin: 0; padding: .2rem .4rem; font-size: .63rem; }
+#publicJobFeed .jf-filters { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr .8fr; gap: .7rem; align-items: end; }
+#publicJobFeed .jf-filters > div { min-width: 0; }
+#publicJobFeed .jf-filters label { display: block; font-size: .7rem; font-weight: 650; color: var(--jf-ink); margin-bottom: .3rem; }
+#publicJobFeed .jf-filters input, #publicJobFeed .jf-filters select { width: 100%; min-width: 0; height: 40px; padding: .5rem .6rem; border: 1px solid var(--jf-line); border-radius: 7px; color: var(--text); background: var(--card); font-size: .75rem; }
+#publicJobFeed .jf-reset { grid-column: 1 / -1; justify-self: start; padding: .1rem 0; border: 0; color: var(--jf-teal); background: transparent; font-size: .7rem; text-decoration: underline; text-underline-offset: .2em; }
+#publicJobFeed .jf-results-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: 1.2rem 0 .6rem; }
+#publicJobFeed .jf-results-heading p { color: var(--jf-ink); font-size: .8rem; font-weight: 650; }
+#publicJobFeed .jf-results-heading span { color: var(--jf-muted); font-size: .67rem; }
+#publicJobFeed .jf-jobs { display: grid; gap: .6rem; }
+#publicJobFeed .jf-job { display: flex; align-items: center; gap: 1.2rem; padding: 1rem 1.1rem; border: 1px solid var(--jf-line); border-radius: 10px; background: var(--card); }
+#publicJobFeed .jf-job-main { min-width: 0; flex: 1; }
+#publicJobFeed .jf-organization { color: var(--jf-muted); font-size: .69rem; font-weight: 600; }
+#publicJobFeed .jf-source-label { font-weight: 400; }
+#publicJobFeed .jf-job h3 { font-size: .94rem; line-height: 1.4; margin-top: .15rem; overflow-wrap: anywhere; }
+#publicJobFeed .jf-job h3 a { color: var(--jf-ink); text-decoration: none; }
+#publicJobFeed .jf-job h3 a:hover { text-decoration: underline; text-underline-offset: .2em; }
+#publicJobFeed .jf-job h3 a span { color: var(--jf-teal); font-size: .83rem; }
+#publicJobFeed .jf-job-meta { color: var(--jf-teal); font-size: .7rem; margin-top: .35rem; }
+#publicJobFeed .jf-excerpt { color: var(--jf-muted); font-size: .73rem; line-height: 1.5; margin-top: .35rem; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#publicJobFeed .jf-job-dates { color: var(--jf-muted); font-size: .63rem; margin-top: .5rem; }
+#publicJobFeed .jf-job-action { display: flex; flex-direction: column; align-items: center; gap: .55rem; flex: 0 0 220px; }
+#publicJobFeed .jf-job-action button { width: 100%; }
+#publicJobFeed .jf-original { font-size: .69rem; color: var(--jf-teal); text-decoration: none; }
+#publicJobFeed .jf-original:hover { text-decoration: underline; }
+#publicJobFeed .jf-empty-state { border: 1px dashed var(--jf-line); border-radius: 10px; padding: 2rem; text-align: center; background: var(--jf-surface); color: var(--jf-ink); }
+#publicJobFeed .jf-empty-state strong { font-size: .95rem; }
+#publicJobFeed .jf-empty-state p { font-size: .78rem; margin: .5rem auto 0; max-width: 560px; color: var(--jf-muted); }
+#publicJobFeed .jf-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem; }
+#publicJobFeed .jf-pagination:empty { display: none; }
+#publicJobFeed .jf-pagination span { color: var(--jf-muted); font-size: .75rem; }
+#publicJobFeed .jf-footnote { color: var(--jf-muted); font-size: .66rem; line-height: 1.5; margin-top: 1rem; }
+@media (max-width: 1050px) {
+  #publicJobFeed .jf-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  #publicJobFeed .jf-search { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  #publicJobFeed .jf-shell { padding: 1rem; border-radius: 13px; }
+  #publicJobFeed .jf-heading { flex-direction: column; gap: .8rem; }
+  #publicJobFeed h2 { font-size: 1.25rem; }
+  #publicJobFeed .jf-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #publicJobFeed .jf-metrics > div { border-bottom: 1px solid var(--jf-line); padding: .65rem; }
+  #publicJobFeed .jf-metrics > div:nth-child(2n) { border-right: 0; }
+  #publicJobFeed .jf-metrics > div:nth-child(n+3) { border-bottom: 0; }
+  #publicJobFeed .jf-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #publicJobFeed .jf-job { flex-direction: column; align-items: stretch; padding: .85rem; gap: .85rem; }
+  #publicJobFeed .jf-job-action { flex: none; align-items: stretch; }
+  #publicJobFeed .jf-original { text-align: center; }
+  #publicJobFeed .jf-source { flex-direction: column; gap: .5rem; }
+  #publicJobFeed .jf-source-badges { flex: none; justify-content: flex-start; }
+  #publicJobFeed .jf-results-heading { flex-wrap: wrap; gap: .25rem; }
+  #publicJobFeed .jf-empty-state { padding: 1.5rem .8rem; }
+}
+@media (prefers-reduced-motion: reduce) { #publicJobFeed * { scroll-behavior: auto; } }
+
+#publicJobFeed .jf-focus-note { color: var(--jf-muted); font-size: .72rem; margin-top: .45rem; max-width: 690px; }
+#publicJobFeed .jf-scope-summary { color: var(--jf-muted); font-size: .72rem; line-height: 1.5; margin-top: .5rem; }
+#publicJobFeed .jf-relevance { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem .55rem; margin-top: .5rem; color: var(--jf-muted); font-size: .67rem; line-height: 1.5; }
+#publicJobFeed .jf-focus-badge { border-radius: 5px; padding: .2rem .45rem; color: var(--jf-teal); background: var(--jf-tint); font-weight: 650; }

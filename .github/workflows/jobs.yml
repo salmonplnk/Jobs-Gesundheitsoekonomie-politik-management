@@ -1,41 +1,48 @@
-name: 🚀 Scrape Jobs Daily
+name: Validate health jobs
 
 on:
-  schedule:
-    # Täglich um 00:00 UTC (2:00 CET) laufen
-    - cron: '0 0 * * *'
-  # Manuell über GitHub UI triggern
+  push:
+  pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  scrape-jobs:
+  validate:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 📥 Repository auschecken
+      - name: Check out repository
         uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-
-      - name: 🐍 Python 3.11 setup
-        uses: actions/setup-python@v4
+          node-version: '22'
+          cache: 'npm'
+      - name: Install test dependencies
+        run: npm ci --ignore-scripts
+      - name: Install the PDF text reader for document regression tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y poppler-utils
+      - name: Check browser JavaScript syntax
+        run: |
+          for file in js/*.js; do
+            node --check "$file"
+          done
+      - name: Validate organisation catalogue
+        run: node -e "JSON.parse(require('node:fs').readFileSync('data/organizations.json', 'utf8'))"
+      - name: Run regression tests
+        run: node --test tests/*.test.*
+      - name: Install Chromium for browser checks
+        run: npx playwright install --with-deps chromium
+      - name: Check desktop and mobile interface
+        run: node scripts/browser-smoke.mjs
+      - name: Upload browser check report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: 📦 Dependencies installieren
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install requests beautifulsoup4 playwright lxml
-          playwright install chromium
-
-      - name: 🕷️ Jobs scrapen
-        run: python3 update_jobs.py
-
-      - name: 📝 Änderungen committen & pushen
-        run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add jobs-data.json
-          # Nur committen wenn es Änderungen gibt
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update jobs data [automated]" && git push)
+          name: browser-smoke-${{ github.run_id }}
+          path: browser-smoke/
+          if-no-files-found: ignore
+          retention-days: 14

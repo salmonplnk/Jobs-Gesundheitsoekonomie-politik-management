@@ -4,11 +4,63 @@
 
 const SUPABASE_URL = 'https://scqjkzodzsgkiqfevzzt.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dKmLBiJZAxosz7sXIr0ueQ_CZ7u1M8O';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 let currentUser = null;
 let _appReady = false;
-let _syncInProgress = false;
+let _authRevision = 0;
+let _localOwner = localStorage.getItem('healthjobs:active-owner') || 'guest';
+const _accountKeys = ['favOrgs', 'userProfile', 'userDocuments'];
+const _saveQueues = new Map();
+const _pendingKinds = ['favorites', 'profile'];
+const _readFailures = new Set();
+
+function accountKey(owner, key) { return `healthjobs:account:${owner}:${key}`; }
+function pendingKey(uid, kind) { return `healthjobs:pending:${uid}:${kind}`; }
+function readStoredJSON(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
+  catch { return fallback; }
+}
+function rememberAccountData() {
+  for (const key of _accountKeys) {
+    const value = localStorage.getItem(key);
+    if (value !== null) localStorage.setItem(accountKey(_localOwner, key), value);
+  }
+}
+function switchLocalAccount(uid) {
+  const next = uid || 'guest';
+  if (_localOwner === next) return;
+  rememberAccountData();
+  _localOwner = next;
+  _readFailures.clear();
+  localStorage.setItem('healthjobs:active-owner', next);
+  for (const key of _accountKeys) {
+    const value = localStorage.getItem(accountKey(next, key));
+    if (value !== null && (key !== 'userDocuments' || uid)) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  }
+  localStorage.removeItem('lastMatchResults');
+  window._lastMatches = null;
+  if (typeof cancelMatching === 'function') cancelMatching();
+  if (typeof cancelDocumentUpload === 'function') cancelDocumentUpload();
+  if (typeof closeProfile === 'function') closeProfile();
+  document.getElementById('profileModal')?.remove();
+}
+function announceAuth() {
+  window.dispatchEvent(new CustomEvent('healthjobs:auth', { detail: { userId: currentUser?.id || null } }));
+}
+function reportSyncStatus(message) {
+  const status = document.getElementById('syncStatus');
+  if (status) status.textContent = message;
+}
+function reportPendingSync() {
+  const pending = currentUser && _pendingKinds.some(kind => localStorage.getItem(pendingKey(currentUser.id, kind)));
+  reportSyncStatus(pending ? 'Änderungen lokal gesichert · Kontosynchronisierung ausstehend. Bei Verbindung erneut versuchen.' :
+    _readFailures.size ? 'Kontodaten konnten teilweise nicht geladen werden. Lokale Änderungen bleiben erhalten.' : currentUser ? 'Favoriten & Profil mit deinem Konto synchronisiert' : 'Favoriten werden lokal im Browser gespeichert');
+}
+
+// Preserve anonymous favorites, but never expose unowned legacy CVs after logout.
+if (_localOwner === 'guest') localStorage.removeItem('userDocuments');
 
 function isLoggedIn() { return !!currentUser; }
 
@@ -33,31 +85,46 @@ function translateError(msg) { return AUTH_ERRORS[msg] || msg; }
 /* ========================================
    AUTH STATE
    ======================================== */
-supabaseClient.auth.onAuthStateChange((event, session) => {
-  currentUser = session?.user || null;
-  updateAuthUI();
-
-  if (event === 'SIGNED_IN' && _appReady) {
-    syncFavoritesOnLogin();
-    syncProfileOnLogin();
-    if (typeof buildMatchingSection === 'function') buildMatchingSection();
-  }
-  if (event === 'SIGNED_OUT') {
-    if (typeof renderAll === 'function') renderAll();
-    if (typeof updateProfileButton === 'function') updateProfileButton();
-    if (typeof buildMatchingSection === 'function') buildMatchingSection();
+if (supabaseClient) supabaseClient.auth.onAuthStateChange((event, session) => {
+  const nextUser = session?.user || null;
+  const changed = (currentUser?.id || null) !== (nextUser?.id || null);
+  currentUser = nextUser;
+  if (changed || event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') {
+    _authRevision++;
+    switchLocalAccount(currentUser?.id);
+    updateAuthUI();
+    announceAuth();
+    if (_appReady) {
+      // Supabase auth callbacks must not await other auth/client operations.
+      setTimeout(() => refreshAccountData(), 0);
+    }
   }
 });
 
-// Called by map.js after init is complete
+async function refreshAccountData() {
+  if (typeof renderAll === 'function') renderAll();
+  if (typeof updateProfileButton === 'function') updateProfileButton();
+  if (typeof buildMatchingSection === 'function') buildMatchingSection();
+  if (!currentUser) return;
+  const revision = _authRevision;
+  const results = await Promise.allSettled([
+    syncFavoritesOnLogin(), syncProfileOnLogin(),
+    typeof syncDocumentsOnLogin === 'function' ? syncDocumentsOnLogin() : Promise.resolve()
+  ]);
+  if (revision !== _authRevision) return;
+  if (results[2]?.status === 'rejected') _readFailures.add('documents'); else _readFailures.delete('documents');
+  if (typeof buildMatchingSection === 'function') buildMatchingSection();
+  reportPendingSync();
+}
+
+// Called by map.js after init is complete.
 function onAppReady() {
   _appReady = true;
-  if (currentUser) {
-    syncFavoritesOnLogin();
-    syncProfileOnLogin();
-    if (typeof buildMatchingSection === 'function') buildMatchingSection();
-  }
+  if (!supabaseClient) switchLocalAccount(null);
+  announceAuth();
+  refreshAccountData();
 }
+window.addEventListener('online', () => { if (_appReady) refreshAccountData(); });
 
 /* ========================================
    HEADER UI
@@ -67,7 +134,7 @@ function updateAuthUI() {
   if (!area) return;
 
   if (currentUser) {
-    const email = currentUser.email || '';
+    const email = (currentUser.email || '').replace(/[&<>"']/g, ch => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[ch]));
     const short = email.length > 20 ? email.substring(0, 18) + '…' : email;
     area.innerHTML = `
       <span class="auth-email" title="${email}">${short}</span>
@@ -128,6 +195,7 @@ function openAuthModal() {
   authMode = 'login';
   updateAuthModalMode();
   clearAuthMessages();
+  if (!supabaseClient) showAuthError('Anmeldung konnte nicht geladen werden. Bitte prüfe die Verbindung und lade die Seite neu.');
   document.getElementById('authModal').classList.add('open');
   document.body.style.overflow = 'hidden';
   document.getElementById('authEmail').focus();
@@ -200,229 +268,164 @@ function setAuthLoading(loading) {
 async function handleAuthSubmit(e) {
   e.preventDefault();
   clearAuthMessages();
+  if (!supabaseClient) { showAuthError('Anmeldung nicht verfügbar. Bitte lade die Seite neu.'); return; }
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
-
-  if (authMode === 'register') {
-    const confirm = document.getElementById('authPasswordConfirm').value;
-    if (password !== confirm) {
-      showAuthError('Passwörter stimmen nicht überein.');
-      return;
-    }
-    setAuthLoading(true);
-    const { error } = await supabaseClient.auth.signUp({ email, password });
-    setAuthLoading(false);
-    if (error) {
-      showAuthError(error.message);
-    } else {
-      showAuthSuccess('Konto erstellt! Du bist jetzt eingeloggt.');
-      setTimeout(() => closeAuthModal(), 1500);
-    }
-  } else {
-    setAuthLoading(true);
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    setAuthLoading(false);
-    if (error) {
-      showAuthError(error.message);
-    } else {
-      closeAuthModal();
-    }
+  if (authMode === 'register' && password !== document.getElementById('authPasswordConfirm').value) {
+    showAuthError('Passwörter stimmen nicht überein.'); return;
   }
+  setAuthLoading(true);
+  try {
+    const result = authMode === 'register'
+      ? await supabaseClient.auth.signUp({ email, password })
+      : await supabaseClient.auth.signInWithPassword({ email, password });
+    if (result.error) throw result.error;
+    if (authMode === 'register' && !result.data?.session) {
+      showAuthSuccess('Bitte bestätige deine E-Mail-Adresse über den Link im Postfach.');
+    } else closeAuthModal();
+  } catch (err) { showAuthError(err.message || 'Anmeldung fehlgeschlagen.'); }
+  finally { setAuthLoading(false); }
 }
 
 async function handleGoogleLogin() {
-  const { error } = await supabaseClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin + window.location.pathname }
-  });
-  if (error) showAuthError(error.message);
+  if (!supabaseClient) { showAuthError('Anmeldung nicht verfügbar. Bitte lade die Seite neu.'); return; }
+  try {
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname }
+    });
+    if (error) throw error;
+  } catch (err) { showAuthError(err.message || 'Anmeldung fehlgeschlagen.'); }
 }
 
 async function handleLogout() {
-  try {
-    await copyFavoritesToLocalStorage();
-    await copyProfileToLocalStorage();
-  } catch (err) {
-    console.warn('Pre-logout sync failed:', err.message);
-  }
-  // Clean up sensitive session data
-  localStorage.removeItem('userDocuments');
-  localStorage.removeItem('lastMatchResults');
+  if (!supabaseClient) return;
+  rememberAccountData();
   if (typeof cancelMatching === 'function') cancelMatching();
-  window._lastMatches = null;
-  await supabaseClient.auth.signOut();
+  if (typeof cancelDocumentUpload === 'function') cancelDocumentUpload();
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) throw error;
+  } catch (err) { reportSyncStatus('Abmelden fehlgeschlagen: ' + translateError(err.message)); }
 }
 
 async function handleForgotPassword() {
   const email = document.getElementById('authEmail').value.trim();
-  if (!email) {
-    showAuthError('Bitte gib deine E-Mail-Adresse ein.');
-    return;
-  }
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname
-  });
-  if (error) {
-    showAuthError(error.message);
-  } else {
+  if (!email) { showAuthError('Bitte gib deine E-Mail-Adresse ein.'); return; }
+  if (!supabaseClient) { showAuthError('Anmeldung nicht verfügbar. Bitte lade die Seite neu.'); return; }
+  try {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+    if (error) throw error;
     showAuthSuccess('Passwort-Reset E-Mail gesendet! Prüfe dein Postfach.');
-  }
+  } catch (err) { showAuthError(err.message || 'Passwort-Reset fehlgeschlagen.'); }
 }
 
 /* ========================================
    FAVORITES SYNC
    ======================================== */
-let _favSyncTimer = null;
+async function getAccountClient(uid) {
+  if (!supabaseClient || currentUser?.id !== uid) return null;
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  if (!data.session || data.session.user.id !== uid || currentUser?.id !== uid) return null;
+  return supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    global: { headers: { Authorization: `Bearer ${data.session.access_token}` } },
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
+}
+
+// Per-account writes are serialized. The newest unconfirmed value remains on disk.
+function queueAccountWrite(kind, payload) {
+  if (!currentUser || !supabaseClient) return Promise.resolve({ synced: false, local: true });
+  const uid = currentUser.id;
+  const key = pendingKey(uid, kind);
+  const serialized = JSON.stringify(payload);
+  localStorage.setItem(key, serialized);
+  rememberAccountData();
+  reportPendingSync();
+  const previous = _saveQueues.get(uid) || Promise.resolve();
+  const task = previous.catch(() => {}).then(async () => {
+    if (currentUser?.id !== uid) return { synced: false, pending: true };
+    try {
+      // Fix the authorization header to this account for the entire operation.
+      const client = await getAccountClient(uid);
+      if (!client) return { synced: false, pending: true };
+      const result = kind === 'favorites'
+        ? await client.rpc('replace_favorites', { org_ids: payload })
+        : await client.from('profiles').upsert({ ...payload, id: uid });
+      if (result.error) throw result.error;
+      if (localStorage.getItem(key) === serialized) localStorage.removeItem(key);
+      if (currentUser?.id === uid) reportPendingSync();
+      return { synced: true };
+    } catch (err) {
+      if (currentUser?.id === uid) reportPendingSync();
+      return { synced: false, pending: true, error: err.message || 'Speichern fehlgeschlagen.' };
+    }
+  });
+  _saveQueues.set(uid, task);
+  return task;
+}
 
 function syncFavoritesToSupabase(favs) {
-  clearTimeout(_favSyncTimer);
-  _favSyncTimer = setTimeout(async () => {
-    if (!currentUser) return;
-    try {
-      const uid = currentUser.id;
-      await supabaseClient.from('favorites').delete().eq('user_id', uid);
-      if (favs.length > 0) {
-        await supabaseClient.from('favorites').insert(
-          favs.map(id => ({ user_id: uid, org_id: id }))
-        );
-      }
-    } catch (err) {
-      console.warn('Favorites sync to Supabase failed:', err.message);
-    }
-  }, 500);
+  return queueAccountWrite('favorites', [...new Set(favs.filter(id => typeof id === 'string'))]);
 }
 
 async function syncFavoritesOnLogin() {
-  if (!currentUser || _syncInProgress) return;
-  _syncInProgress = true;
+  if (!currentUser || !supabaseClient) return;
+  const uid = currentUser.id;
+  const revision = _authRevision;
+  const pending = readStoredJSON(pendingKey(uid, 'favorites'), null);
+  if (pending) { await syncFavoritesToSupabase(pending); return; }
+  const before = localStorage.getItem('favOrgs');
   try {
-    const localFavs = JSON.parse(localStorage.getItem('favOrgs') || '[]');
-    const { data, error } = await supabaseClient
-      .from('favorites').select('org_id').eq('user_id', currentUser.id);
+    const { data, error } = await supabaseClient.from('favorites').select('org_id').eq('user_id', uid);
     if (error) throw error;
-
-    const remoteFavs = (data || []).map(r => r.org_id);
-    const merged = [...new Set([...localFavs, ...remoteFavs])];
-
-    // Write merged to localStorage
-    localStorage.setItem('favOrgs', JSON.stringify(merged));
-
-    // Write merged to Supabase (add missing ones)
-    const toInsert = merged.filter(id => !remoteFavs.includes(id));
-    if (toInsert.length > 0) {
-      await supabaseClient.from('favorites').insert(
-        toInsert.map(id => ({ user_id: currentUser.id, org_id: id }))
-      );
-    }
-
-    // Re-render with merged data
+    if (revision !== _authRevision || localStorage.getItem('favOrgs') !== before || localStorage.getItem(pendingKey(uid, 'favorites'))) return;
+    localStorage.setItem('favOrgs', JSON.stringify((data || []).map(row => row.org_id)));
+    rememberAccountData();
+    _readFailures.delete('favorites');
     if (typeof renderAll === 'function') renderAll();
-  } catch (err) {
-    console.warn('Favorites sync on login failed, using localStorage:', err.message);
-  } finally {
-    _syncInProgress = false;
-  }
-}
-
-async function copyFavoritesToLocalStorage() {
-  if (!currentUser) return;
-  try {
-    const { data } = await supabaseClient
-      .from('favorites').select('org_id').eq('user_id', currentUser.id);
-    if (data) {
-      localStorage.setItem('favOrgs', JSON.stringify(data.map(r => r.org_id)));
-    }
-  } catch (err) {
-    console.warn('Copy favorites to localStorage failed:', err.message);
-  }
+  } catch (err) { if (revision === _authRevision) { _readFailures.add('favorites'); reportPendingSync(); } }
 }
 
 /* ========================================
    PROFILE SYNC
    ======================================== */
-async function syncProfileToSupabase(data) {
-  if (!currentUser) return;
-  try {
-    const profileData = {
-      id: currentUser.id,
-      email: currentUser.email,
-      education: data.education || null,
-      field_of_study: data.field_of_study || null,
-      experience: data.experience || null,
-      desired_regions: data.desired_regions || [],
-      workload_min: data.workload_min || 50,
-      workload_max: data.workload_max || 100,
-      languages: data.languages || {},
-      keywords: data.keywords || null,
-      exclusions: data.exclusions || [],
-      exclusions_freetext: data.exclusions_freetext || null,
-      start_date: data.start_date || null,
-      updated_at: data.updated_at || new Date().toISOString()
-    };
-    await supabaseClient.from('profiles').upsert(profileData);
-  } catch (err) {
-    console.warn('Profile sync to Supabase failed:', err.message);
-  }
+function profileFields(data) {
+  return {
+    education: data.education ?? '', field_of_study: data.field_of_study ?? '',
+    experience: data.experience ?? '', desired_regions: data.desired_regions ?? [],
+    workload_min: data.workload_min ?? 50, workload_max: data.workload_max ?? 100,
+    languages: data.languages ?? {}, keywords: data.keywords ?? '',
+    exclusions: data.exclusions ?? [], exclusions_freetext: data.exclusions_freetext ?? '',
+    start_date: data.start_date ?? '', updated_at: data.updated_at || new Date().toISOString()
+  };
+}
+function syncProfileToSupabase(data) {
+  return queueAccountWrite('profile', profileFields(data));
 }
 
 async function syncProfileOnLogin() {
-  if (!currentUser) return;
+  if (!currentUser || !supabaseClient) return;
+  const uid = currentUser.id;
+  const revision = _authRevision;
+  const pending = readStoredJSON(pendingKey(uid, 'profile'), null);
+  if (pending) { await syncProfileToSupabase(pending); return; }
+  const before = localStorage.getItem('userProfile');
   try {
-    const { data, error } = await supabaseClient
-      .from('profiles').select('*').eq('id', currentUser.id).single();
-
-    const localProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-    const remoteHasData = data && data.updated_at && (data.education || data.field_of_study || data.experience);
-    const localHasData = localProfile.updated_at && (localProfile.education || localProfile.field_of_study || localProfile.experience);
-
-    if (remoteHasData && localHasData) {
-      // Both have data – use newer
-      const remoteTime = new Date(data.updated_at).getTime();
-      const localTime = new Date(localProfile.updated_at).getTime();
-      if (remoteTime >= localTime) {
-        writeRemoteProfileToLocal(data);
-      } else {
-        await syncProfileToSupabase(localProfile);
-      }
-    } else if (remoteHasData) {
-      writeRemoteProfileToLocal(data);
-    } else if (localHasData) {
-      await syncProfileToSupabase(localProfile);
-    }
-
+    const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', uid).maybeSingle();
+    if (error) throw error;
+    if (revision !== _authRevision || localStorage.getItem('userProfile') !== before || localStorage.getItem(pendingKey(uid, 'profile'))) return;
+    if (data) writeRemoteProfileToLocal(data);
+    _readFailures.delete('profile');
     if (typeof updateProfileButton === 'function') updateProfileButton();
-  } catch (err) {
-    console.warn('Profile sync on login failed, using localStorage:', err.message);
-  }
+  } catch (err) { if (revision === _authRevision) { _readFailures.add('profile'); reportPendingSync(); } }
 }
 
 function writeRemoteProfileToLocal(data) {
-  const profile = {
-    education: data.education || '',
-    field_of_study: data.field_of_study || '',
-    experience: data.experience || '',
-    desired_regions: data.desired_regions || [],
-    workload_min: data.workload_min || 50,
-    workload_max: data.workload_max || 100,
-    languages: data.languages || {},
-    keywords: data.keywords || '',
-    exclusions: data.exclusions || [],
-    exclusions_freetext: data.exclusions_freetext || '',
-    start_date: data.start_date || '',
-    updated_at: data.updated_at
-  };
-  localStorage.setItem('userProfile', JSON.stringify(profile));
-}
-
-async function copyProfileToLocalStorage() {
-  if (!currentUser) return;
-  try {
-    const { data } = await supabaseClient
-      .from('profiles').select('*').eq('id', currentUser.id).single();
-    if (data) writeRemoteProfileToLocal(data);
-  } catch (err) {
-    console.warn('Copy profile to localStorage failed:', err.message);
-  }
+  localStorage.setItem('userProfile', JSON.stringify(profileFields(data)));
+  rememberAccountData();
 }
 
 /* ======== Init: update header on load ======== */

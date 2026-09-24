@@ -1,0 +1,292 @@
+name: Bootstrap public job feed once
+
+on:
+  push:
+    branches:
+      - codex/job-feed-bootstrap-20260924
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-job-feed
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/job-feed-bootstrap-20260924'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check out the explicitly selected bootstrap commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Require an unpublished data branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin refs/heads/job-feed-data > "$RUNNER_TEMP/job-feed-bootstrap-remote"; then
+            echo "job-feed-data already exists; this one-off bootstrap cannot replace it." >&2
+            exit 1
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              echo "Could not inspect job-feed-data (exit $status)." >&2
+              exit "$status"
+            fi
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run regression tests
+        run: npm test
+
+      - name: Install Chromium for required browser checks
+        run: npx playwright install --with-deps chromium
+
+      - name: Check the browser test before loading the verified snapshot
+        run: node scripts/browser-smoke.mjs
+
+      # The pinned run completed its full crawl and inventory check on 2026-09-24.
+      # Its browser check failed, so it did not publish. Reuse only its immutable
+      # public data after the browser-test correction; every publication gate and
+      # the browser check below still runs again, without another full crawl.
+      - name: Download and verify the immutable completed crawl artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { createHash } from 'node:crypto';
+          import { writeFile } from 'node:fs/promises';
+          import { join } from 'node:path';
+          const repository = 'salmonplnk/Jobs-Gesundheitsoekonomie-politik-management';
+          const runId = 35965954620;
+          const artifactId = 10794975635;
+          const expectedCommit = '7497f36aacf3c0bea239123dbedd1e8d9f6fb32e';
+          const expectedName = 'public-job-feed-bootstrap-35965954620';
+          const expectedDigest = '0249ca32519e8f6e53348fde8031f4098742b2061a1dd128e0d7a0c378b6e383';
+          const api = `https://api.github.com/repos/${repository}`;
+          const headers = { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+          const request = async path => {
+            const response = await fetch(`${api}${path}`, { headers, redirect: 'error', signal: AbortSignal.timeout(30000) });
+            assert.ok(response.ok, `GitHub metadata request failed (${response.status}).`);
+            return response.json();
+          };
+          const [run, artifact, jobs] = await Promise.all([
+            request(`/actions/runs/${runId}`),
+            request(`/actions/artifacts/${artifactId}`),
+            request(`/actions/runs/${runId}/attempts/1/jobs?per_page=100`),
+          ]);
+          assert.equal(run.head_sha, expectedCommit);
+          assert.equal(run.path, '.github/workflows/job-feed-bootstrap.yml');
+          assert.equal(run.head_branch, 'codex/job-feed-bootstrap-20260924');
+          assert.equal(run.event, 'push');
+          assert.equal(run.status, 'completed');
+          assert.equal(run.conclusion, 'failure');
+          assert.equal(run.repository.full_name, repository);
+          assert.equal(artifact.id, artifactId);
+          assert.equal(artifact.name, expectedName);
+          assert.equal(artifact.expired, false);
+          assert.equal(artifact.workflow_run.id, runId);
+          assert.equal(artifact.workflow_run.head_sha, expectedCommit);
+          assert.equal(artifact.digest, `sha256:${expectedDigest}`);
+          const age = Date.now() - Date.parse(artifact.created_at);
+          assert.ok(age >= -300000 && age <= 48 * 60 * 60 * 1000, 'The pinned artifact must be at most 48 hours old.');
+          const maximumArchiveBytes = 32 * 1024 * 1024;
+          assert.ok(artifact.size_in_bytes > 0 && artifact.size_in_bytes <= maximumArchiveBytes);
+          assert.equal(jobs.total_count, 1);
+          const job = jobs.jobs[0];
+          assert.equal(job.name, 'bootstrap');
+          assert.equal(job.head_sha, expectedCommit);
+          assert.equal(job.status, 'completed');
+          assert.equal(job.conclusion, 'failure');
+          for (const name of ['Run regression tests', 'Check the browser test before the full crawl', 'Scrape all public job sources with the current code', 'Validate complete source inventory and public snapshot files', 'Upload public feed and browser evidence']) {
+            assert.equal(job.steps.find(step => step.name === name)?.conclusion, 'success', `Required source step did not succeed: ${name}`);
+          }
+          assert.deepEqual(job.steps.filter(step => step.conclusion === 'failure').map(step => step.name), ['Check the website with the generated public feed in Chromium']);
+          let response = await fetch(`${api}/actions/artifacts/${artifactId}/zip`, { headers, redirect: 'manual', signal: AbortSignal.timeout(30000) });
+          for (let redirects = 0; [301, 302, 303, 307, 308].includes(response.status); redirects++) {
+            assert.ok(redirects < 5, 'Too many artifact download redirects.');
+            const target = new URL(response.headers.get('location') || '', response.url);
+            assert.equal(target.protocol, 'https:');
+            assert.equal(target.username, '');
+            assert.equal(target.password, '');
+            // Signed storage redirects receive no GitHub credentials or other headers.
+            response = await fetch(target, { redirect: 'manual', signal: AbortSignal.timeout(120000) });
+          }
+          assert.ok(response.ok, `Artifact download failed (${response.status}).`);
+          const chunks = [];
+          let size = 0;
+          for await (const chunk of response.body) {
+            size += chunk.byteLength;
+            assert.ok(size <= maximumArchiveBytes, 'Artifact archive exceeds the download budget.');
+            chunks.push(chunk);
+          }
+          assert.equal(size, artifact.size_in_bytes);
+          const archive = Buffer.concat(chunks);
+          assert.equal(createHash('sha256').update(archive).digest('hex'), expectedDigest, 'Artifact archive SHA-256 mismatch.');
+          await writeFile(join(process.env.RUNNER_TEMP, 'job-feed-bootstrap-verified.zip'), archive, { mode: 0o600 });
+          console.log(`Verified immutable artifact ${artifactId} from run ${runId}; only its public JSON files will be reused.`);
+          NODE
+
+      - name: Extract only the verified public snapshot files
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import re
+          import stat
+          import zipfile
+          archive = Path(os.environ['RUNNER_TEMP']) / 'job-feed-bootstrap-verified.zip'
+          with zipfile.ZipFile(archive) as source:
+              entries = source.infolist()
+              assert len(entries) <= 120, 'Unexpected archive entry count.'
+              assert len({entry.filename for entry in entries}) == len(entries), 'Duplicate archive paths.'
+              assert sum(entry.file_size for entry in entries) <= 128 * 1024 * 1024, 'Archive exceeds uncompressed budget.'
+              snapshots = []
+              for entry in entries:
+                  name = entry.filename
+                  assert not entry.flag_bits & 1, 'Encrypted archive entry.'
+                  kind = stat.S_IFMT(entry.external_attr >> 16)
+                  assert kind in (0, stat.S_IFREG, stat.S_IFDIR), 'Non-regular archive entry.'
+                  if entry.is_dir():
+                      assert name in ('data/', 'data/job-feed/', 'browser-smoke/'), 'Unexpected archive directory.'
+                      continue
+                  if re.fullmatch(r'browser-smoke/(?:[a-zA-Z0-9_-]+\.png|report\.json)', name):
+                      continue  # Never reuse old browser screenshots or the old failed report.
+                  assert re.fullmatch(r'data/job-feed/[a-z0-9_-]+\.json', name), 'Unexpected archive path.'
+                  limit = (24 if name.endswith('/index.json') else 12) * 1024 * 1024
+                  assert 0 < entry.file_size <= limit, 'Feed file exceeds its byte limit.'
+                  snapshots.append(entry)
+              assert len(snapshots) == 86, 'Expected the index plus all 85 source snapshots.'
+              assert sum(entry.file_size for entry in snapshots) <= 64 * 1024 * 1024, 'Feed exceeds total byte budget.'
+              output = Path('data/job-feed')
+              output.mkdir(parents=True, exist_ok=False)
+              for entry in snapshots:
+                  content = source.read(entry)
+                  assert len(content) == entry.file_size, 'Archive entry size mismatch.'
+                  (output / Path(entry.filename).name).write_bytes(content)
+          print('Extracted only the index and 85 verified public source snapshots.')
+          PY
+
+      - name: Validate complete source inventory and public snapshot files
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFile, readdir, stat } from 'node:fs/promises';
+          import { catalogOrganizations, FEED_BYTE_LIMITS } from './scripts/job-feed.mjs';
+          const json = async path => JSON.parse(await readFile(path, 'utf8'));
+          const organizations = catalogOrganizations(await json('data/organizations.json'), await json('data/job-source-overrides.json'));
+          const ids = organizations.map(org => org.id).sort();
+          assert.equal(ids.length, 85, 'Bootstrap must include all 85 catalog sources.');
+          const directory = 'data/job-feed';
+          assert.deepEqual((await readdir(directory)).sort(), [...ids.map(id => `${id}.json`), 'index.json'].sort());
+          const index = await json(`${directory}/index.json`);
+          assert.equal(index.version, 1);
+          assert.equal(index.generated_at.slice(0, 10), '2026-09-24');
+          const snapshotAge = Date.now() - Date.parse(index.generated_at);
+          assert.ok(snapshotAge >= -300000 && snapshotAge <= 48 * 60 * 60 * 1000, 'The pinned feed must be at most 48 hours old.');
+          assert.deepEqual(index.sources.map(source => source.org_id).sort(), ids);
+          assert.equal(index.run.checked_sources, ids.length);
+          assert.equal(index.run.total_sources, ids.length);
+          assert.equal(index.run.limited, false);
+          assert.equal(index.run.browser, 'enabled');
+          assert.ok(index.jobs.length > 0, 'Do not publish an empty first feed.');
+          assert.ok((await stat(`${directory}/index.json`)).size <= FEED_BYTE_LIMITS.index);
+          const allowedStatuses = new Set(['ok', 'empty', 'partial', 'unsupported', 'error']);
+          const shards = new Map();
+          for (const source of index.sources) {
+            assert.ok(allowedStatuses.has(source.status), `Unchecked source: ${source.org_id}`);
+            assert.ok(Number.isFinite(Date.parse(source.checked_at)), `Missing check date: ${source.org_id}`);
+            const path = `${directory}/${source.org_id}.json`;
+            assert.ok((await stat(path)).size <= FEED_BYTE_LIMITS.shard);
+            const shard = await json(path);
+            assert.equal(shard.version, 1);
+            assert.equal(shard.org_id, source.org_id);
+            assert.deepEqual(shard.source, source);
+            assert.equal(shard.jobs.filter(job => job.status !== 'closed').length, source.job_count);
+            shards.set(source.org_id, new Map(shard.jobs.map(job => [job.id, job])));
+          }
+          assert.equal(new Set(index.jobs.map(job => job.url)).size, index.jobs.length);
+          for (const job of index.jobs) {
+            const full = shards.get(job.org_id)?.get(job.id);
+            assert.ok(full, `Missing full job: ${job.id}`);
+            assert.equal(full.url, job.url);
+            assert.equal(job.detail_file, `./${job.org_id}.json`);
+            assert.equal(full.status, 'open');
+          }
+          console.log(`Validated ${index.jobs.length} jobs and all ${ids.length} source snapshots.`);
+          NODE
+
+      - name: Check the website with the generated public feed in Chromium
+        run: node scripts/browser-smoke.mjs --require-feed
+
+      - name: Require successful browser evidence using the real feed
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFile } from 'node:fs/promises';
+          const report = JSON.parse(await readFile('browser-smoke/report.json', 'utf8'));
+          const index = JSON.parse(await readFile('data/job-feed/index.json', 'utf8'));
+          assert.equal(report.dataset, 'live', 'Bootstrap requires the verified scraped feed, not fixtures.');
+          assert.equal(report.status, 'passed');
+          assert.equal(report.jobs, index.jobs.length);
+          assert.equal(report.sources, index.sources.length);
+          assert.equal(report.generated_at, index.generated_at);
+          assert.deepEqual(report.errors, []);
+          NODE
+
+      - name: Upload public feed and browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-job-feed-bootstrap-${{ github.run_id }}
+          path: |
+            data/job-feed/*.json
+            browser-smoke/*.png
+            browser-smoke/report.json
+          retention-days: 14
+
+      - name: Publish the first public snapshots without application code
+        if: success()
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GIT_INDEX_FILE="$RUNNER_TEMP/job-feed-bootstrap-index"
+          git read-tree --empty
+          git add --force -- data/job-feed
+          tree=$(git write-tree)
+          commit=$(git commit-tree "$tree" -m "Bootstrap public job feed after source and browser checks")
+          if git ls-remote --exit-code --heads origin refs/heads/job-feed-data > "$RUNNER_TEMP/job-feed-bootstrap-remote"; then
+            echo "job-feed-data appeared during the run; refusing to replace it." >&2
+            exit 1
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              echo "Could not verify job-feed-data is still absent (exit $status)." >&2
+              exit "$status"
+            fi
+          fi
+          git push origin "$commit:refs/heads/job-feed-data"
+          echo "Published the first public feed to job-feed-data after regression, inventory and Chromium checks. Application branches were not changed." >> "$GITHUB_STEP_SUMMARY"

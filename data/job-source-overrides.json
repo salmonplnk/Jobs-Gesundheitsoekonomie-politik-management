@@ -1,0 +1,577 @@
+{
+  "version": 1,
+  "checked_at": "2026-09-22",
+  "sources": {
+    "bag": {
+      "evidence_urls": [
+        "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083353"
+      ],
+      "note": "JavaScript-Careercenter 1000624. Den bestehenden Verwaltungseinheitsfilter zwingend bis zur Datenauswahl erhalten; Gesamtliste nicht dem einzelnen Amt zuordnen. Zusätzlich Arbeitgeberzuordnung mit scope_terms prüfen, da alte Filterparameter von neuen Frontends ignoriert werden können. Unklare Zuordnung nicht übernehmen und partielle Abdeckung melden.",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "ohws.prospective.ch"
+      ],
+      "scope_terms": [
+        "Bundesamt für Gesundheit",
+        "BAG",
+        "Office fédéral de la santé publique",
+        "OFSP",
+        "Ufficio federale della sanità pubblica"
+      ]
+    },
+    "bsv": {
+      "evidence_urls": [
+        "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083356"
+      ],
+      "note": "JavaScript-Careercenter 1000624. Den bestehenden Verwaltungseinheitsfilter zwingend bis zur Datenauswahl erhalten; Gesamtliste nicht dem einzelnen Amt zuordnen. Zusätzlich Arbeitgeberzuordnung mit scope_terms prüfen, da alte Filterparameter von neuen Frontends ignoriert werden können. Unklare Zuordnung nicht übernehmen und partielle Abdeckung melden.",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "ohws.prospective.ch"
+      ],
+      "scope_terms": [
+        "Bundesamt für Sozialversicherungen",
+        "BSV",
+        "Office fédéral des assurances sociales",
+        "OFAS",
+        "Ufficio federale delle assicurazioni sociali"
+      ]
+    },
+    "seco": {
+      "evidence_urls": [
+        "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083382",
+        "https://ohws.prospective.ch/public/v1/medium/1000624/attributes?lang=de&returnValuesAsArray=1",
+        "https://jobs.admin.ch/careercenter/1000624/static/index-B28v8xCu.js"
+      ],
+      "note": "Am 24.09.2026 anhand der offiziellen Filtermetadaten korrigiert: Staatssekretariat für Wirtschaft SECO hat Wert 1083382; bisheriger Wert 1083355 gehörte zu einem anderen Amt. Das offizielle Frontend gruppiert Kindwerte im Filter f=verwaltungseinheit. Öffentlicher gefilterter /jobs-Abruf bestätigte total19. Unverändert zusätzlich scope_terms gegen tatsächliche Arbeitgeberzuordnung prüfen; keine Gesamtstellenliste einem einzelnen Amt zuweisen.",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "ohws.prospective.ch"
+      ],
+      "scope_terms": [
+        "Staatssekretariat für Wirtschaft",
+        "SECO",
+        "Secrétariat d’État à l’économie",
+        "Secrétariat d’Etat à l’économie",
+        "Segreteria di Stato dell’economia"
+      ],
+      "jobs": "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083382"
+    },
+    "bfs": {
+      "evidence_urls": [
+        "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083355",
+        "https://ohws.prospective.ch/public/v1/medium/1000624/attributes?lang=de&returnValuesAsArray=1",
+        "https://jobs.admin.ch/careercenter/1000624/static/index-B28v8xCu.js"
+      ],
+      "note": "Am 24.09.2026 anhand der offiziellen Filtermetadaten korrigiert: Bundesamt für Statistik BFS hat Wert 1083355; bisheriger Wert 1083346 gehörte zu einem anderen Amt. Das offizielle Frontend gruppiert Kindwerte im Filter f=verwaltungseinheit. Öffentlicher gefilterter /jobs-Abruf bestätigte total0. Unverändert zusätzlich scope_terms gegen tatsächliche Arbeitgeberzuordnung prüfen; keine Gesamtstellenliste einem einzelnen Amt zuweisen.",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "ohws.prospective.ch"
+      ],
+      "scope_terms": [
+        "Bundesamt für Statistik",
+        "BFS",
+        "Office fédéral de la statistique",
+        "OFS",
+        "Ufficio federale di statistica"
+      ],
+      "jobs": "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083355"
+    },
+    "snf": {
+      "evidence_urls": [
+        "https://www.snf.ch/",
+        "https://talents.snf.ch/de/jobs"
+      ],
+      "note": "Alte SNF-URL lieferte HTTP404. Offizielle Teamtailor-Karriereseite am 22.09.2026 direkt mit HTTP200 und aktuellen Stellen bestätigt.",
+      "jobs": "https://talents.snf.ch/de/jobs",
+      "adapter": "teamtailor",
+      "allowed_hosts": [
+        "talents.snf.ch"
+      ]
+    },
+    "gr": {
+      "evidence_urls": [
+        "https://www.gr.ch/stellen"
+      ],
+      "note": "Direkter verifizierter Redirect des offiziellen Stellenlinks.",
+      "jobs": "https://apply.refline.ch/514915/search.html?lang=de",
+      "adapter": "refline",
+      "allowed_hosts": [
+        "apply.refline.ch"
+      ]
+    },
+    "ar": {
+      "evidence_urls": [
+        "https://ar.ch/verwaltung/departement-finanzen/personalamt/freie-stellen/"
+      ],
+      "note": "Auf der offiziellen Jobs-Seite eingebettetes öffentliches Stellenportal. Filter/Query aus dem veröffentlichten iframe erhalten.",
+      "jobs": "https://live.solique.ch/kanton-appenzell-ausserrhoden/",
+      "adapter": "solique",
+      "allowed_hosts": [
+        "live.solique.ch"
+      ]
+    },
+    "sg": {
+      "evidence_urls": [
+        "https://www.sg.ch/ueber-den-kanton-st-gallen/arbeitgeber-kanton-stgallen/stellenportal.html"
+      ],
+      "note": "Auf der offiziellen Jobs-Seite eingebettetes öffentliches Stellenportal. Filter/Query aus dem veröffentlichten iframe erhalten.",
+      "jobs": "https://recruitingapp-2800.umantis.com/Jobs/All?CompanyID=1|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45|46|47|48|49|50|51|52|53|54|55|56|57|58|59|61|62|63|64|65|66|67|68|69|70|71|72|73|75|76|77|78|79|80|81|82|83|84|85|86|87|88|89|90|91|92|94|96|98|100|102|104|106|108|110|132|134|136&DesignID=00",
+      "adapter": "umantis",
+      "allowed_hosts": [
+        "recruitingapp-2800.umantis.com"
+      ]
+    },
+    "so": {
+      "evidence_urls": [
+        "https://karriere.so.ch/stellenmarkt/offene-stellen/"
+      ],
+      "note": "Auf der offiziellen Jobs-Seite eingebettetes öffentliches Stellenportal. Filter/Query aus dem veröffentlichten iframe erhalten.",
+      "jobs": "https://ktso.prospective.ch/?sort=-startDate",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "ktso.prospective.ch"
+      ]
+    },
+    "sz": {
+      "evidence_urls": [
+        "https://www.sz.ch/services/offene-stellen.html/8756-8761-10387"
+      ],
+      "note": "Auf der offiziellen Jobs-Seite eingebettetes öffentliches Stellenportal. Filter/Query aus dem veröffentlichten iframe erhalten.",
+      "jobs": "https://sz.prospective.ch/",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "sz.prospective.ch"
+      ]
+    },
+    "zg": {
+      "evidence_urls": [
+        "https://www.zg.ch/de/offene-stellen"
+      ],
+      "note": "Auf der offiziellen Jobs-Seite eingebettetes öffentliches Stellenportal. Filter/Query aus dem veröffentlichten iframe erhalten.",
+      "jobs": "https://zg.prospective.ch",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "zg.prospective.ch"
+      ]
+    },
+    "concordia": {
+      "evidence_urls": [
+        "https://www.concordia.ch/de/ueber-uns/jobs/offene-stellen.html"
+      ],
+      "note": "Auf der offiziellen Jobs-Seite eingebettetes öffentliches Stellenportal. Filter/Query aus dem veröffentlichten iframe erhalten.",
+      "jobs": "https://jobs.concordia.ch/?lang=de",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "jobs.concordia.ch"
+      ]
+    },
+    "kpt": {
+      "evidence_urls": [
+        "https://www.kpt.ch/de/jobs-karriere/offene-stellen",
+        "https://jobs.kpt.ch/",
+        "https://jobs.kpt.ch/careercenter/1007102/static/index-Bt86XC4K.js"
+      ],
+      "note": "Am 24.09.2026: offizieller Karrierepfad /de/jobs-karriere/offene-stellen HTTP200 verweist auf jobs.kpt.ch. Portal und veröffentlichtes Frontend-Bundle bestätigen Careercenter 1007102 und öffentliche /public/v1/medium/1007102/jobs-API mit12 vollständigen Inseraten. Der bisherige /public/v2/careercenter/-iframe-Pfad lieferte bei der Nachprüfung ebenfalls HTTP200, aber nur die JavaScript-Hülle; das aktuelle Portal ermöglicht den verifizierten Datenadapter. Identischen veröffentlichten Filter f=30:1690495,1690493,1690494 erhalten.",
+      "jobs": "https://jobs.kpt.ch/?lang=de&f=30:1690495,1690493,1690494",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "jobs.kpt.ch",
+        "ohws.prospective.ch"
+      ]
+    },
+    "ksw": {
+      "evidence_urls": [
+        "https://www.ksw.ch/jobs-karriere/jobs/offene-stellen/"
+      ],
+      "note": "Auf der offiziellen Jobs-Seite eingebettetes öffentliches Stellenportal. Filter/Query aus dem veröffentlichten iframe erhalten.",
+      "jobs": "https://live.solique.ch/KSW/de/internet/#/",
+      "adapter": "solique",
+      "allowed_hosts": [
+        "live.solique.ch"
+      ]
+    },
+    "be": {
+      "evidence_urls": [
+        "https://www.gsi.be.ch/de/start/ueber-uns/offene-stellen.html"
+      ],
+      "note": "Offizielle GSI-Seite bettet www.jobs.apps.be.ch ein; das veröffentlichte iframe-Attribut enthält eine verschachtelte URL im Filter. Daher keine URL-Korrektur: Direktionfilter 1152068,1152071,1152072 muss fachlich geprüft werden, bevor Jobs zugeordnet werden. Der Katalog beschreibt eine konkrete Direktion: scope_terms mit exakten amtlichen Namen/Abkürzungen begrenzen die Zuordnung; unklare Treffer nicht übernehmen und partielle Abdeckung melden.",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "www.jobs.apps.be.ch"
+      ],
+      "scope_terms": [
+        "Gesundheits-, Sozial- und Integrationsdirektion",
+        "Gesundheits-, Sozial- & Integrationsdirektion",
+        "GSI",
+        "Direction de la santé, des affaires sociales et de l’intégration"
+      ]
+    },
+    "oekk": {
+      "evidence_urls": [
+        "https://www.oekk.ch/de/oekk/karriere/bewerben/offene-stellen"
+      ],
+      "note": "Offizieller Link «offene Stellen» auf der ÖKK-Karriereseite.",
+      "jobs": "https://jobs.oekk.ch/Jobs/All?CompanyID=All&Reset=G",
+      "adapter": "umantis",
+      "allowed_hosts": [
+        "jobs.oekk.ch"
+      ]
+    },
+    "swica": {
+      "evidence_urls": [
+        "https://www.swica.ch/de/ueber-swica/jobs/freie-stellen/job-finder",
+        "https://jobs.swica.ch/"
+      ],
+      "note": "Öffentliches SWICA-Stellenportal direkt HTTP200 am Prüftag. Neue Next.js-Jobs-Seite liefert die Liste nicht als einfache Links.",
+      "jobs": "https://jobs.swica.ch/",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "jobs.swica.ch",
+        "ohws.prospective.ch"
+      ]
+    },
+    "egk": {
+      "evidence_urls": [
+        "https://www.egk.ch/de/ueber-uns/offene-stellen"
+      ],
+      "note": "Verifizierter Redirect zum aktuellen Stellenpfad.",
+      "jobs": "https://www.egk.ch/de/ihre-egk/ueber-uns/offene-stellen"
+    },
+    "kssg": {
+      "evidence_urls": [
+        "https://jobs.h-och.ch/"
+      ],
+      "note": "Aktuelles öffentliches SAP-Stellenportal HOCH Health Ostschweiz, im öffentlichen Webabruf bestätigt. Direkter Abruf lieferte502; dieser Zugriffsweg ist nicht als leere Stellenliste zu behandeln.",
+      "jobs": "https://jobs.h-och.ch/",
+      "adapter": "successfactors",
+      "allowed_hosts": [
+        "jobs.h-och.ch"
+      ]
+    },
+    "chuv": {
+      "evidence_urls": [
+        "https://www.chuv.ch/fr/",
+        "https://recrutement.chuv.ch/utf8/ic_job_feeds.feed_engine?p_web_site_id=5352&p_published_to=WWW&p_language=DEFAULT&p_direct=Y&p_format=MOBILE&p_summary=Y&p_order=DATE_ON"
+      ],
+      "note": "Alter Karrierelink führt auf CHUV-Homepage. Diese verlinkt direkt das öffentliche Rekrutierungsportal. Das veröffentlichte Suchformular nennt /utf8/ic_job_feeds.feed_engine; öffentlicher GET mit Formularparametern lieferte am Prüftag HTTP200 JSON {jobs,total}.",
+      "jobs": "https://recrutement.chuv.ch/home.html#filter=p_web_site_id%3D5352%26p_published_to%3DWWW%26p_language%3DDEFAULT%26p_direct%3DY%26p_format%3DMOBILE%26p_search%3D",
+      "allowed_hosts": [
+        "recrutement.chuv.ch"
+      ]
+    },
+    "ksgr": {
+      "evidence_urls": [
+        "https://www.ksgr.ch/arbeiten-bei-uns",
+        "https://jobs.ksgr.ch/"
+      ],
+      "note": "Alter Pfad lieferte HTTP404; aktuelles offizielles Stellenportal veröffentlicht KSGR-Stellen. Direkter Folgeabruf wurde mit403 verweigert, Webabruf bestätigte JavaScript-Anwendung. Keine Sperren umgehen.",
+      "jobs": "https://jobs.ksgr.ch/",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "jobs.ksgr.ch",
+        "ohws.prospective.ch"
+      ]
+    },
+    "smn": {
+      "evidence_urls": [
+        "https://www.swissmedical.net/de/karriere/stellenangebote"
+      ],
+      "note": "Native paginierte Stellenliste verlinkt SwissMedicalNetwork1 auf SmartRecruiters. Arbeitgeberkennung und tatsächliche Arbeitgeber aus den Inseraten erhalten.",
+      "adapter": "smartrecruiters",
+      "allowed_hosts": [
+        "jobs.smartrecruiters.com"
+      ]
+    },
+    "soh": {
+      "evidence_urls": [
+        "https://www.solothurnerspitaeler.ch/jobs-karriere/jobangebote"
+      ],
+      "note": "Stellenliste veröffentlicht konkrete Jobs auf jobs.so-h.ch und öffentliche Prospective-Detailseiten.",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "jobs.so-h.ch",
+        "ohws.prospective.ch"
+      ]
+    },
+    "santesuisse": {
+      "evidence_urls": [
+        "https://www.santeservices.ch/santeservices/",
+        "https://www.santeservices.ch/offene-stellen/"
+      ],
+      "note": "Offizielle Firmengeschichte dokumentiert seit1.7.2026 gemeinsame Marke von santésuisse, SVK, SASIS AG und santéservices. Alter Stellenlink führt auf Bildung; aktuelles offizielles Karriereangebot ist dieses Nachfolgeportal. Tatsächliche hiringOrganization je Inserat beibehalten.",
+      "jobs": "https://www.santeservices.ch/offene-stellen/",
+      "allowed_hosts": [
+        "www.santeservices.ch",
+        "santeservices-ag.my.two.jobs"
+      ]
+    },
+    "ag": {
+      "evidence_urls": [
+        "https://www.ag.ch/de/ueber-uns/jobs-karriere",
+        "https://www.ag.ch/io/jobs-frontend/asset-manifest.json",
+        "https://www.ag.ch/io/jobs-proxy/jobs"
+      ],
+      "note": "Offizielle tiefere Stellenseite HTTP200. Öffentliches Frontend lädt https://www.ag.ch/io/jobs-proxy/jobs; am Prüftag HTTP200 JSON mit69 jobs (total69). API-Pfad im offiziellen Assetmanifest/Frontend belegt. Katalogeintrag beschreibt DGS, nicht alle kantonalen Stellen: scope_terms begrenzen die Zuordnung. Unklare Treffer nicht übernehmen und partielle Abdeckung melden.",
+      "jobs": "https://www.ag.ch/de/ueber-uns/jobs-karriere/offene-stellen",
+      "allowed_hosts": [
+        "recruitingapp-12705.umantis.com"
+      ],
+      "scope_terms": [
+        "Departement Gesundheit und Soziales",
+        "DGS"
+      ]
+    },
+    "bs": {
+      "evidence_urls": [
+        "https://www.bs.ch/themen/arbeit-und-steuern/stellenbesetzung-arbeitslosigkeit/offene-stellen/offene-stellen-beim-kanton-basel-stadt"
+      ],
+      "note": "Im Nuxt-Seitenzustand publiziertes iframe-Ziel (iframeDomain/iframePath), direkt HTTP200 mit Stellenübersicht.",
+      "jobs": "https://stellenmarkt.bs.ch/kbs/",
+      "allowed_hosts": [
+        "stellenmarkt.bs.ch"
+      ]
+    },
+    "helsana": {
+      "evidence_urls": [
+        "https://www.helsana.ch/de/helsana-gruppe/jobs/stellenangebote.html",
+        "https://jobs.helsana.ch/?lang=de",
+        "https://jobs.helsana.ch/careercenter/1002787/assets/js/loadMoreResults.js"
+      ],
+      "note": "Am 24.09.2026 verifizierter offizieller iframe: jobs.helsana.ch/?lang=de statt veraltetem careers.helsana.ch. Portal HTTP200 mit12 verlinkten Einzelstellen direkt im HTML, Assets bestätigen Careercenter1002787. Öffentliches loadMoreResults.js blendet vorhandene DOM-Karten ein; keine weitere GET-API verifiziert. Native HTML- und Detailauslese verwenden; keine leere Stellenliste aus der alten Danke-Seite ableiten.",
+      "jobs": "https://jobs.helsana.ch/?lang=de",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "jobs.helsana.ch",
+        "ohws.prospective.ch"
+      ]
+    },
+    "sanitas": {
+      "evidence_urls": [
+        "https://www.sanitas.com/de/ueber-sanitas/arbeiten-bei-sanitas/offene-stellen.html",
+        "https://jobs.sanitas.com/"
+      ],
+      "note": "Aktuelles öffentliches Stellenportal, HTTP200. Die bisherige Sanitas-Seite lädt Stellen clientseitig; das Portal liefert konkrete Detailverweise.",
+      "jobs": "https://jobs.sanitas.com/",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "jobs.sanitas.com"
+      ]
+    },
+    "hug": {
+      "evidence_urls": [
+        "https://www.hug.ch/emploi"
+      ],
+      "note": "Von offizieller HUG-Emploi-Seite verlinktes Stellenportal. Arbeitgeberkennung HUG erhalten.",
+      "jobs": "https://careers.smartrecruiters.com/HUG",
+      "adapter": "smartrecruiters",
+      "allowed_hosts": [
+        "careers.smartrecruiters.com",
+        "jobs.smartrecruiters.com"
+      ]
+    },
+    "fmh": {
+      "evidence_urls": [
+        "https://www.fmh.ch/ueber-die-fmh/offene-stellen.cfm"
+      ],
+      "note": "Offiziell eingebettetes Abacus-Stellenportal. FMH-Filter erhalten; SIWF ist im selben System vertreten.",
+      "jobs": "https://karriere-fmh-siwf.abacuscity.ch/de/jobportal?jobportal_desc_filter_text=FMH&domain=FMH",
+      "adapter": "abacus",
+      "allowed_hosts": [
+        "karriere-fmh-siwf.abacuscity.ch"
+      ]
+    },
+    "bss": {
+      "evidence_urls": [
+        "https://bss-basel.ch/de/",
+        "https://bss-basel.ch/de/ueber-uns/bei-uns-arbeiten"
+      ],
+      "note": "Offizielle Navigation verlinkt diesen aktuellen Pfad; alter Link führte auf Homepage. Neuer Direktabruf wurde mit HTTP403/WAF verweigert: als blockiert behandeln, keine leere Stellenliste daraus ableiten.",
+      "jobs": "https://bss-basel.ch/de/ueber-uns/bei-uns-arbeiten",
+      "allowed_hosts": [
+        "bss-basel.ch"
+      ]
+    },
+    "careum": {
+      "evidence_urls": [
+        "https://careum.ch/ueber-uns/arbeiten-bei-careum",
+        "https://careum.ch/ueber-uns/arbeiten-bei-careum/offene-stellen"
+      ],
+      "note": "Offizielle tiefere Stellenseite, HTTP200. Gzip-Antwort dekomprimieren. Zum Prüfzeitpunkt nur Initiativbewerbung sichtbar, keine reguläre Vakanz.",
+      "jobs": "https://careum.ch/ueber-uns/arbeiten-bei-careum/offene-stellen",
+      "allowed_hosts": [
+        "apply.refline.ch"
+      ]
+    },
+    "sotomo": {
+      "evidence_urls": [
+        "https://sotomo.ch/site/jobs/"
+      ],
+      "note": "Verifizierter Redirect zum aktuellen Stellenpfad. Seite meldete beim Audit keine aktuellen Vakanzen.",
+      "jobs": "https://sotomo.ch/de/jobs/"
+    },
+    "rheumaliga": {
+      "evidence_urls": [
+        "https://www.rheumaliga.ch/ueber-uns/organisation/offene-stellen"
+      ],
+      "note": "Verifizierter Redirect zum aktuellen Stellenpfad. Seite meldete beim Audit keine aktuellen Vakanzen.",
+      "jobs": "https://www.rheumaliga.ch/ueber-uns/jobs/offene-stellen.html"
+    },
+    "pharmasuisse": {
+      "evidence_urls": [
+        "https://www.pharmasuisse.org/de/der-verband/jobs-und-karriere"
+      ],
+      "note": "Verifizierter Redirect zum aktuellen Stellenpfad. Seite meldete beim Audit keine aktuellen Vakanzen.",
+      "jobs": "https://pharmasuisse.org/de/der-verband/jobs-und-karriere"
+    },
+    "spitex": {
+      "evidence_urls": [
+        "https://www.spitex.ch/Jobs/PgiA1/"
+      ],
+      "note": "Offizieller Einstieg verlinkt das Branchenportal spitexjobs.ch. Dieses enthält Stellen unterschiedlicher Arbeitgeber: tatsächliche Arbeitgeber in den Inseraten beibehalten.",
+      "jobs": "https://www.spitex.ch/de/arbeiten-bei-der-spitex",
+      "allowed_hosts": [
+        "www.spitexjobs.ch"
+      ]
+    },
+    "gfs": {
+      "evidence_urls": [
+        "https://gesundheitsfoerderung.ch/stiftung/stellenangebote"
+      ],
+      "note": "Offizielle Stellenangebote verlinken Jobdetails bei my.jobalino.ch.",
+      "allowed_hosts": [
+        "my.jobalino.ch"
+      ]
+    },
+    "krebsliga": {
+      "evidence_urls": [
+        "https://www.krebsliga.ch/ueber-uns/jobs"
+      ],
+      "note": "Öffentlich eingebetteter Ostendis-Loader /ojp/assets/loader; Stellenliste wird clientseitig geladen. Nur veröffentlichte öffentliche Feed-Endpunkte verwenden.",
+      "adapter": "ostendis",
+      "allowed_hosts": [
+        "odm.ostendis.com"
+      ]
+    },
+    "lungenliga": {
+      "evidence_urls": [
+        "https://www.lungenliga.ch/ueber-uns/jobs"
+      ],
+      "note": "Offizielle Jobseite enthält eigene Stellendetails sowie Links zu öffentlichen Ostendis-Publikationen.",
+      "allowed_hosts": [
+        "link.ostendis.com"
+      ]
+    },
+    "srk": {
+      "evidence_urls": [
+        "https://www.redcross.ch/de/arbeiten-beim-srk-sinnvoll-und-herausfordernd",
+        "https://rexx.redcross.ch/"
+      ],
+      "note": "Offizielle SRK-Karriereseite verlinkt das öffentliche Stellenportal rexx.redcross.ch; am 24.09.2026 mit drei verlinkten Einzelstellen bestätigt. Einzellinks, tatsächliche Arbeitgeber und vollständige Beschriebe aus dem Portal übernehmen.",
+      "adapter": "rexx",
+      "allowed_hosts": [
+        "rexx.redcross.ch"
+      ],
+      "jobs": "https://rexx.redcross.ch/"
+    },
+    "pflegewegweiser": {
+      "evidence_urls": [
+        "https://pflegewegweiser.ch/karriere/"
+      ],
+      "note": "Stelleninhalte stehen direkt in HTML-Karten .jobs-loxo__item mit data-job-id, data-department und data-location. Keine Detail-URL erfinden; Quellseite und vorhandene Anker verwenden."
+    },
+    "luks": {
+      "evidence_urls": [
+        "https://www.luks.ch/stellen-und-karriere/offene-stellen/",
+        "https://jobs.luks.ch/"
+      ],
+      "note": "Öffentliches LUKS-Stellenportal direkt HTTP200. Gatsby-Hauptseite lädt Stellenliste clientseitig. Arbeitgeber/Standort aus Details beibehalten.",
+      "jobs": "https://jobs.luks.ch/",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "jobs.luks.ch",
+        "ohws.prospective.ch"
+      ]
+    },
+    "wig": {
+      "evidence_urls": [
+        "https://www.zhaw.ch/de/jobs/offene-stellen",
+        "https://www.zhaw.ch/de/sml/institute-zentren/wig/"
+      ],
+      "note": "WIG und ZHAW Gesundheit verweisen auf denselben ungefilterten Hochschulstellenmarkt. Details auf Institut/Departement prüfen; nicht alle ZHAW-Stellen beiden Einträgen zuordnen. scope_terms sind enge Organisationsbegriffe, als Wort-/Phrasengrenzen im normalisierten vollständigen Stellentext zu prüfen. Mangels bestätigter Filter-URL nicht unscoped übernehmen; unklare Zuordnung als partielle Abdeckung melden.",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "ohws.prospective.ch"
+      ],
+      "scope_terms": [
+        "Winterthurer Institut für Gesundheitsökonomie",
+        "WIG",
+        "Gesundheitsökonomie"
+      ]
+    },
+    "zhaw": {
+      "evidence_urls": [
+        "https://www.zhaw.ch/de/jobs/offene-stellen",
+        "https://www.zhaw.ch/de/gesundheit/"
+      ],
+      "note": "WIG und ZHAW Gesundheit verweisen auf denselben ungefilterten Hochschulstellenmarkt. Details auf Institut/Departement prüfen; nicht alle ZHAW-Stellen beiden Einträgen zuordnen. scope_terms sind enge Organisationsbegriffe, als Wort-/Phrasengrenzen im normalisierten vollständigen Stellentext zu prüfen. Mangels bestätigter Filter-URL nicht unscoped übernehmen; unklare Zuordnung als partielle Abdeckung melden.",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "ohws.prospective.ch"
+      ],
+      "scope_terms": [
+        "Departement Gesundheit",
+        "ZHAW Gesundheit"
+      ]
+    },
+    "usb": {
+      "evidence_urls": [
+        "https://www.unispital-basel.ch/jobs-und-karriere/Jobs",
+        "https://www.unispital-basel.ch/.rest/jobs/search?lang=de&offset=0&limit=20"
+      ],
+      "note": "Offizielles Frontend lädt /.rest/jobs/search und /.rest/delivery/jobFilters; direkter öffentlicher JSON-Abruf bestätigte am Prüftag total127. Offset/limit vollständig durchlaufen.",
+      "adapter": "prospective",
+      "allowed_hosts": [
+        "job.unispital-basel.ch",
+        "ohws.prospective.ch"
+      ]
+    },
+    "spitalwallis": {
+      "evidence_urls": [
+        "https://www.hopitalduvalais.ch/lhopital-du-valais/emploi/employeur-attractif"
+      ],
+      "note": "Die offizielle Arbeitgeberseite verlinkt https://postulations.hopitalvs.ch/ und https://vs.service-now.com/x/hdvi2/hvs-ats-portal/landing/params/language/fr/spref/. Links sind im HTML belegt; dynamisches Portal separat prüfen. Keine unbestätigte API-Konstruktion.",
+      "allowed_hosts": [
+        "postulations.hopitalvs.ch",
+        "vs.service-now.com"
+      ]
+    },
+    "unilu": {
+      "evidence_urls": [
+        "https://www.unilu.ch/universitaet/personal/personaldienst/offene-stellen/"
+      ],
+      "note": "Der Katalogeintrag Uni Luzern FGW bezeichnet die Gesundheitsfakultät, die URL ist die gesamte Universität. Im öffentlichen HTML trennt die Überschrift «Fakultät für Gesundheitswissenschaften und Medizin» die einschlägigen Inserate. Nur diese Rubrik bzw. Stellen mit scope_terms übernehmen; sonst partielle Abdeckung.",
+      "scope_terms": [
+        "Fakultät für Gesundheitswissenschaften und Medizin",
+        "Fakultät für Gesundheitswissenschaften",
+        "FGM",
+        "FGW"
+      ]
+    },
+    "hirslanden": {
+      "evidence_urls": [
+        "https://www.hirslanden.ch/de/corporate/jobs-und-karriere/offene-stellen.html",
+        "https://careers.mediclinic.com/Hirslanden/?locale=de",
+        "https://careers.mediclinic.com/Hirslanden/go/Search-By-Keyword-MCCH/5071201/"
+      ],
+      "jobs": "https://careers.mediclinic.com/Hirslanden/go/Search-By-Keyword-MCCH/5071201/",
+      "adapter": "successfactors",
+      "allowed_hosts": [
+        "careers.mediclinic.com"
+      ],
+      "scope_terms": [
+        "Hirslanden"
+      ],
+      "note": "Offizielle Hirslanden-Stellenseite leitet am 24.09.2026 auf careers.mediclinic.com/Hirslanden um; dort veröffentlichte Suchliste HTTP200 mit 50 von365 Stellen. Listenpagination vollständig abarbeiten; ausschliesslich Hirslanden zuordnen, keine anderen Mediclinic-Landesgesellschaften übernehmen."
+    }
+  }
+}
