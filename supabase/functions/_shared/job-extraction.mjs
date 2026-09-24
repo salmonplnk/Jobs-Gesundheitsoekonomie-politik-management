@@ -327,7 +327,12 @@ export function matchesOrganizationScope(job,org) {
 function hasUnresolvedEmbeddedListing(html) {
   const active = String(html).replace(/<!--[\s\S]*?-->/g,'');
   const scripts = [...active.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)].map(match => match[1]).join('\n');
-  const ids = new Set([...scripts.matchAll(/\bOSTENDISJOBS\s*\.\s*embed\s*\(\s*["']#([a-z][\w:.-]*)["']/gi)].map(match => match[1]));
+  // Published Ostendis signature: embed(publicationPlace, language, selector,
+  // options). The official Krebsliga declaration has comments between arguments.
+  const gap = String.raw`(?:\s|\/\/[^\r\n]*|\/\*[\s\S]*?\*\/)*`;
+  const quoted = String.raw`(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')`;
+  const call = new RegExp(String.raw`\bOSTENDISJOBS\s*\.\s*embed\s*\(${gap}${quoted}${gap},${gap}${quoted}${gap},${gap}["']#([a-z][\w:.-]*)["']`,'gi');
+  const ids = new Set([...scripts.matchAll(call)].map(match => match[1]));
   if (!ids.size) return false;
   return [...active.matchAll(/<([a-z][\w:-]*)\b([^>]*)>\s*<\/\1\s*>/gi)]
     .some(match => ids.has(attributes(match[2]).id));

@@ -9,6 +9,7 @@ on:
       - job-feed-data
       - codex/job-feed-bootstrap-20260924
       - codex/feed-focus-20260924
+      - codex/feed-review-20260924
     paths:
       - .github/workflows/job-feed.yml
       - 'scripts/*feed*'
@@ -77,7 +78,7 @@ jobs:
           fi
 
       - name: Refresh public job snapshots
-        run: npm run feed:refresh -- --browser --previous "$RUNNER_TEMP/job-feed-previous/data/job-feed" --output data/job-feed
+        run: npm run feed:refresh -- --browser --source-timeout-ms 600000 --previous "$RUNNER_TEMP/job-feed-previous/data/job-feed" --output data/job-feed
 
       - name: Upload public feed artifact
         if: always()

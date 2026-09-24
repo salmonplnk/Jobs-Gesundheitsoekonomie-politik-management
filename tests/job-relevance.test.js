@@ -107,6 +107,35 @@ test('an old truncated employer introduction cannot qualify an unrelated PhD', (
   assert.equal(R.classify(j).eligible, false);
 });
 
+test('university degree-program administration is not health research', () => {
+  const j = job('Administrative/n Assistent/in Studiengänge Gesundheitswissenschaften (80-100%)',
+    'Die Fakultät fördert Forschung in Gesundheit und Gesundheitswissenschaften.\nAufgabenbereich\nBetreuung elektronisches Prüfungssystem. Administrative Betreuung Internships. Organisation von Informationsveranstaltungen. Unterstützung Semesterplanung und Prüfungswesen.\nAnforderungen\nKaufmännische Berufsausbildung.\nWir bieten\nGesundheitsförderung für Mitarbeitende.', 'unilu');
+  assert.equal(R.classify(j).eligible, false);
+});
+
+test('HOCH security operations cannot inherit public-health relevance from staff benefits', () => {
+  const j = job('Fachspezialist/in Sicherheit, Notfall- & Krisenmanagement 80-100%',
+    'Departement Immobilien & Betrieb.\nDeine Aufgaben und Perspektiven\nSteuerung des externen Sicherheitsdienstes. Planung der Eventsicherheit. Arbeitssicherheit und Gesundheitsschutz. Sicheres Bargeldmanagement mit Werttransportunternehmen.\nWas du für diese Stelle mitbringst\nWeiterbildung im Sicherheitsbereich und Ausbildung als Sicherheitsbeauftragte/r.\nUnser Angebot an dich\nMitarbeiterangebote in den Bereichen Gesundheitsförderung, Job und Familie.\nÜber uns\nGesundheitsversorgung ist unser Beruf und unsere Berufung.', 'kssg');
+  assert.equal(R.classify(j).eligible, false);
+  // This must also fail without an explicitly unrelated title.
+  assert.equal(R.classify({ ...j, title: 'Fachspezialist/in' }).eligible, false);
+});
+
+test('HOCH tumor registry analytics permits the explicit nonclinical qualification pathways', () => {
+  const j = job('Fachspezialist/in Datamanagement und Tumordokumentation 50-100%',
+    'Deine Aufgaben und Perspektiven\nPlausibilitätsprüfung onkologischer Patientendaten. Aufbereitung von Kennzahlen und Qualitätsberichten. Erstellung von Statistiken und Auswertungen.\nWas du für diese Stelle mitbringst\nAbgeschlossene medizinische, pflegerische, gesundheitswissenschaftliche oder dokumentarische Ausbildung. Quereinstieg möglich.\nUnser Angebot an dich\nStrukturierte Einarbeitung.', 'kssg');
+  assert.equal(R.classify(j).eligible, true);
+  assert.equal(R.classify(j).category, R.CATEGORIES[5]);
+});
+
+test('management internship category comes from its work rather than HTA institute boilerplate', () => {
+  const j = job('Praktikant:in im Bereich Management im Gesundheitswesen 100 %',
+    'Aufgaben\nBetriebswirtschaftliche Sichtweise auf das Schweizer Gesundheitssystem. Beratungsprojekte zu Digital Health, Lean Healthcare und Qualitätsentwicklung.\nProfil\nStudierende oder Studienabsolventen aus BWL oder Management im Gesundheitswesen.\nDafür stehen wir\nDas Institut für Gesundheitsökonomie betreibt Forschung und HTA.', 'wig');
+  assert.equal(R.classify(j).category, R.CATEGORIES[4]);
+  assert.equal(R.classify(job('Koordinator/in Center for Health, Policy and Economics',
+    'Aufgabenbereich\nStrategische Weiterentwicklung, Drittmittel und Forschungsanträge.\nAnforderungen\nMaster Wirtschaftswissenschaften oder Gesundheitswissenschaften.', 'unilu')).eligible, true);
+});
+
 test('clinical case and trial coordination stay outside this subject profile', () => {
   for (const j of [
     job('Case Managerin / Case Manager', 'Aufgaben\nPatienten beraten, Austritte und Verlegungen planen.\nAnforderungen\nAbgeschlossene Ausbildung als Pflegefachperson HF/FH.'),

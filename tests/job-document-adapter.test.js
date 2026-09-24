@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { discoverJobDocuments, normalizeDocumentText, extractDocumentVacancy, DOCUMENT_LIMITS } from '../supabase/functions/_shared/job-document-adapter.mjs';
 import { extractPdfText } from '../scripts/job-pdf-text.mjs';
 import { extractVacancies } from '../supabase/functions/_shared/job-extraction.mjs';
+import { crawlOrganization } from '../supabase/functions/_shared/job-crawler.mjs';
 
 const org = {id:'insurer',name:'Example Health Insurer',jobs:'https://health.ch/jobs/',main:'https://health.ch/'};
 const url = 'https://health.ch/files/advert.pdf';
@@ -52,9 +53,20 @@ test('discovers advertised PDFs with generic labels but excludes brochures and f
   assert.equal(result[0].sourceUrl,org.jobs);
 });
 
-test('an unrendered Ostendis job list remains unresolved even beside a readable PDF or another empty section',() => {
-  const embed='<script src="https://odm.ostendis.com/ojp/assets/loader"></script><div id="ostendisJobs" class="ost-jobs"> <!-- mount --> </div><script>OSTENDISJOBS.embed("#ostendisJobs", "public-place");</script>';
-  const parsed=extractVacancies(`<h2>Head office</h2>${embed}<h2>Regional office</h2><a href="/files/advert.pdf">Project Manager Health Economics 80%</a><p>Keine offenen Stellen in unserer Verwaltung.</p>`,org,org.jobs);
+test('an unrendered Ostendis job list remains unresolved even beside a readable PDF or another empty section',async () => {
+  const embed=`<script src="https://odm.ostendis.com/ojp/assets/loader"></script>
+  <div id="ostendisJobs" class="ost-jobs"> <!-- mount --> </div><script>
+    document.addEventListener("ostendisLoaderReady", function () {
+      OSTENDISJOBS.embed(
+        "public-place-hash", // publication place hash
+        "DE", /* jobpublisher language */
+        "#ostendisJobs", // css selector of container
+        {}
+      );
+    });
+  </script>`;
+  const html=`<h2>Head office</h2>${embed}<h2>Regional office</h2><a href="/files/advert.pdf">Project Manager Health Economics 80%</a><p>Keine offenen Stellen in unserer Verwaltung.</p>`;
+  const parsed=extractVacancies(html,org,org.jobs);
   assert.equal(parsed.unresolvedEmbeddedListing,true);
   assert.equal(parsed.listingEvidence,true);
   assert.equal(parsed.explicitEmpty,false);
@@ -63,7 +75,16 @@ test('an unrendered Ostendis job list remains unresolved even beside a readable 
   assert.equal(rendered.unresolvedEmbeddedListing,false);
   assert.equal(rendered.links.length,1);
   assert.equal(extractVacancies('<div id="ostendisJobs"></div>',org,org.jobs).unresolvedEmbeddedListing,false);
-  assert.equal(extractVacancies(`<pre>OSTENDISJOBS.embed("#ostendisJobs", "public-place")</pre><div id="ostendisJobs"></div>`,org,org.jobs).unresolvedEmbeddedListing,false);
+  assert.equal(extractVacancies(`<pre>OSTENDISJOBS.embed("public-place", "DE", "#ostendisJobs", {})</pre><div id="ostendisJobs"></div>`,org,org.jobs).unresolvedEmbeddedListing,false);
+  const secondEmbed='<script>OSTENDISJOBS.embed(\'second-place\',\'FR\',\'#regionalJobs\',{});</script><div id="regionalJobs"></div>';
+  assert.equal(extractVacancies(secondEmbed,org,org.jobs).unresolvedEmbeddedListing,true);
+  const crawled=await crawlOrganization(org,async()=>({html,url:org.jobs}),{
+    fetchDocument:async requested=>({url:requested,bytes:Buffer.from('%PDF-1.4'),contentType:'application/pdf'}),
+    extractDocumentText:async()=>fixture});
+  assert.equal(crawled.jobs.length,1);
+  assert.equal(crawled.source.status,'partial');
+  assert.equal(crawled.source.coverage,'partial');
+  assert.equal(crawled.source.pending_pages,1);
 });
 
 test('extracts a PDF vacancy with canonical identity and shared metadata',() => {
