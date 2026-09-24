@@ -19,7 +19,7 @@ HTTP200 belegt Erreichbarkeit, nicht eine erfolgreiche Extraktion oder vollstän
 - **Bern GSI:** Das publizierte iframe-Attribut enthielt eine verschachtelte URL im `filter_90`. Die Originalseite bleibt daher der Einstieg; nur der belegte Portalhost wird freigegeben. Direktionfilter1152068/1152071/1152072 vor Verwendung fachlich prüfen.
 - **AG DGS, WIG, ZHAW und Uni Luzern:** Die verlinkten Stellenmärkte umfassen jeweils mehr als den benannten Katalogbereich. AG benötigt DGS-Zuordnung, WIG/ZHAW Instituts- beziehungsweise Departementszuordnung. Uni Luzern trennte einschlägige Stellen unter der HTML-Überschrift «Fakultät für Gesundheitswissenschaften und Medizin». Unklare Treffer nicht als eindeutig zugeordnet veröffentlichen; Ausschlüsse bedeuten partielle Abdeckung.
 - **Spitex:** Laut Katalog ein Branchenportal mit unterschiedlichen Arbeitgebern. Der Stellenarbeitgeber darf nicht pauschal durch Spitex Schweiz ersetzt werden.
-- **Pflegewegweiser:** Vollständige Stelleninhalte lagen in `.jobs-loxo__item[data-job-id][data-department][data-location]`. Keine Detail-URL erfinden; Quellseite oder vorhandene Anker verwenden. Die Organisation ist ein Leistungserbringer und keine allgemeine Nonprofit-Stellenplattform.
+- **Pflegewegweiser:** Die Nachprüfung vom 23. September korrigiert den Erstbefund: 27 `.jobs-loxo__item[data-job-id][data-department][data-location]`-Karten waren sichtbar, aber die Beschriebe enthielten Platzhalter und keine belegten Einzellinks. Das ist weder ein vollständig erfasster noch ein leerer Stellenbestand. Der Crawler meldet die Quelle als nicht unterstützt mit Teilabdeckung; die versteckte Leermeldung wird ignoriert. Volltexte und verifizierte Direktlinks benötigen einen eigenen Adapter. Die Organisation ist ein Leistungserbringer und keine allgemeine Nonprofit-Stellenplattform.
 - **Careum:** Teilweise gzip-komprimierte Antwort. Vor HTML-Parsing dekomprimieren; unlesbarer komprimierter Rohtext ist kein Websitefehler. Beim Audit waren nur Initiativbewerbungen sichtbar.
 
 ## Vier Einträge ohne verifiziertes eigenes Stellenportal
@@ -148,7 +148,7 @@ Die Statusspalte beschreibt den Erstabruf des ursprünglichen Kataloglinks am22.
 | gfs | [Katalog-URL](https://gesundheitsfoerderung.ch/stiftung/stellenangebote) | HTTP200 | Externe Jobdetails auf my.jobalino.ch |
 | krebsliga | [Katalog-URL](https://www.krebsliga.ch/ueber-uns/jobs) | HTTP200 | Veröffentlichter Ostendis-Loader |
 | lungenliga | [Katalog-URL](https://www.lungenliga.ch/ueber-uns/jobs) | HTTP200 | Eigene Details + Ostendis-Publikationen |
-| pflegewegweiser | [Katalog-URL](https://pflegewegweiser.ch/karriere/) | HTTP200 | Vollständige native .jobs-loxo__item-Karten |
+| pflegewegweiser | [Katalog-URL](https://pflegewegweiser.ch/karriere/) | HTTP200 | Nachprüfung 23.09.: 27 native Karten, aber Beschriebe/Einzellinks nicht vollständig belegt; eigener Adapter offen |
 | proinfirmis | [Katalog-URL](https://jobs.proinfirmis.ch/de) | HTTP200 | Öffentliches Stellenportal |
 | rheumaliga | [Katalog-URL](https://www.rheumaliga.ch/ueber-uns/organisation/offene-stellen) | HTTP200; Redirect | [Korrigierter Einstieg](https://www.rheumaliga.ch/ueber-uns/jobs/offene-stellen.html) — Explizit keine aktuellen Vakanzen beim Audit |
 | srk | [Katalog-URL](https://www.redcross.ch/de/arbeiten-beim-srk-sinnvoll-und-herausfordernd) | HTTP200 | Offizielle Verweise zu rexx.redcross.ch |

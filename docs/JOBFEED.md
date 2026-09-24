@@ -27,6 +27,8 @@ Für den ersten Datenstand vor der Freigabe der Gesamtanwendung gibt es den ausd
 
 Dieser Bootstrap ändert weder den Hauptbranch noch Supabase und aktiviert keine regelmässigen Abrufe. Dafür muss der reguläre Workflow später gemäss `DEPLOYMENT.md` auf den Hauptbranch übernommen werden. Dessen Hauptbranch-Beschränkung bleibt unverändert.
 
+Die Wiederholung vom 24. September verwendet den bereits abgeschlossenen Abruf aus [Lauf 35965954620](https://github.com/salmonplnk/Jobs-Gesundheitsoekonomie-politik-management/actions/runs/35965954620). Dieser Lauf bestand die Quellen- und Inventarprüfung, stoppte aber an einer Browser-Netzwerkmeldung. Das unveränderliche Artefakt wird anhand von Lauf, Commit, erfolgreichen Quellenschritten und SHA-256 geprüft und darf höchstens 48 Stunden alt sein. Nur seine öffentlichen JSON-Dateien werden übernommen; sämtliche Daten- und Browserprüfungen laufen erneut. Alte Screenshots und der fehlgeschlagene Prüfbericht werden nicht übernommen.
+
 Standardadresse des Browsers:
 
 ```

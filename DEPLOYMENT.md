@@ -70,6 +70,8 @@ Nach Übernahme des Workflows auf den Hauptbranch `Refresh public job feed` in G
 
 Der Bootstrap veröffentlicht keinen Anwendungscode, führt keine Supabase-Schritte aus und aktiviert noch keinen Zeitplan. Die regelmässige Aktualisierung setzt weiterhin die spätere Übernahme des regulären Workflows auf den Hauptbranch voraus. Die Freigabe der Gesamtanwendung bleibt an die vorstehenden Backend- und Konto-Prüfungen gebunden.
 
+Die dokumentierte Wiederholung am 24. September übernimmt ausschliesslich das per SHA-256, Commit und erfolgreichen Crawl-Schritten verifizierte Artefakt des ersten Laufs. Sein Alter ist auf 48 Stunden begrenzt. Inventar- und Browserprüfung müssen im neuen Lauf erneut erfolgreich sein; der vorherige fehlgeschlagene Browserbericht wird nicht wiederverwendet. Nach erfolgreichem Bootstrap lässt sich dieser Einmalworkflow nicht zur Aktualisierung eines bestehenden Datenbranches verwenden.
+
 Betrieb und Datenadresse: [docs/JOBFEED.md](docs/JOBFEED.md).
 
 ## 6. Frontend veröffentlichen
