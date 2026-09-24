@@ -72,7 +72,36 @@ async function serve() {
 async function inspectViewport(origin, name, viewport) {
   const result = { name, viewport, errors: [], warnings: [], unexpected_external_requests: [], failed_requests: [], screenshots: [] };
   report.scenarios.push(result);
+  const verifiedFeedUrls = new Set();
   const context = await browser.newContext({ viewport, deviceScaleFactor: 1, colorScheme: 'light', locale: 'de-CH', reducedMotion: 'reduce', serviceWorkers: 'block' });
+  // Chromium can report ERR_ABORTED after a streamed response has already been
+  // read to EOF. Record the actual reader result; never waive an interrupted body.
+  await context.addInitScript(() => {
+    window.__browserSmokeFeedReads = [];
+    const nativeFetch = window.fetch;
+    window.fetch = async function (...args) {
+      const response = await nativeFetch.apply(this, args);
+      const url = new URL(response.url);
+      if (url.origin === location.origin && /^\/data\/job-feed\/[a-z0-9_-]+\.json$/.test(url.pathname) && response.body) {
+        const entry = { url: url.href, status: response.status, bytes: 0, complete: false, error: null };
+        window.__browserSmokeFeedReads.push(entry);
+        const getReader = response.body.getReader.bind(response.body);
+        response.body.getReader = (...readerArgs) => {
+          const reader = getReader(...readerArgs), read = reader.read.bind(reader);
+          reader.read = async (...readArgs) => {
+            try {
+              const chunk = await read(...readArgs);
+              entry.bytes += chunk.value?.byteLength || 0;
+              if (chunk.done) entry.complete = true;
+              return chunk;
+            } catch (error) { entry.error = error.message; throw error; }
+          };
+          return reader;
+        };
+      }
+      return response;
+    };
+  });
   await context.route('**/*', async route => {
     const request = route.request(), url = new URL(request.url());
     if (url.origin === origin) { await route.continue(); return; }
@@ -93,7 +122,7 @@ async function inspectViewport(origin, name, viewport) {
   page.setDefaultTimeout(15000);
   page.on('pageerror', error => result.errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') result.errors.push(message.text()); else if (message.type() === 'warning') result.warnings.push(message.text()); });
-  page.on('requestfailed', request => result.failed_requests.push({ url: request.url(), error: request.failure()?.errorText }));
+  page.on('requestfailed', request => result.failed_requests.push({ url: request.url(), method: request.method(), error: request.failure()?.errorText }));
   const screenshot = async (part, theme) => {
     const filename = `${name}-${part}-${theme}.png`;
     if (part === 'feed') { await page.evaluate(() => window.scrollTo(0, 0)); await page.screenshot({ path: resolve(output, filename), animations: 'disabled' }); }
@@ -108,6 +137,7 @@ async function inspectViewport(origin, name, viewport) {
     assert.equal(allJobs.length, report.jobs, 'Every published job is accepted by the frontend');
     assert.equal(await page.locator('.jf-job').count(), Math.min(25, allJobs.length), 'Feed page size');
     assert.equal(await page.locator('.jf-source').count(), 85, 'All 85 source statuses visible');
+    verifiedFeedUrls.add(`${origin}/data/job-feed/index.json`);
     assert.equal(await page.evaluate(() => HealthJobs.getOwner()), null, 'Anonymous workspace');
     assert.equal(await page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('sb-') && key.includes('auth-token'))), false);
     await noOverflow();
@@ -142,6 +172,7 @@ async function inspectViewport(origin, name, viewport) {
     assert.equal(imported.id, importId);
     assert.equal(await page.locator('#jwDialog .jw-description').textContent(), imported.description);
     assert.match(await page.locator('#jfNotice').textContent(), /übernommen/);
+    verifiedFeedUrls.add(new URL(allJobs.find(job => job.id === importId).detail_file, `${origin}/data/job-feed/index.json`).href);
     await page.locator('#jwDialog [data-action="close-dialog"]').click();
     record(`${name}: explicit full-text import`, `${importId}: ${imported.description.length} characters`);
 
@@ -181,7 +212,14 @@ async function inspectViewport(origin, name, viewport) {
     record(`${name}: light and dark layout screenshots`);
     assert.deepEqual(result.errors, [], `${name}: no console errors or uncaught exceptions`);
     assert.deepEqual(result.unexpected_external_requests, [], `${name}: no backend, AI or other external requests`);
-    assert.deepEqual(result.failed_requests, [], `${name}: no failed requests`);
+    result.feed_reads = await page.evaluate(() => window.__browserSmokeFeedReads);
+    result.completed_stream_aborts = result.failed_requests.filter(failure => {
+      const reads = result.feed_reads.filter(read => read.url === failure.url);
+      return failure.method === 'GET' && failure.error === 'net::ERR_ABORTED' && verifiedFeedUrls.has(failure.url)
+        && reads.length === 1 && reads[0].status === 200 && reads[0].complete && reads[0].bytes > 0 && !reads[0].error;
+    });
+    result.unexpected_failed_requests = result.failed_requests.filter(failure => !result.completed_stream_aborts.includes(failure));
+    assert.deepEqual(result.unexpected_failed_requests, [], `${name}: no incomplete or unexpected failed requests`);
   } catch (error) {
     await page.screenshot({ path: resolve(output, `${name}-failure.png`), animations: 'disabled' }).catch(() => {});
     throw error;
