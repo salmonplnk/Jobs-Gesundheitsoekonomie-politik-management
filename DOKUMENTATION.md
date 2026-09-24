@@ -98,7 +98,7 @@ Suchprofile speichern Kriterien und Arbeitgeberauswahl getrennt vom persönliche
 
 Gespeicherte Stellen können mit Bewerbungsstatus, Notizen, Datum, Kontakt und nächstem Schritt ergänzt werden. Bewerbungsentwürfe gehören zur jeweiligen Stelle, enthalten deren Inseratstext als Grundlage und werden als Versionen gespeichert. Bearbeitung, Kopieren und Exporte ermöglichen die weitere Verwendung ausserhalb der App. Der DOCX-Export erzeugt ein echtes OOXML-Dokument lokal im Browser. Für PDF öffnet die App eine Druckansicht; im Druckdialog wird «Als PDF speichern» gewählt. Diese Exporte benötigen keine zusätzlichen Bibliotheken.
 
-Die App verschickt keine Bewerbungen. Es gibt keinen zeitgesteuerten Scraper und keine automatische Benachrichtigung. Der GitHub-Workflow führt ausschliesslich Syntax-, Daten- und Regressionstests aus.
+Die App verschickt keine Bewerbungen und keine automatischen Benachrichtigungen. Neben der Prüfung des Anwendungscodes gibt es einen getrennten Workflow für den öffentlichen Jobfeed. Dessen Zeitplan wird erst nach Übernahme auf den Hauptbranch aktiv.
 
 ## Installation und Betrieb
 
@@ -110,5 +110,7 @@ Lokale Tests prüfen die Logik ohne API-Kosten. Ein bestandener JavaScript-Testl
 ## Öffentlicher Jobfeed
 
 `js/feed.js` lädt einen öffentlichen kompakten Index und bei bewusster Übernahme die vollständige Quelldatei. `HealthJobs.importPublicJobs(jobs, sources)` prüft bekannte Organisationen, IDs, URLs und Zeitstempel, erhält neuere/manuelle Stellenstände und persönliche Bewerbungsnotizen. Abrufe überstehen Konto- und Aktualisierungswechsel ohne Übernahme ins falsche Konto.
+
+`js/job-relevance.js` wird vor der Veröffentlichung auf die vollständigen Aufgaben und Anforderungen angewendet. Nur Stellen mit belegtem Fachbezug zu Gesundheitsökonomie, Politik, Public Health, Gesundheitsmanagement, fachlichen Gesundheitsprojekten oder Gesundheitsdaten gelangen in den Feed. Klinische Tätigkeiten und fachfremde Funktionen werden ausgeschlossen. Der Browser prüft beim Import den Volltext erneut. Technische Abdeckung, Rohbestand und fachlich passende Treffer besitzen getrennte Zähler.
 
 Der Node-Runner in `scripts/` und der serverseitige Such-Endpunkt verwenden denselben Extraktionscode. Der regelmässige Feed wird getrennt vom Anwendungscode veröffentlicht. Beschreibung, Quellenstatus, Abdeckungsgrenzen und Betrieb: [docs/JOBFEED.md](docs/JOBFEED.md).

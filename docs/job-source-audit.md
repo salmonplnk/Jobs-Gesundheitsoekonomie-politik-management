@@ -1,6 +1,8 @@
 # Audit der Jobquellen
 
-Prüfdatum: **22. September 2026 (UTC)**. Wiederhergestellt am 23. September 2026 aus den bereits erhobenen Recherchebefunden. Diese Wiederherstellung ist **keine erneute Liveprüfung**. Die damaligen Rohantworten stehen nach der Umgebungsbereinigung nicht mehr zur Verfügung; die belegten URLs und Beobachtungen sind hier und in den Overrides erhalten.
+Historischer Erstbefund: **22. September 2026 (UTC)**. Wiederhergestellt am 23. September 2026 aus den bereits erhobenen Recherchebefunden. Diese Wiederherstellung ist **keine erneute Liveprüfung**. Die damaligen Rohantworten stehen nach der Umgebungsbereinigung nicht mehr zur Verfügung; die belegten URLs und Beobachtungen sind hier und in den Overrides erhalten.
+
+Die folgenden Übersichtstabellen bleiben der historische Stand vom 22./23. September. Neu verifizierte Einstiege, korrigierte Amtsfilter und Extraktionsverfahren stehen im [Nachtrag vom 24. September 2026](#nachtrag-vom-24-september-2026); dieser ersetzt abweichende ältere Einzelbefunde. Frühere HTTP-Status und Summen sind keine aktuelle Abdeckungsmessung.
 
 ## Umfang und Statusverständnis
 
@@ -204,3 +206,55 @@ Die folgenden Pfade wurden aus veröffentlichtem Frontend beziehungsweise Suchfo
 `data/job-source-overrides.json` enthält `version`, `checked_at` und `sources` mit Organisations-ID als Schlüssel. Jeder Override besitzt `evidence_urls` und `note`. Optional: `jobs`, `allowed_hosts`, `adapter`, `scope_terms`. `checked_at` bleibt2026-09-22; die Wiederherstellung am Folgetag ändert den Prüfzeitpunkt nicht.
 
 Hostfreigaben gelten für belegte öffentliche Stellenquellen, nicht beliebige ATS-Kunden. Adapterwerte sind technische Hinweise und keine Erfolgsgarantie. `scope_terms` werden als enge Wort-/Phrasengrenzen im normalisierten vollständigen Stellentext einschließlich echtem Arbeitgeber geprüft. Unklare Zuordnung und ausgeschlossene Treffer sollen als partielle beziehungsweise unbekannte Abdeckung sichtbar bleiben, statt einen leeren oder vollständigen Bestand vorzutäuschen.
+
+## Nachtrag vom 24. September 2026
+
+Gezielte öffentliche Nachprüfungen korrigieren die folgenden Quellen. Die genannten Inseratzahlen sind technische Einzelbefunde vor der fachlichen Relevanzprüfung, keine Zahl passender Gesundheitsökonomie-Stellen. Ein erfolgreicher Abruf eines Spital- oder Versicherungsportals allein begründet keine fachliche Eignung.
+
+Der erneute Gesamtabruf [35972131067](https://github.com/salmonplnk/Jobs-Gesundheitsoekonomie-politik-management/actions/runs/35972131067) ist erfolgreich abgeschlossen. Seine Ergebnisse und die anschliessende fachliche Nachprüfung stehen in `VALIDATION.md`; die folgenden gezielten Einzelbefunde ersetzen keine globale Abdeckungsmessung.
+
+### Korrigierte Einstiege und Bundesamtsfilter
+
+| Quelle | Verifizierter Befund und Änderung |
+|---|---|
+| SECO | Die offiziellen [Filtermetadaten für Medium 1000624](https://ohws.prospective.ch/public/v1/medium/1000624/attributes?lang=de&returnValuesAsArray=1) ordnen **1083382** dem SECO zu. Der bisherige Wert 1083355 bezeichnet das BFS. Der korrigierte [SECO-Einstieg](https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083382) liefert im öffentlichen API-Abruf 19 vollständige, dem SECO zugeordnete Inserate. Die zusätzlichen Organisationsbegriffe bleiben erhalten. |
+| BFS | Dieselben amtlichen Metadaten bestätigen **1083355** für das BFS. Der bisherige Wert 1083346 gehört zur Eidgenössischen Münzstätte Swissmint. Der korrigierte [BFS-Einstieg](https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083355) lieferte beim gezielten API-Abruf ausdrücklich `total:0`. |
+| BAG / BSV | Die amtlichen Metadaten bestätigen weiterhin BAG **1083353** und BSV **1083356**. Das [veröffentlichte Bundes-Frontend](https://jobs.admin.ch/careercenter/1000624/static/index-B28v8xCu.js) fasst die untergeordneten Ämter im Filter `f=verwaltungseinheit` zusammen; die internen Attributschlüssel `verwaltungseinheit_…` werden deshalb nicht als neue Suchfilter eingesetzt. |
+| KPT | Die [offizielle Stellenseite](https://www.kpt.ch/de/jobs-karriere/offene-stellen) verweist auf [jobs.kpt.ch](https://jobs.kpt.ch/?lang=de&f=30:1690495,1690493,1690494). Das [öffentliche Frontend-Bundle](https://jobs.kpt.ch/careercenter/1007102/static/index-Bt86XC4K.js) belegt Medium 1007102 und den GET-Endpunkt `/public/v1/medium/1007102/jobs`. Mit unverändertem veröffentlichtem Filter wurden 12 vollständige Inserate normalisiert. Der alte `public/v2/careercenter`-Pfad antwortete bei dieser Nachprüfung ebenfalls mit HTTP200, enthielt aber nur die JavaScript-Hülle; ein aktueller 404 wird nicht behauptet. |
+| Helsana | Die [offizielle Stellenseite](https://www.helsana.ch/de/helsana-gruppe/jobs/stellenangebote.html) bettet [jobs.helsana.ch/?lang=de](https://jobs.helsana.ch/?lang=de) ein. Das ersetzt den irreführenden früheren Einstieg `careers.helsana.ch`. Die neue Quelle liefert 12 verlinkte Einzelstellen direkt im HTML; ein Detail wurde vollständig extrahiert. Assets belegen Careercenter 1002787, aber keine Medium-API. Das öffentliche [loadMoreResults.js](https://jobs.helsana.ch/careercenter/1002787/assets/js/loadMoreResults.js) blendet vorhandene HTML-Karten ein. Es wurde kein unbelegter API-Endpunkt ergänzt. |
+| SRK | Der bereits offiziell verlinkte [Rexx-Stellenmarkt](https://rexx.redcross.ch/) wird jetzt unmittelbar als Quelle verwendet. Drei öffentliche Einzelstellen mit vollständigen Beschrieben wurden bestätigt. Der Rexx-Adapter unterscheidet echte Folgeseiten von blossen Sortier- und Rücksetzlinks; diese dürfen keine zusätzliche ungeprüfte Arbeitgeberquelle vortäuschen. |
+| Hirslanden | Die [offizielle Stellenseite](https://www.hirslanden.ch/de/corporate/jobs-und-karriere/offene-stellen.html) leitet auf das Hirslanden-Unterportal von Mediclinic. Dessen [veröffentlichte Suchliste](https://careers.mediclinic.com/Hirslanden/go/Search-By-Keyword-MCCH/5071201/) wird als Einstieg übernommen. `scope_terms: ["Hirslanden"]` verhindert die Zuordnung fremder Mediclinic-Landesgesellschaften. Die erste Seite enthielt 50 von 365 Stellen; die veröffentlichte SuccessFactors-Konfiguration belegt den GET-Endpunkt für weitere 50er-Seiten. |
+
+Ein API-Ergebnis mit null Stellen bestätigt einen leeren Amtsbestand nur bei **genau einem passenden, verifizierten Amtsfilter**: BAG, BSV, BFS oder SECO mit obiger ID auf `jobs.admin.ch`. Das Kennzeichen `scopeVerified` bleibt bei falschen IDs, zusätzlichen Filtern, mehreren Amtswerten und anderen Portalen falsch. Eine beliebige leere Antwort oder ein bloss vorhandener Querystring genügt weiterhin nicht.
+
+### Zusätzliche HTML- und PDF-Auslese
+
+- **Umantis:** Veröffentlichte `data-pagination-next-href`- beziehungsweise `table-navigation`-Metadaten werden ausgewertet. Arbeitgeber- und Firmenfilter bleiben auf Folgeseiten erhalten; fremde Hosts oder geänderte Filter werden nicht übernommen. Die Detailauslese berücksichtigt vollständige verschachtelte Inhaltsblöcke und die tatsächlichen Aufgaben-/Anforderungsüberschriften.
+- **FMH / Abacus:** Die veröffentlichte FMH-Domänenauswahl und die in der Quellseite enthaltene Abgrenzung gegenüber SIWF bleiben erhalten. Titel, Aufgaben und Anforderungen werden aus dem vollständigen `announcement-container` gelesen, nicht aus beliebigen Seitentexten.
+- **Solique / KSW:** Bereits veröffentlichte `job/details`-Links und deren HTML-Beschriebe werden innerhalb desselben Mandanten verfolgt. Bei zeitlich unterschiedlichen Pensen oder gemischter Befristung bleiben die ursprünglichen Vertragsangaben erhalten.
+- **HOCH / SuccessFactors:** Veröffentlichte Suchfolgelinks mit `startrow` und die echten Anforderungsüberschriften werden unterstützt. Erreichbarkeit und vollständige Extraktion bleiben getrennte Prüfschritte.
+- **Hirslanden / SuccessFactors:** Der eigene Adapter prüft Kategorie, Arbeitgeberpfad, fortlaufende Zeilenindizes, 50er-Seitengrösse und angekündigte Gesamtzahl. Beschriebe werden aus dem verschachtelten Stelleninhalt isoliert. Eine leere oder fehlerhafte Folgeantwort wird nicht als erfolgreicher Abschluss behandelt.
+- **Universität Luzern, ZHAW/WIG und santéservices:** Verifizierte Detailvorlagen werden gezielt ausgelesen. Die Universität Luzern verwendet ihren `vacancy`-Block, ZHAW ihren `job-item`-Block, santéservices den eigentlichen Stellenartikel mit Aufgaben-/Profilüberschriften und veröffentlichtem Pensum. Allgemeine Navigation, Institutswerbung und fremde Stellen dürfen keine Ersatzbeschreibung oder fachliche Eignung begründen. Bestehende Instituts- und Fakultätsbegrenzungen bleiben bestehen.
+- **PDF-Inserate:** Öffentlich verlinkte Stellen-PDFs werden begrenzt heruntergeladen und über einen separaten Textleser extrahiert. URL-/Hostfreigabe, Robots-Regeln und Weiterleitungsprüfung gelten weiter. Titel müssen im Dokument belegt sein; Aufgaben, Anforderungen und Bewerbungsbezug müssen vorhanden sein. Fehlende, beschädigte, zu grosse oder nicht auslesbare Dokumente bleiben unvollständig statt als geschlossene Stellen zu gelten. Dateinamen allein sind weder Titel noch Nachweis einer Vakanz.
+
+Gezielte Live-Stichproben bestätigen die Extraktion:
+
+| Auslese | Ergebnis und Grenze |
+|---|---|
+| PDF | 11 verlinkte Dokumente aus EGK, Gemeinsamer Einrichtung KVG, prio.swiss, Krebsliga, Lungenliga und SBK geprüft; zehn vollständige Beschriebe extrahiert. Ein SBK-Dokument lieferte nur 93 Zeichen und bleibt als nicht zuverlässig auslesbar offen. Eine fachlich passende Tarifstelle bei prio.swiss wurde bestätigt. Diese Dokumentprüfung beweist nicht die Vollständigkeit sämtlicher eingebetteter Stellenportale. |
+| Krebsliga / Ostendis | Ein erfolgreich ausgelesenes regionales PDF darf die weiterhin nicht ausgelesene eingebettete Ostendis-Liste nicht verdecken. Ein leerer Portal-Mount bleibt deshalb als offene Extraktionslücke sichtbar. |
+| Universität Luzern | Ein CHPE-Inserat mit 3’345 Zeichen und 60–70% vollständig aus dem Stellenblock ausgelesen; durch den Fachfilter zugelassen. |
+| ZHAW / WIG | Ein Praktikumsinserat mit 3’930 Zeichen und 100% vollständig aus dem Stellenblock ausgelesen; durch den Fachfilter zugelassen. |
+| santéservices | Ein Tarifinserat mit 2’701 Zeichen und 60% vollständig aus dem Stellenartikel ausgelesen; durch den Fachfilter zugelassen. |
+| SRK / Rexx | Drei vollständige Inserate extrahiert. Das ist eine technische Quellenprüfung; die fachliche Auswahl wird separat vorgenommen. |
+| Hirslanden | Öffentliche Pagination mit zwei 50er-Seiten und der letzten 15er-Seite gegen die angekündigten 365 Stellen geprüft. Ein Detail lieferte 3’440 Zeichen ohne den allgemeinen Seitenfuss. Diese Stichprobe ist keine Behauptung, bereits alle 365 Detailseiten erfolgreich abgerufen zu haben. |
+
+Auch bei HTML-Adaptern wird das tatsächliche Weiterleitungsziel auf den ursprünglichen Arbeitgeberfilter geprüft. Eine Umantis-Weiterleitung etwa von `/Jobs/All?CompanyID=12` auf `/Jobs/All` ist ein Fehler und darf keine fremden Stellen als erfolgreich erfassten Bestand übernehmen.
+
+### Weiterhin offene Grenzen
+
+Pflegewegweiser veröffentlicht den vollständigen Beschrieb über einen in seiner Website belegten öffentlichen GET-Endpunkt `/wp-json/loxo/v1/jobs/{id}`. Die Antwort enthält jedoch nur ID und Beschrieb; ein stabiler HTML-Einzellink ist nicht verifiziert. Die vorhandenen HTML-Anker hängen an Kartenpositionen. Deshalb werden weiterhin keine künstlichen Einzellinks erzeugt und keine vollständige Erfassung behauptet.
+
+Robots-Sperren, Zugriffsschutz, fehlende Portale und noch nicht unterstützte Vorlagen werden durch diese Erweiterungen nicht automatisch behoben. Die globale Registry-Angabe `checked_at: 2026-09-22` bleibt das Datum des ursprünglichen Gesamtaudits; neu geprüfte Einträge tragen die gezielten Nachweise und das Datum 24. September in ihren jeweiligen Notizen.
+
+Im anschliessenden Gesamtlauf untersagte Helsanas `robots.txt` den automatischen Abruf vollständig (`Disallow: /`). santéservices blieb bei den Detailabrufen mit Zeitlimits unvollständig. Diese Quellen gelten trotz korrigierter Einstiege und erfolgreicher gezielter HTML-Stichproben daher weiterhin nicht als erfasst.

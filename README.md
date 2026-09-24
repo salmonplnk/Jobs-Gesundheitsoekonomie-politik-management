@@ -4,7 +4,7 @@ Stellen suchen, die Passung zum eigenen Profil prüfen und Bewerbungen organisie
 
 ## Funktionen
 
-- Öffentlicher Jobfeed ohne Anmeldung: alle 85 Katalogquellen werden regelmässig geprüft; einzelne Stellen durchsuchen, filtern und bei Bedarf in die persönliche Arbeitsfläche übernehmen.
+- Öffentlicher Jobfeed ohne Anmeldung: Fachfilter für Gesundheitsökonomie, Politik, Public Health, Gesundheitsmanagement und Gesundheitsdaten. Alle 85 Katalogquellen erhalten einen eigenen Abrufstatus; passende Stellen durchsuchen und bei Bedarf in die persönliche Arbeitsfläche übernehmen.
 
 - Arbeitgeber auf einer geografischen Schweizer Karte oder in der mobilen Standortliste auswählen. Suchtext und Kategorien grenzen die Auswahl ein; gefilterte Arbeitgeber direkt in den Suchdialog übernehmen und als Favoriten speichern.
 - Einzelne Stellen mit Direktlink, Inseratstext und verfügbaren Angaben zu Pensum, Ort und Frist durchsuchen und vergleichen.
@@ -16,7 +16,7 @@ Stellen suchen, die Passung zum eigenen Profil prüfen und Bewerbungen organisie
 - Anschreiben auf Deutsch oder Französisch erstellen, bearbeiten und als Versionen je Stelle speichern; Export als TXT, HTML und DOCX sowie PDF über den Druckdialog.
 - CV und bis zu fünf weitere Dokumente im privaten Benutzerkonto verwalten.
 
-Der öffentliche Jobfeed wird zweimal täglich im Hintergrund aktualisiert. Persönliche Suchläufe bleiben zusätzlich auf Anforderung möglich. Es gibt keinen automatischen E-Mail-Versand. Dynamische oder geschützte Karriereseiten lassen sich teilweise nicht vollständig auslesen; die Oberfläche weist dies aus. Ein fehlgeschlagener oder unvollständiger Abruf schliesst keine gespeicherten Stellen.
+Der Feed-Workflow ist für zwei Aktualisierungen täglich vorbereitet; der Zeitplan wird erst mit seiner Übernahme auf den Hauptbranch aktiv. Der getrennt veröffentlichte Datenstand kann bereits geladen werden. Persönliche Suchläufe bleiben zusätzlich auf Anforderung möglich. Es gibt keinen automatischen E-Mail-Versand. Dynamische oder geschützte Karriereseiten lassen sich teilweise nicht vollständig auslesen; die Oberfläche weist dies aus. Fachliche Passung und technische Quellenabdeckung werden getrennt gezählt. Ein fehlgeschlagener oder unvollständiger Abruf schliesst keine gespeicherten Stellen.
 
 ## Lokal öffnen
 
