@@ -9,7 +9,7 @@ import { createHostScheduler, createPublicNetwork, fetchBrowserResource, looksLi
 const org = {id:'health', name:'Health employer', main:'https://health.ch', jobs:'https://health.ch/jobs'};
 const time = '2026-09-22T12:00:00.000Z', oldTime = '2026-09-20T12:00:00.000Z';
 const job = (id = 'one', extra = {}) => ({id:`health:${id}`, org_id:'health', organization:org.name,
-  title:'Research Analyst 80–100%', url:`https://health.ch/jobs/${id}`, description:'A public vacancy description. '.repeat(100),
+  title:'Health Economics Analyst 80–100%', url:`https://health.ch/jobs/${id}`, description:'A public vacancy description. '.repeat(100),
   fetched_at:oldTime, first_seen:oldTime, last_seen:oldTime, status:'open', ...extra});
 const prior = {jobs:[job()], source:{status:'ok', last_success_at:oldTime, last_complete_at:oldTime}};
 
@@ -153,6 +153,85 @@ test('current verified scopes remove unrelated old jobs even if the latest crawl
   assert.equal(mergeSourceSnapshot(scoped,{jobs:[valid],source:{status:'partial'}},{},time).jobs[0].organization,'Actual clinic');
 });
 
+test('failed and unselected sources lose off-topic old records while relevant stale vacancies survive', async () => {
+  const other={...org,id:'other'};
+  const offTopic=job('nurse',{title:'Dipl. Pflegefachperson HF 80%',description:'Sie pflegen unsere Patientinnen und Patienten. Diplom Pflegefachperson HF erforderlich.'});
+  const old={...prior,jobs:[job(),offTopic]};
+  const otherOld={source:{status:'ok',coverage:'complete',checked_at:oldTime,stale:false},jobs:[{...offTopic,id:'other:nurse',org_id:'other'}]};
+  const result=await runFeed({organizations:[org,other],only:[org.id],now:()=>time,
+    previous:new Map([[org.id,old],[other.id,otherOld]]),crawl:async()=>{throw new Error('unavailable');}});
+  assert.deepEqual(result.index.jobs.map(item=>item.id),['health:one']);
+  assert.deepEqual(result.shards[0].jobs.map(item=>item.id),['health:one']);
+  assert.equal(result.shards[1].jobs.length,0);
+  assert.equal(result.shards[0].jobs[0].last_seen,oldTime);
+  assert.equal(result.shards[0].source.status,'error');
+  assert.equal(result.shards[0].source.stale,true);
+  assert.equal(result.shards[0].source.retained_count,1);
+  assert.equal(result.index.scope.retained_jobs,1);
+  assert.equal(result.index.scope.relevant_jobs,1);
+  assert.equal(result.index.scope.excluded_jobs,1); // Both nursing copies share one canonical URL.
+  assert.equal(result.shards[1].source.raw_job_count,1);
+  assert.equal(result.shards[1].source.filtered_out_count,1);
+});
+
+test('a completely crawled employer with zero relevant jobs remains technically successful',async () => {
+  const offTopic=job('nurse',{title:'Dipl. Pflegefachperson HF 80%',description:'Ausbildung als Pflegefachperson HF erforderlich. Sie betreuen unsere Patientinnen und Patienten.'});
+  const result=await runFeed({organizations:[org],now:()=>time,crawl:async()=>({jobs:[offTopic],
+    source:{status:'ok',coverage:'complete',pages_scanned:1,detail_pages_scanned:1}})});
+  const source=result.index.sources[0];
+  assert.equal(source.status,'ok');
+  assert.equal(source.coverage,'complete');
+  assert.equal(source.stale,false);
+  assert.equal(source.last_complete_at,time);
+  assert.equal(source.raw_job_count,1);
+  assert.equal(source.job_count,0);
+  assert.equal(source.relevant_job_count,0);
+  assert.equal(source.filtered_out_count,1);
+  assert.equal(result.index.run.counts.ok,1);
+  assert.equal(result.index.run.counts.empty,0);
+  assert.equal(result.index.jobs.length,0);
+  assert.equal(result.shards[0].jobs.length,0);
+});
+
+test('relevance scope counts distinct open URLs while source counters retain individual inventories',async () => {
+  const other={...org,id:'other'};
+  const good=job('one'),bad=job('kitchen',{title:'Koch / Köchin 100%',description:'Küche und Gastronomie. Zubereitung der Mahlzeiten für unsere Gäste.'});
+  const result=await runFeed({organizations:[org,other],now:()=>time,crawl:async organization=>({
+    jobs:[good,bad].map(item=>({...item,id:`${organization.id}:${item.id.split(':')[1]}`,org_id:organization.id})),
+    source:{status:'ok',coverage:'complete'}})});
+  assert.equal(result.index.scope.scanned_jobs,2);
+  assert.equal(result.index.scope.relevant_jobs,1);
+  assert.equal(result.index.scope.excluded_jobs,1);
+  assert.equal(result.index.scope.retained_jobs,0);
+  assert.equal(result.index.scope.policy_version,result.index.jobs[0].relevance.policy_version);
+  assert.equal(result.index.jobs[0].relevance.eligible,true);
+  assert.deepEqual(result.index.jobs[0].org_ids,['health','other']);
+  for(const source of result.index.sources) {
+    assert.equal(source.scraped_count,2);
+    assert.equal(source.raw_job_count,2);
+    assert.equal(source.relevant_job_count,1);
+    assert.equal(source.filtered_out_count,1);
+    assert.equal(source.cached,false);
+  }
+  assert.equal(result.shards[0].jobs[0].relevance.eligible,true);
+});
+
+test('unselected filtered sources retain the raw inventory count from their previous check',async () => {
+  const target={...org,id:'target'};
+  const previous={jobs:[job()],source:{status:'ok',coverage:'complete',checked_at:oldTime,stale:false,
+    raw_job_count:31,relevant_job_count:1,filtered_out_count:30,job_count:1,scraped_count:31,last_success_at:oldTime}};
+  const result=await runFeed({organizations:[org,target],only:[target.id],now:()=>time,
+    previous:new Map([[org.id,previous]]),crawl:async()=>({jobs:[],source:{status:'empty',coverage:'complete'}})});
+  const source=result.index.sources.find(item=>item.org_id===org.id);
+  assert.equal(source.raw_job_count,31);
+  assert.equal(source.relevant_job_count,1);
+  assert.equal(source.filtered_out_count,30);
+  assert.equal(source.checked_at,oldTime);
+  assert.equal(source.scraped_count,31);
+  assert.equal(result.index.scope.scanned_jobs,1); // Only available full records are reclassified now.
+  assert.equal(result.index.scope.relevant_jobs,1);
+});
+
 test('missing secondary shards are detected despite global canonical deduplication', async () => {
   const directory=await mkdtemp(join(tmpdir(),'health-shared-feed-'));
   try{
@@ -232,6 +311,59 @@ test('browser redirects are resolved manually with robots and URL checks before 
     return new Response('',{status:302,headers:{location:'https://127.0.0.1/private'}});
   }});
   await assert.rejects(fetchBrowserResource(bad,org.jobs,org),/Weiterleitung ungültig/);
+});
+
+test('PDF transport preserves binary bytes and never forwards request credentials',async () => {
+  const pdf=Buffer.from([37,80,68,70,45,49,46,55,10,0,255,128]),calls=[];
+  const network=createPublicNetwork({resolver:async()=>['8.8.8.8'],schedule:async()=>{},fetcher:async(url,options)=>{
+    calls.push({url,options});
+    return url.endsWith('/robots.txt')?new Response('',{status:404}):new Response(pdf,{headers:{'content-type':'application/pdf'}});
+  }});
+  const result=await network.document('https://health.ch/files/job.pdf',org,{headers:{Authorization:'secret',Cookie:'private'}});
+  assert.deepEqual(Buffer.from(result.bytes),pdf);
+  assert.equal(result.url,'https://health.ch/files/job.pdf');
+  assert.equal(result.contentType,'application/pdf');
+  assert.equal(result.truncated,false);
+  assert.equal(calls.length,2);
+  assert.equal(calls[1].options.redirect,'manual');
+  assert.equal(new Headers(calls[1].options.headers).has('authorization'),false);
+  assert.equal(new Headers(calls[1].options.headers).has('cookie'),false);
+});
+
+test('PDF transport rejects oversized declared and streamed bodies, incorrect MIME and bad signatures',async () => {
+  for(const fixture of [
+    {body:'%PDF-1.7',headers:{'content-type':'application/pdf','content-length':'100'},error:/Grössenlimit/},
+    {body:'%PDF-1.7'+'x'.repeat(30),headers:{'content-type':'application/pdf'},error:/Grössenlimit/},
+    {body:'%PDF-1.7',headers:{'content-type':'text/html'},error:/kein öffentliches PDF/},
+    {body:'<html>blocked',headers:{'content-type':'application/pdf'},error:/PDF-Kennung/},
+  ]) {
+    const network=createPublicNetwork({limits:{...NETWORK_LIMITS,maxDocumentBytes:16},resolver:async()=>['8.8.8.8'],schedule:async()=>{},
+      fetcher:async url=>url.endsWith('/robots.txt')?new Response('',{status:404}):new Response(fixture.body,{headers:fixture.headers})});
+    await assert.rejects(network.document('https://health.ch/files/job.pdf',org),fixture.error);
+  }
+});
+
+test('PDF redirects obey target robots rules and reject private DNS before sending the request',async () => {
+  const requests=[];
+  const network=createPublicNetwork({resolver:async()=>['8.8.8.8'],schedule:async()=>{},fetcher:async url=>{
+    requests.push(url);
+    if(url.endsWith('/robots.txt'))return new Response('User-agent: *\nDisallow: /private');
+    return new Response('',{status:302,headers:{location:'https://health.ch/private/job.pdf'}});
+  }});
+  await assert.rejects(network.document('https://health.ch/files/job.pdf',org),/robots.txt untersagt/);
+  assert.deepEqual(requests,['https://health.ch/robots.txt','https://health.ch/files/job.pdf']);
+  const privateRequests=[];
+  const privateNetwork=createPublicNetwork({resolver:async host=>[host==='health.ch'?'8.8.8.8':'127.0.0.1'],schedule:async()=>{},fetcher:async url=>{
+    privateRequests.push(url);
+    if(url.endsWith('/robots.txt'))return new Response('');
+    return new Response('',{status:302,headers:{location:'https://documents.health.ch/job.pdf'}});
+  }});
+  await assert.rejects(privateNetwork.document('https://health.ch/files/job.pdf',org),/öffentliche Netzwerkadresse/);
+  assert(!privateRequests.some(url=>url.includes('documents.health.ch')));
+  let calls=0;
+  const blocked=createPublicNetwork({resolver:async()=>['8.8.8.8'],schedule:async()=>{},fetcher:async()=>{calls++;return new Response('',{status:403});}});
+  await assert.rejects(blocked.document('https://health.ch/files/job.pdf',org),/robots.txt nicht verifizierbar/);
+  assert.equal(calls,1);
 });
 
 test('host scheduling serializes starts and honors the longer declared crawl delay', async () => {

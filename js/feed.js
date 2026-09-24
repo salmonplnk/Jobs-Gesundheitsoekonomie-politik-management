@@ -1,7 +1,7 @@
 /* Read-only public snapshots. Personal state changes only after an explicit import. */
 (function () {
   'use strict';
-  const C = window.JobCore, mount = document.getElementById('publicJobFeed');
+  const C = window.JobCore, R = window.HealthJobRelevance, mount = document.getElementById('publicJobFeed');
   if (!C || !mount) return;
   const DEFAULT_URL = 'https://raw.githubusercontent.com/salmonplnk/Jobs-Gesundheitsoekonomie-politik-management/job-feed-data/data/job-feed/index.json';
   const PAGE_SIZE = 25, MAX_INDEX_BYTES = 24 * 1024 * 1024, MAX_SHARD_BYTES = 12 * 1024 * 1024;
@@ -15,8 +15,9 @@
   const catalogGroups = typeof DATA !== 'undefined' && Array.isArray(DATA) ? DATA : [];
   const catalog = new Map();
   for (const group of catalogGroups) for (const org of group.orgs || []) if (orgId(org.id)) catalog.set(org.id, { ...org, category: group.key, category_name: group.title });
-  const statusNames = { ok: 'Erfasst', empty: 'Keine Stellen gefunden', partial: 'Teilweise erfasst', error: 'Abruf fehlgeschlagen', unsupported: 'Nicht erfasst', pending: 'Noch nicht geprüft' };
-  const filters = { q: '', employer: '', category: '', role: '', location: '' };
+  const statusNames = { ok: 'Abruf erfolgreich', empty: 'Keine Inserate gefunden', partial: 'Teilweise erfasst', error: 'Abruf fehlgeschlagen', unsupported: 'Nicht erfasst', pending: 'Noch nicht geprüft' };
+  const filters = { q: '', employer: '', category: '', focus: '', location: '' };
+  const focusCategories = Array.isArray(R?.CATEGORIES) ? R.CATEGORIES : [];
   let snapshot = null, page = 1, loading = false, error = '', notice = '', epoch = 0, authEpoch = 0, indexController;
   const imports = new Set(), importControllers = new Set();
   const getOwner = () => window.HealthJobs?.getOwner?.() ?? null;
@@ -69,7 +70,7 @@
     return { org_id: id, name: C.text(org?.name || raw?.name || id, 300), url: C.safeUrl(raw?.url) || C.safeUrl(org?.jobs),
       status: typeof raw?.status === 'string' && Object.hasOwn(statusNames, raw.status) ? raw.status : 'pending',
       checked_at: iso(raw?.checked_at), last_success_at: iso(raw?.last_success_at), last_complete_at: iso(raw?.last_complete_at),
-      job_count: count(raw?.job_count), stale: raw?.stale === true, message: C.text(raw?.message, 2000), coverage: C.text(raw?.coverage, 300),
+      job_count: count(raw?.job_count), raw_job_count: count(raw?.raw_job_count ?? raw?.job_count), relevant_job_count: count(raw?.relevant_job_count), filtered_out_count: count(raw?.filtered_out_count), stale: raw?.stale === true, message: C.text(raw?.message, 2000), coverage: C.text(raw?.coverage, 300),
       pages_scanned: count(raw?.pages_scanned), detail_pages_scanned: count(raw?.detail_pages_scanned), method: C.text(raw?.method, 120),
       has_portal: hasPortal, no_portal: !hasPortal, category: org?.category || '', category_name: org?.category_name || '' };
   }
@@ -88,24 +89,45 @@
   }
   function validateIndex(raw, url) {
     if (!raw || raw.version !== 1 || !Array.isArray(raw.jobs) || raw.jobs.length > MAX_JOBS || !Array.isArray(raw.sources) || raw.sources.length > 250 || !raw.run || typeof raw.run !== 'object' || Array.isArray(raw.run)) throw new Error('Der veröffentlichte Jobfeed hat ein unbekanntes oder zu grosses Format.');
+    if (typeof R?.classify !== 'function') throw new Error('Der fachliche Stellenfilter konnte nicht geladen werden. Bitte die Seite neu laden.');
     const sources = new Map();
     for (const rawSource of raw.sources) { const source = cleanSource(rawSource); if (source && !sources.has(source.org_id)) sources.set(source.org_id, source); }
     for (const org of catalog.values()) if (!sources.has(org.id)) sources.set(org.id, cleanSource(null, org));
-    const jobs = [], ids = new Set(); let ignored = 0;
+    const jobs = [], ids = new Set(); let ignored = 0, excluded = 0;
+    const scoped = raw.scope?.policy_version === 1;
+    const observed = new Map(), accepted = new Map();
     for (const rawJob of raw.jobs) {
       const job = cleanPublicJob(rawJob, sources, url, true);
       if (!job || ids.has(job.id)) { ignored++; continue; }
-      ids.add(job.id); jobs.push(job);
+      ids.add(job.id);
+      if (job.status !== 'closed') for (const id of job.org_ids) observed.set(id, (observed.get(id) || 0) + 1);
+      // New snapshots carry the full-text classification: compact excerpts may omit
+      // its evidence. Older broad snapshots are checked locally before display.
+      const evidence = rawJob.relevance;
+      const validatedEvidence = scoped && evidence?.policy_version === 1 && evidence.eligible === true && focusCategories.includes(evidence.category) && Array.isArray(evidence.reasons) && evidence.reasons.length > 0 && evidence.reasons.every(reason => typeof reason === 'string' && reason.trim());
+      job.relevance = validatedEvidence
+        ? { eligible: true, category: evidence.category, reasons: evidence.reasons.slice(0, 5).map(reason => C.text(reason, 300)), policy_version: 1 }
+        : R.classify(job, catalog.get(job.org_id) || sources.get(job.org_id));
+      if (!job.relevance.eligible || !focusCategories.includes(job.relevance.category)) { if (job.status !== 'closed') excluded++; continue; }
+      if (job.status !== 'closed') for (const id of job.org_ids) accepted.set(id, (accepted.get(id) || 0) + 1);
+      jobs.push(job);
     }
-    return { url, generated_at: iso(raw.generated_at), sources, jobs, ignored, run: { id: C.text(raw.run.id, 100), started_at: iso(raw.run.started_at), finished_at: iso(raw.run.finished_at), status: C.text(raw.run.status, 50), total_sources: count(raw.run.total_sources), checked_sources: count(raw.run.checked_sources) } };
+    for (const source of sources.values()) {
+      if (!scoped) source.raw_job_count = Math.max(source.raw_job_count, observed.get(source.org_id) || 0);
+      source.relevant_job_count = accepted.get(source.org_id) || 0;
+      source.filtered_out_count = scoped ? source.filtered_out_count + Math.max(0, (observed.get(source.org_id) || 0) - source.relevant_job_count) : Math.max(0, source.raw_job_count - source.relevant_job_count);
+    }
+    const scope = { policy_version: 1, excluded_jobs: scoped ? count(raw.scope.excluded_jobs) + excluded : excluded, relevant_jobs: jobs.filter(job => job.status !== 'closed').length, scanned_jobs: scoped ? count(raw.scope.scanned_jobs) : observed.size ? raw.jobs.filter(job => job?.status !== 'closed').length - ignored : 0 };
+    return { url, generated_at: iso(raw.generated_at), sources, jobs, ignored, scope, run: { id: C.text(raw.run.id, 100), started_at: iso(raw.run.started_at), finished_at: iso(raw.run.finished_at), status: C.text(raw.run.status, 50), total_sources: count(raw.run.total_sources), checked_sources: count(raw.run.checked_sources) } };
   }
   function coverageLabel(value) { const names = { complete: 'Vollständig erfasst', partial: 'Teilweise erfasst', unknown: 'Abdeckung unbekannt' }; return Object.hasOwn(names, value) ? names[value] : value; }
-  function isStale(source) { return source.stale || !!source.last_success_at && Date.now() - Date.parse(source.last_success_at) > STALE_MS; }
+  function isStale(source) { return (source.raw_job_count > 0 || source.relevant_job_count > 0) && (source.stale || !!source.last_success_at && Date.now() - Date.parse(source.last_success_at) > STALE_MS); }
+  function isComplete(source) { return source.coverage === 'complete' && ['ok', 'empty'].includes(source.status) && !source.stale && !!source.last_complete_at && Date.now() - Date.parse(source.last_complete_at) <= STALE_MS; }
   function filteredJobs() {
     if (!snapshot) return [];
     const terms = C.normalize(filters.q).split(/\s+/).filter(Boolean);
     return snapshot.jobs.filter(job => {
-      if (job.status === 'closed' || (filters.employer && !job.org_ids.includes(filters.employer)) || (filters.category && !job.categories.includes(filters.category)) || (filters.role && job.role !== filters.role)) return false;
+      if (job.status === 'closed' || (filters.employer && !job.org_ids.includes(filters.employer)) || (filters.category && !job.categories.includes(filters.category)) || (filters.focus && job.relevance.category !== filters.focus)) return false;
       if (filters.location && !C.normalize(job.location).includes(C.normalize(filters.location))) return false;
       const content = C.normalize(`${job.title} ${job.organization} ${job.org_ids.map(id => snapshot.sources.get(id)?.name || '').join(' ')} ${job.description} ${job.location}`);
       return terms.every(term => content.includes(term));
@@ -113,8 +135,8 @@
   }
   function selectOptions(items, selected, placeholder) { return `<option value="">${esc(placeholder)}</option>` + items.map(([value, label]) => `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(label)}</option>`).join(''); }
   function renderShell() {
-    mount.innerHTML = `<div class="jf-shell"><div class="jf-heading"><div><p class="jf-eyebrow">Öffentlich · Ohne Anmeldung</p><h2>Aktuelle Stellen entdecken</h2><p class="jf-intro">Stellen aus dem Schweizer Gesundheitswesen. Gefundenes direkt in deine persönliche Stellensuche übernehmen.</p></div><button type="button" class="jf-button jf-button-secondary" data-feed-action="refresh">Stand neu laden <span aria-hidden="true">↻</span></button></div><div id="jfStatus" aria-live="polite"></div><details class="jf-sources"><summary>Quellen &amp; Aktualität <span id="jfSourceCount"></span></summary><div id="jfSources"></div></details><form class="jf-filters" aria-label="Öffentliche Stellen filtern"><div class="jf-search"><label for="jfQuery">Stichwort</label><input id="jfQuery" type="search" data-feed-filter="q" placeholder="Titel, Stichwort oder Arbeitgeber" autocomplete="off"></div><div><label for="jfEmployer">Arbeitgeber / Quelle</label><select id="jfEmployer" data-feed-filter="employer"></select></div><div><label for="jfCategory">Branche</label><select id="jfCategory" data-feed-filter="category"></select></div><div><label for="jfRole">Tätigkeitsfeld</label><select id="jfRole" data-feed-filter="role"></select></div><div><label for="jfLocation">Ort</label><input id="jfLocation" data-feed-filter="location" type="search" placeholder="z. B. Bern" autocomplete="off"></div><button class="jf-reset" type="button" data-feed-action="reset">Filter zurücksetzen</button></form><div class="jf-results-heading"><p id="jfResultsCount" role="status"></p><span>Neueste zuerst · 25 pro Seite</span></div><p id="jfNotice" class="jf-notice" role="status" hidden></p><div id="jfJobs" class="jf-jobs"></div><nav id="jfPagination" class="jf-pagination" aria-label="Seiten im öffentlichen Jobfeed"></nav><p class="jf-footnote">„Stand neu laden“ lädt den zuletzt veröffentlichten Abruf. Ein neuer Quellenabruf läuft serverseitig. Bitte Verfügbarkeit und Fristen beim Arbeitgeber prüfen.</p></div>`;
-    document.getElementById('jfRole').innerHTML = selectOptions(C.roles.map(role => [role, role]), '', 'Alle Tätigkeitsfelder');
+    mount.innerHTML = `<div class="jf-shell"><div class="jf-heading"><div><p class="jf-eyebrow">Öffentlich · Ohne Anmeldung</p><h2>Gesundheitsökonomie, Politik &amp; Management</h2><p class="jf-intro">Fachlich passende Stellen in Gesundheitsökonomie / HTA, Gesundheitspolitik, Public Health, Versorgungsforschung, Gesundheitsmanagement und Gesundheitsdaten.</p><p class="jf-focus-note">Gefiltert nach Aufgaben und Anforderungen. Ein Arbeitgeber im Gesundheitswesen allein genügt nicht.</p></div><button type="button" class="jf-button jf-button-secondary" data-feed-action="refresh">Stand neu laden <span aria-hidden="true">↻</span></button></div><div id="jfStatus" aria-live="polite"></div><details class="jf-sources"><summary>Quellen &amp; Aktualität <span id="jfSourceCount"></span></summary><div id="jfSources"></div></details><form class="jf-filters" aria-label="Öffentliche Stellen filtern"><div class="jf-search"><label for="jfQuery">Stichwort</label><input id="jfQuery" type="search" data-feed-filter="q" placeholder="Titel, Stichwort oder Arbeitgeber" autocomplete="off"></div><div><label for="jfEmployer">Arbeitgeber / Quelle</label><select id="jfEmployer" data-feed-filter="employer"></select></div><div><label for="jfCategory">Branche</label><select id="jfCategory" data-feed-filter="category"></select></div><div><label for="jfFocus">Fachbereich</label><select id="jfFocus" data-feed-filter="focus"></select></div><div><label for="jfLocation">Ort</label><input id="jfLocation" data-feed-filter="location" type="search" placeholder="z. B. Bern" autocomplete="off"></div><button class="jf-reset" type="button" data-feed-action="reset">Filter zurücksetzen</button></form><div class="jf-results-heading"><p id="jfResultsCount" role="status"></p><span>Neueste zuerst · 25 pro Seite</span></div><p id="jfNotice" class="jf-notice" role="status" hidden></p><div id="jfJobs" class="jf-jobs"></div><nav id="jfPagination" class="jf-pagination" aria-label="Seiten im öffentlichen Jobfeed"></nav><p class="jf-footnote">„Stand neu laden“ lädt den zuletzt veröffentlichten Abruf. Ein neuer Quellenabruf läuft serverseitig. Bitte Verfügbarkeit und Fristen beim Arbeitgeber prüfen.</p></div>`;
+    document.getElementById('jfFocus').innerHTML = selectOptions(focusCategories.map(category => [category, category]), '', 'Alle Fachbereiche');
     renderFilters(); renderStatus(); renderResults();
   }
   function renderFilters() {
@@ -128,24 +150,29 @@
     const failed = sources.filter(source => source.status === 'error').length, partial = sources.filter(source => source.status === 'partial').length;
     const unsupported = sources.filter(source => source.status === 'unsupported' && !source.no_portal).length;
     const stale = sources.filter(isStale).length, pending = sources.filter(source => source.status === 'pending').length, noPortal = sources.filter(source => source.no_portal).length;
+    const complete = sources.filter(isComplete).length, withMatches = sources.filter(source => source.relevant_job_count > 0).length;
     const latestAttempt = sources.map(source => source.checked_at).filter(Boolean).sort().at(-1) || null;
-    const metrics = [[`${checked}/${total}`, 'Quellen geprüft'], [stale, 'Veralteter Stand'], [failed, 'Abruffehler'], [noPortal, 'Ohne Stellenportal'], [pending, 'Noch ungeprüft']];
+    const metrics = [[snapshot ? snapshot.scope.relevant_jobs : '–', 'Fachlich passende Stellen'], [`${complete}/${total}`, 'Quellen vollständig abgerufen'], [withMatches, 'Quellen mit passenden Stellen'], [total - complete, 'Nicht vollständig erfasst']];
     const neverRun = snapshot && !snapshot.run.started_at && !checked;
     const runNames = { pending: 'ausstehend', running: 'läuft', complete: 'abgeschlossen', partial: 'mit Einschränkungen', error: 'fehlgeschlagen' };
-    const runInfo = snapshot?.run.started_at ? ` · Letzter Lauf: ${snapshot.run.checked_sources}/${snapshot.run.total_sources || total} Quellen (${Object.hasOwn(runNames, snapshot.run.status) ? runNames[snapshot.run.status] : 'Status unbekannt'})` : '';
-    document.getElementById('jfStatus').innerHTML = `${loading ? '<p class="jf-state">Veröffentlichten Stand laden …</p>' : ''}${error ? `<p class="jf-error" role="alert">${esc(error)}${snapshot ? ' Der zuvor geladene Stand bleibt sichtbar.' : ' Es werden keine aktuellen Stellen behauptet. Bitte später erneut laden.'}</p>` : ''}<div class="jf-metrics">${metrics.map(([number, label]) => `<div><strong>${esc(number)}</strong><span>${esc(label)}</span></div>`).join('')}</div><p class="jf-updated">${snapshot ? `Veröffentlicht: ${esc(dateTime(snapshot.generated_at))} · Letzter Quellenversuch: ${esc(dateTime(latestAttempt))}${esc(runInfo)}${partial ? ` · ${partial} teilweise erfasst` : ''}${unsupported ? ` · ${unsupported} technisch nicht erfasst` : ''}${neverRun ? ' · Noch kein serverseitiger Abruf durchgeführt.' : ''}` : 'Noch kein öffentlicher Stand geladen.'}</p>${snapshot?.ignored ? `<p class="jf-updated">${snapshot.ignored} ungültige oder doppelte Einträge wurden ausgeblendet.</p>` : ''}`;
+    const runInfo = snapshot?.run.started_at ? ` · Letzter Lauf: ${snapshot.run.checked_sources}/${snapshot.run.total_sources || total} Quellen versucht (${Object.hasOwn(runNames, snapshot.run.status) ? runNames[snapshot.run.status] : 'Status unbekannt'})` : '';
+    document.getElementById('jfStatus').innerHTML = `${loading ? '<p class="jf-state">Veröffentlichten Stand laden …</p>' : ''}${error ? `<p class="jf-error" role="alert">${esc(error)}${snapshot ? ' Der zuvor geladene Stand bleibt sichtbar.' : ' Es werden keine aktuellen Stellen behauptet. Bitte später erneut laden.'}</p>` : ''}<div class="jf-metrics">${metrics.map(([number, label]) => `<div><strong>${esc(number)}</strong><span>${esc(label)}</span></div>`).join('')}</div><p class="jf-updated">${snapshot ? `Veröffentlicht: ${esc(dateTime(snapshot.generated_at))} · Letzter Quellenversuch: ${esc(dateTime(latestAttempt))}${esc(runInfo)}${neverRun ? ' · Noch kein serverseitiger Abruf durchgeführt.' : ''}` : 'Noch kein öffentlicher Stand geladen.'}</p><p class="jf-updated">${checked}/${total} Quellen bisher geprüft · ${partial} teilweise erfasst · ${unsupported} technisch nicht erfasst · ${failed} Abruffehler · ${noPortal} ohne Stellenportal · ${pending} Noch ungeprüft${stale ? ` · ${stale} mit älteren Funden` : ''}</p>${snapshot?.scope.excluded_jobs ? `<p class="jf-scope-summary">${snapshot.scope.excluded_jobs} fachfremde oder fachlich nicht eindeutig belegte Inserate ausgeblendet. Die Stellenzahl sagt nichts über die Vollständigkeit der Quellen aus.</p>` : ''}${snapshot?.ignored ? `<p class="jf-updated">${snapshot.ignored} ungültige oder doppelte Einträge wurden ausgeblendet.</p>` : ''}`;
     const refresh = mount.querySelector('[data-feed-action="refresh"]'); refresh.disabled = loading; refresh.setAttribute('aria-busy', String(loading));
-    document.getElementById('jfSourceCount').textContent = `(${total} Arbeitgeber / Quellen)`;
-    document.getElementById('jfSources').innerHTML = `<p class="jf-source-help">Ein Abruffehler oder eine nicht unterstützte Quelle bedeutet nicht, dass der Arbeitgeber keine offenen Stellen hat. Ältere Funde bleiben sichtbar. „Veralteter Stand“ bedeutet ältere beibehaltene Funde, eine unvollständige Aktualisierung oder einen erfolgreichen Abruf vor mehr als 48 Stunden.</p><div class="jf-source-list">${sources.map(source => `<article class="jf-source"><div><h3>${source.url ? `<a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.name)} <span aria-hidden="true">↗</span></a>` : esc(source.name)}</h3><p>Letzter Versuch: ${esc(dateTime(source.checked_at))} · Erfolgreich: ${esc(dateTime(source.last_success_at))} · ${source.job_count} Stellen</p>${source.message ? `<p>${esc(source.message)}</p>` : ''}${source.coverage || source.pages_scanned || source.detail_pages_scanned ? `<p>${esc(coverageLabel(source.coverage))}${source.coverage ? ' · ' : ''}${source.pages_scanned} Übersichtsseiten · ${source.detail_pages_scanned} Detailseiten</p>` : ''}</div><div class="jf-source-badges"><span class="jf-badge jf-${source.status}">${esc(source.no_portal ? 'Kein Stellenportal' : statusNames[source.status])}</span>${isStale(source) ? '<span class="jf-badge jf-partial">Veralteter Stand</span>' : ''}</div></article>`).join('')}</div>`;
+    document.getElementById('jfSourceCount').textContent = `(${complete}/${total} vollständig abgerufen)`;
+    document.getElementById('jfSources').innerHTML = `<p class="jf-source-help">Vollständig abgerufen bedeutet: Die Quelle wurde innerhalb der letzten 48 Stunden ohne offene Seiten oder Abruffehler erfasst. Das ist unabhängig davon, ob fachlich passende Stellen gefunden wurden. Ein Abruffehler oder eine nicht unterstützte Quelle ist keine Aussage über offene Stellen. Ältere bestätigte Funde bleiben gekennzeichnet sichtbar.</p><div class="jf-source-list">${sources.map(source => {
+      const completeSource = isComplete(source);
+      const result = source.relevant_job_count ? `${source.relevant_job_count} fachlich passende Stellen` : completeSource ? 'Keine fachlich passenden Stellen im vollständigen Abruf' : 'Keine bestätigten passenden Funde; Angebot unbekannt';
+      return `<article class="jf-source"><div><h3>${source.url ? `<a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.name)} <span aria-hidden="true">↗</span></a>` : esc(source.name)}</h3><p>${esc(result)}${source.raw_job_count ? ` · ${source.raw_job_count} Inserate erfasst · ${source.filtered_out_count} fachlich ausgeblendet` : ''}</p><p>Letzter Versuch: ${esc(dateTime(source.checked_at))} · Vollständig: ${esc(dateTime(source.last_complete_at))}</p>${source.message ? `<p>${esc(source.message)}</p>` : ''}${source.coverage || source.pages_scanned || source.detail_pages_scanned ? `<p>${esc(coverageLabel(source.coverage))}${source.coverage ? ' · ' : ''}${source.pages_scanned} Übersichtsseiten · ${source.detail_pages_scanned} Detailseiten</p>` : ''}</div><div class="jf-source-badges"><span class="jf-badge jf-${source.status}">${esc(source.no_portal ? 'Kein Stellenportal' : completeSource ? 'Vollständig abgerufen' : statusNames[source.status])}</span>${isStale(source) ? '<span class="jf-badge jf-partial">Veralteter Stand</span>' : ''}</div></article>`;
+    }).join('')}</div>`;
   }
   function renderResults() {
     const jobs = filteredJobs(), pageCount = Math.max(1, Math.ceil(jobs.length / PAGE_SIZE)); page = Math.max(1, Math.min(page, pageCount));
     const start = (page - 1) * PAGE_SIZE, visible = jobs.slice(start, start + PAGE_SIZE);
-    document.getElementById('jfResultsCount').textContent = `${jobs.length} ${jobs.length === 1 ? 'Stelle' : 'Stellen'}${jobs.length ? ` · ${start + 1}–${start + visible.length}` : ''}`;
+    document.getElementById('jfResultsCount').textContent = `${jobs.length} ${jobs.length === 1 ? 'fachlich passende Stelle' : 'fachlich passende Stellen'}${jobs.length ? ` · ${start + 1}–${start + visible.length}` : ''}`;
     document.getElementById('jfJobs').innerHTML = visible.length ? visible.map(job => {
       const source = snapshot.sources.get(job.org_id), busy = imports.has(job.id), stale = isStale(source);
-      return `<article class="jf-job"><div class="jf-job-main"><p class="jf-organization">${esc(job.organization)}${job.organization !== source.name ? ` <span class="jf-source-label">· Quelle: ${esc(source.name)}</span>` : ''}</p><h3><a href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">${esc(job.title)} <span aria-hidden="true">↗</span></a></h3><p class="jf-job-meta">${[job.location || 'Ort nicht angegeben', job.pensum, job.role].filter(Boolean).map(esc).join(' · ')}</p>${job.description ? `<p class="jf-excerpt">${esc(job.description.slice(0, 240))}${job.description.length > 240 ? '…' : ''}</p>` : ''}<p class="jf-job-dates">Erstmals gefunden: ${esc(date(job.first_seen))} · Zuletzt bestätigt: ${esc(date(job.last_seen))}${stale ? ' · Älterer Quellenstand' : ''}${source.status === 'error' || source.status === 'partial' ? ' · Quelle zuletzt nicht vollständig erfasst' : ''}</p></div><div class="jf-job-action"><button type="button" class="jf-button" data-feed-action="import" data-feed-id="${esc(job.id)}"${busy ? ' disabled aria-busy="true"' : ''}>${busy ? 'Volltext wird geladen …' : 'In meine Stellensuche übernehmen'}</button><a class="jf-original" href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">Originalinserat öffnen <span aria-hidden="true">↗</span></a></div></article>`;
-    }).join('') : `<div class="jf-empty-state"><strong>${loading && !snapshot ? 'Stellen werden geladen …' : !snapshot ? 'Noch kein Stellenstand verfügbar' : snapshot.jobs.some(job => job.status !== 'closed') ? 'Keine Stellen für diese Filter' : 'Keine offenen Stellen im veröffentlichten Stand'}</strong><p>${!snapshot ? 'Sobald ein veröffentlichter Abruf erreichbar ist, erscheinen die Stellen hier ohne Anmeldung.' : snapshot.jobs.some(job => job.status !== 'closed') ? 'Versuche ein anderes Stichwort oder setze die Filter zurück.' : 'Prüfe die Quellenübersicht: Ungeprüfte oder fehlgeschlagene Quellen liefern keine Aussage über offene Stellen.'}</p></div>`;
+      return `<article class="jf-job"><div class="jf-job-main"><p class="jf-organization">${esc(job.organization)}${job.organization !== source.name ? ` <span class="jf-source-label">· Quelle: ${esc(source.name)}</span>` : ''}</p><h3><a href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">${esc(job.title)} <span aria-hidden="true">↗</span></a></h3><p class="jf-job-meta">${[job.location || 'Ort nicht angegeben', job.pensum].filter(Boolean).map(esc).join(' · ')}</p><div class="jf-relevance"><span class="jf-focus-badge">${esc(job.relevance.category)}</span><span>${job.relevance.reasons.slice(0, 2).map(esc).join(' · ')}</span></div>${job.description ? `<p class="jf-excerpt">${esc(job.description.slice(0, 240))}${job.description.length > 240 ? '…' : ''}</p>` : ''}<p class="jf-job-dates">Erstmals gefunden: ${esc(date(job.first_seen))} · Zuletzt bestätigt: ${esc(date(job.last_seen))}${stale ? ' · Älterer Quellenstand' : ''}${source.status === 'error' || source.status === 'partial' ? ' · Quelle zuletzt nicht vollständig erfasst' : ''}</p></div><div class="jf-job-action"><button type="button" class="jf-button" data-feed-action="import" data-feed-id="${esc(job.id)}"${busy ? ' disabled aria-busy="true"' : ''}>${busy ? 'Volltext wird geladen …' : 'In meine Stellensuche übernehmen'}</button><a class="jf-original" href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">Originalinserat öffnen <span aria-hidden="true">↗</span></a></div></article>`;
+    }).join('') : `<div class="jf-empty-state"><strong>${loading && !snapshot ? 'Stellen werden geladen …' : !snapshot ? 'Noch kein Stellenstand verfügbar' : snapshot.jobs.some(job => job.status !== 'closed') ? 'Keine Stellen für diese Filter' : 'Keine fachlich passenden Stellen im veröffentlichten Stand'}</strong><p>${!snapshot ? 'Sobald ein veröffentlichter Abruf erreichbar ist, erscheinen die Stellen hier ohne Anmeldung.' : snapshot.jobs.some(job => job.status !== 'closed') ? 'Versuche ein anderes Stichwort oder setze die Filter zurück.' : 'Das bedeutet nicht, dass es keine passenden Stellen gibt. Prüfe die Quellenübersicht: Unvollständig erfasste Quellen bleiben offen.'}</p></div>`;
     document.getElementById('jfPagination').innerHTML = jobs.length > PAGE_SIZE ? `<button type="button" class="jf-button jf-button-secondary" data-feed-action="previous"${page === 1 ? ' disabled' : ''}>← Zurück</button><span>Seite ${page} von ${pageCount}</span><button type="button" class="jf-button jf-button-secondary" data-feed-action="next"${page === pageCount ? ' disabled' : ''}>Weiter →</button>` : '';
     renderNotice();
   }
@@ -178,6 +205,8 @@
       if (matches.length !== 1) throw new Error('Diese Stelle fehlt im aktuellen Volltext. Bitte den Stand neu laden.');
       const cleanSourceValue = cleanSource(raw.source), full = cleanPublicJob(matches[0], new Map([[source.org_id, cleanSourceValue || source]]), baseUrl, false);
       if (!full || full.org_id !== job.org_id || C.canonicalUrl(full.url) !== C.canonicalUrl(job.url)) throw new Error('Die Volltextdaten stimmen nicht mit der ausgewählten Stelle überein.');
+      full.relevance = R.classify(full, catalog.get(full.org_id) || source);
+      if (!full.relevance.eligible) throw new Error('Im aktuellen Volltext ist der fachliche Bezug nicht mehr bestätigt. Bitte den Stand neu laden.');
       if (!isCurrent()) return;
       const result = await window.HealthJobs.importPublicJobs([full], [cleanSourceValue || source]);
       if (!isCurrent()) return;

@@ -40,7 +40,7 @@ async function setup({ account = null, state, cloudRead, rpc, fetcher, feedData 
     if (String(url).includes('/job-feed-data/data/job-feed/index.json')) return Promise.resolve({ ok: true, status: 200, text: async () => JSON.stringify(feedData || { version: 1, generated_at: new Date().toISOString(), run: {}, jobs: [], sources: [] }) });
     return fetcher ? fetcher(url, options) : Promise.reject(new Error('Unexpected network request'));
   };
-  const files = ['auth.js', 'app.js', 'map-geography.js', 'map.js', 'profile.js', 'job-core.js', 'feed.js', 'workspace.js', 'letters.js', 'matching.js', 'community.js'];
+  const files = ['auth.js', 'app.js', 'map-geography.js', 'map.js', 'profile.js', 'job-core.js', 'job-relevance.js', 'feed.js', 'workspace.js', 'letters.js', 'matching.js', 'community.js'];
   for (const file of files) vm.runInContext(fs.readFileSync(path.join(root, 'js', file), 'utf8'), dom.getInternalVMContext(), { filename: file });
   await tick(); await tick();
   return { dom, w, errors, client, remote, emitAccount(next) { user = next ? { id: next, email: next + '@example.org' } : null; callbacks.forEach(fn => fn(user ? 'SIGNED_IN' : 'SIGNED_OUT', session())); }, click(selector) { const el = w.document.querySelector(selector); assert.ok(el, selector); if (typeof el.click === 'function') el.click(); else el.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true })); }, submit(selector, values) { const form = w.document.querySelector(selector); assert.ok(form, selector); for (const [name, value] of Object.entries(values)) form.elements.namedItem(name).value = value; form.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true })); } };
@@ -168,18 +168,22 @@ test('map handoff during an active search explains the state and focuses pause w
 });
 
 test('public feed loads without login and imports full text into the real workspace only on request', async t => {
-  const stamp = '2026-09-23T18:00:00Z';
+  const stamp = new Date().toISOString();
   const item = { ...vacancy, id: 'bag:abc', org_id: 'bag', fetched_at: stamp, first_seen: stamp, last_seen: stamp, detail_file: './bag.json' };
-  const source = { org_id: 'bag', name: 'BAG', url: 'https://jobs.admin.ch/', status: 'ok', coverage: 'complete', checked_at: stamp, job_count: 1 };
+  const source = { org_id: 'bag', name: 'BAG', url: 'https://jobs.admin.ch/', status: 'ok', coverage: 'complete', checked_at: stamp, last_success_at: stamp, last_complete_at: stamp, job_count: 1 };
   const full = { ...item, description: 'Vollständiger Originalbeschrieb mit Aufgaben und Anforderungen.', description_truncated: false };
+  const unrelated = { ...item, id: 'bag:clinical', title: 'Dipl. Pflegefachperson', description: 'Pflege auf einer medizinischen Station.' };
   const requests = [];
-  const x = await setup({ feedData: { version: 1, generated_at: stamp, run: { total_sources: 85, checked_sources: 1 }, jobs: [item], sources: [source] }, fetcher: async url => {
+  const x = await setup({ feedData: { version: 1, generated_at: stamp, run: { total_sources: 85, checked_sources: 1 }, jobs: [item, unrelated], sources: [{ ...source, job_count: 2 }] }, fetcher: async url => {
     requests.push(String(url));
     assert.match(String(url), /\/job-feed-data\/data\/job-feed\/bag\.json$/);
     return { ok: true, status: 200, text: async () => JSON.stringify({ version: 1, org_id: 'bag', source, jobs: [full] }) };
   } }); t.after(() => x.dom.window.close());
   assert.equal(x.w.document.querySelectorAll('#publicJobFeed .jf-job').length, 1);
   assert.equal(x.w.HealthJobs.getJob(item.id), undefined); assert.equal(requests.length, 0);
+  assert.equal(x.w.PublicJobFeed.getJobs()[0].relevance.category, 'Gesundheitsökonomie / HTA');
+  await x.w.PublicJobFeed.importJob(unrelated.id);
+  assert.equal(x.w.HealthJobs.getJob(unrelated.id), undefined); assert.equal(requests.length, 0);
   await x.w.PublicJobFeed.importJob(item.id);
   assert.equal(requests.length, 1);
   assert.equal(x.w.HealthJobs.getJob(item.id).description, full.description);

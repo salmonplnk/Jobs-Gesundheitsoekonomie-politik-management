@@ -7,6 +7,8 @@ import { randomUUID } from 'node:crypto';
 import { crawlOrganization } from '../supabase/functions/_shared/job-crawler.mjs';
 import { canonicalUrl, isAllowedUrl, matchesOrganizationScope } from '../supabase/functions/_shared/job-extraction.mjs';
 import { createPublicNetwork, createBrowserRenderer, NETWORK_LIMITS } from './feed-network.mjs';
+import Relevance from '../js/job-relevance.js';
+import { extractPdfText } from './job-pdf-text.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE_STATUSES = new Set(['ok','empty','partial','unsupported','error','pending']);
@@ -15,7 +17,7 @@ const JOB_FIELDS = ['id','org_id','organization','title','url','source_url','fet
   'employment_type','employment_type_raw','seniority','role','first_seen','last_seen','status','closed_at'];
 const SOURCE_FIELDS = ['org_id','name','url','status','checked_at','job_count','message','coverage','pages_scanned',
   'detail_pages_scanned','pending_pages','method','cached','last_success_at','last_complete_at','stale','retained_count',
-  'scraped_count','has_portal','excluded_jobs'];
+  'scraped_count','has_portal','excluded_jobs','raw_job_count','relevant_job_count','filtered_out_count'];
 const pick = (object, fields) => Object.fromEntries(fields.filter(key => object[key] !== undefined).map(key => [key, object[key]]));
 const validId = id => typeof id === 'string' && /^[a-z0-9][a-z0-9_-]{0,79}$/.test(id);
 export const FEED_BYTE_LIMITS = Object.freeze({index:24 * 1024 * 1024, shard:12 * 1024 * 1024});
@@ -24,7 +26,7 @@ export function catalogOrganizations(catalog, overrides = {version:1, sources:{}
   if (!Array.isArray(catalog)) throw new Error('Ungültiger Organisationskatalog.');
   if (overrides.version !== 1 || !overrides.sources || typeof overrides.sources !== 'object') throw new Error('Ungültige Quellenkorrekturen.');
   const seen = new Set();
-  return catalog.flatMap(group => group.orgs || []).map(org => {
+  return catalog.flatMap(group => (group.orgs || []).map(org => ({...org,category:group.key,category_name:group.title}))).map(org => {
     if (!validId(org.id) || seen.has(org.id)) throw new Error(`Ungültige oder doppelte Organisations-ID: ${org.id}`);
     seen.add(org.id);
     return {...org, ...pick(overrides.sources[org.id] || {}, ['jobs','allowed_hosts','adapter','scope_terms'])};
@@ -86,7 +88,7 @@ export function mergeSourceSnapshot(org, fresh, previous = {}, checkedAt = new D
 
 export function compactJob(job) {
   const compact = pick(job, ['id','org_id','title','organization','url','location','pensum','workload_min','workload_max',
-    'role','languages','remote_mode','employment_type','seniority','salary_hint','deadline','first_seen','last_seen','fetched_at','status']);
+    'role','languages','remote_mode','employment_type','seniority','salary_hint','deadline','first_seen','last_seen','fetched_at','status','relevance']);
   compact.description = job.description.slice(0, 1000);
   compact.description_truncated = Boolean(job.description_truncated || job.description.length > 1000);
   compact.detail_file = `./${job.org_id}.json`;
@@ -102,6 +104,37 @@ export function compactIndexJobs(shards) {
     else if (!existing.org_ids.includes(job.org_id)) existing.org_ids.push(job.org_id);
   }
   return [...byUrl.values()];
+}
+
+/** Apply the public subject scope after crawling/closure decisions. Source
+ * completeness is measured on the employer's whole inventory, independently
+ * of whether any vacancy fits the subject. Old off-topic records are removed
+ * even when a source fails or is not selected for this run. */
+export function focusFeed(feed, organizations) {
+  const byId = new Map(organizations.map(org => [org.id, org]));
+  const rawJobs = compactIndexJobs(feed.shards);
+  const shards = feed.shards.map(shard => {
+    const org = byId.get(shard.org_id);
+    if (!org) throw new Error(`Unbekannte Quelle im Fachfilter: ${shard.org_id}`);
+    const jobs = shard.jobs.flatMap(raw => {
+      const job = publicJob(raw, org);
+      if (!job) return [];
+      const relevance = Relevance.classify(job, org);
+      return relevance.eligible ? [{...job,relevance}] : [];
+    });
+    const rawOpen = Math.max(shard.jobs.filter(job => job.status !== 'closed').length, Number(shard.source.raw_job_count) || 0);
+    const relevantOpen = jobs.filter(job => job.status !== 'closed');
+    const retained = relevantOpen.filter(job => job.last_seen !== shard.source.checked_at).length;
+    return {...shard,jobs,source:{...shard.source,raw_job_count:rawOpen,
+      relevant_job_count:relevantOpen.length,job_count:relevantOpen.length,
+      filtered_out_count:rawOpen-relevantOpen.length,retained_count:retained,cached:retained>0,
+      stale:!shard.source.last_success_at || shard.source.last_success_at !== shard.source.checked_at || retained>0}};
+  });
+  const jobs = compactIndexJobs(shards);
+  return {shards,index:{...feed.index,sources:shards.map(shard => shard.source),jobs,
+    scope:{policy_version:Relevance.POLICY_VERSION,name:'Gesundheitsökonomie, Gesundheitspolitik und Gesundheitsmanagement',
+      scanned_jobs:rawJobs.length,relevant_jobs:jobs.length,excluded_jobs:rawJobs.length-jobs.length,
+      retained_jobs:jobs.filter(job => job.last_seen !== shards.find(shard => shard.org_id === job.org_id)?.source.checked_at).length}}};
 }
 
 export async function loadPrevious(directory, organizations) {
@@ -148,7 +181,7 @@ export async function writeFeed(directory, feed) {
 }
 
 export async function runFeed({organizations, previous = new Map(), only = [], maxSources = Infinity,
-  concurrency = 6, sourceTimeoutMs = 300_000, fetchPage, fetchJson, renderPage,
+  concurrency = 6, sourceTimeoutMs = 300_000, fetchPage, fetchJson, fetchDocument, extractDocumentText, renderPage,
   crawl = crawlOrganization, limits = NETWORK_LIMITS, now = () => new Date().toISOString(), onSource = () => {}}) {
   if (!Array.isArray(organizations) || !organizations.length) throw new Error('Leerer Quellenkatalog.');
   for (const id of only) if (!organizations.some(org => org.id === id)) throw new Error(`Unbekannte Quelle: ${id}`);
@@ -173,7 +206,7 @@ export async function runFeed({organizations, previous = new Map(), only = [], m
       const checkedAt = now();
       let result;
       try {
-        const options = {signal, limits, now:() => checkedAt, fetchJson, previousJobs:prior?.jobs || []};
+        const options = {signal, limits, now:() => checkedAt, fetchJson, fetchDocument, extractDocumentText, previousJobs:prior?.jobs || []};
         result = await crawl(org, fetchPage, options);
         if (renderPage && org.jobs && result.source.status === 'unsupported' && !signal.aborted) {
           const rendered = await crawl(org, renderPage, options);
@@ -192,13 +225,13 @@ export async function runFeed({organizations, previous = new Map(), only = [], m
   const sources = shards.map(shard => shard.source);
   const counts = Object.fromEntries([...SOURCE_STATUSES].map(status => [status, sources.filter(source => source.status === status).length]));
   const finishedAt = now();
-  return {shards, index:{version:1, generated_at:finishedAt,
+  return focusFeed({shards, index:{version:1, generated_at:finishedAt,
     run:{id:randomUUID(), started_at:startedAt, finished_at:finishedAt, total:organizations.length, checked:selected.size,
       total_sources:organizations.length, checked_sources:selected.size,
       configured:organizations.filter(org => org.jobs).length, concurrency, source_timeout_ms:sourceTimeoutMs,
       limited:selected.size < organizations.length,
       status:selected.size < organizations.length || counts.error || counts.partial || counts.unsupported ? 'partial' : 'complete', counts},
-    sources, jobs:compactIndexJobs(shards)}};
+    sources, jobs:compactIndexJobs(shards)}},organizations);
 }
 
 export async function main(argv = process.argv.slice(2)) {
@@ -237,7 +270,7 @@ export async function main(argv = process.argv.slice(2)) {
       maxSources:values['max-sources'] ? integer(values['max-sources'], 'max-sources', 1, organizations.length) : Infinity,
       concurrency:integer(values.concurrency, 'concurrency', 1, 12),
       sourceTimeoutMs:integer(values['source-timeout-ms'], 'source-timeout-ms', 1000, 600000),
-      fetchPage:network.page, fetchJson:network.json, renderPage:renderer?.page,
+      fetchPage:network.page, fetchJson:network.json, fetchDocument:network.document, extractDocumentText:extractPdfText, renderPage:renderer?.page,
       onSource:source => console.log(`${source.org_id}: ${source.status}; ${source.scraped_count} fetched, ${source.retained_count} retained; ${source.message}`),
     });
     feed.index.run.browser = values.browser ? (renderer ? 'enabled' : 'unavailable') : 'disabled';

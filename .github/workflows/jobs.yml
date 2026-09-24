@@ -21,6 +21,10 @@ jobs:
           cache: 'npm'
       - name: Install test dependencies
         run: npm ci --ignore-scripts
+      - name: Install the PDF text reader for document regression tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y poppler-utils
       - name: Check browser JavaScript syntax
         run: |
           for file in js/*.js; do

@@ -39,6 +39,33 @@ test('federal employer filters remain pinned across all API pages',async()=>{
   assert.equal(detectProspectiveAdapter(bag,result.nextApiUrl).pageOffset,1);
 });
 
+test('empty federal feeds certify scope only for the exact verified office filter',async()=>{
+  const {detectProspectiveAdapter,normalizeProspectivePayload}=await adapters;
+  const empty=payload([],{medium_id:'1000624'});
+  const office=(id,filter)=>({...bag,id,jobs:`https://jobs.admin.ch/?lang=de&f=${filter}`});
+  for(const [id,value] of Object.entries({bag:'1083353',bsv:'1083356',bfs:'1083355',seco:'1083382'})) {
+    const org=office(id,`verwaltungseinheit:${value}`);
+    const result=normalizeProspectivePayload(detectProspectiveAdapter(org),empty,org);
+    assert.equal(result.explicitEmpty,true,id);
+    assert.equal(result.scopeVerified,true,id);
+  }
+  for(const org of [
+    office('bfs','verwaltungseinheit:1083346'), // Swissmint, formerly misassigned to BFS.
+    office('seco','verwaltungseinheit:1083355'), // BFS, formerly misassigned to SECO.
+    office('bag','verwaltungseinheit:1083353,1083356'),
+    office('bag','verwaltungseinheit:1083353&f=25:1091485'),
+    office('bag','verwaltungseinheit_1083352:1083353'),
+    office('unverified','verwaltungseinheit:1083353'),
+  ]) {
+    const adapter={...detectProspectiveAdapter(org),scopeVerified:true};
+    const result=normalizeProspectivePayload(adapter,empty,org);
+    assert.equal(result.explicitEmpty,true);
+    assert.equal(result.scopeVerified,false,org.jobs);
+  }
+  const other=normalizeProspectivePayload(detectProspectiveAdapter(insel),payload([]),insel);
+  assert.equal(other.scopeVerified,false);
+});
+
 test('full Prospective fields produce validated vacancies and conservative metadata',async()=>{
   const {detectProspectiveAdapter,normalizeProspectivePayload}=await adapters;
   const result=normalizeProspectivePayload(detectProspectiveAdapter(insel),payload([row()]),insel,{fetchedAt:'2026-09-22T12:00:00Z'});

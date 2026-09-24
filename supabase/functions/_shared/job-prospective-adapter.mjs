@@ -6,6 +6,7 @@ import {canonicalUrl, cleanText, extractVacancies, matchesOrganizationScope, saf
  * jobs.inselgruppe.ch/careercenter/1000666/static/bundle.js
  * jobs.visana.ch/careercenter/1004518/static/index-BhLnfCCv.js
  * jobs.usz.ch/careercenter/1001134/static/index-eME6Qz9W.js
+ * jobs.kpt.ch/careercenter/1007102/static/index-Bt86XC4K.js (2026-09-24)
  * These set baseUrl=https://ohws.prospective.ch/public/v1/medium/{id} and GET
  * /jobs with lang, offset, limit, repeated f filters. USB's public Jobs bundle
  * GETs /.rest/jobs/search; its response medium_id is 1005524.
@@ -15,11 +16,16 @@ const BOARDS = Object.freeze({
   'jobs.inselgruppe.ch':{medium:'1000666'},
   'jobs.visana.ch':{medium:'1004518'},
   'jobs.usz.ch':{medium:'1001134'},
+  'jobs.kpt.ch':{medium:'1007102'},
   'www.unispital-basel.ch':{medium:'1005524',apiBase:'https://www.unispital-basel.ch/.rest/jobs/search',
     detailHost:'job.unispital-basel.ch',sourcePaths:['/jobs-und-karriere/Jobs']},
 });
 const API_ORIGIN = 'https://ohws.prospective.ch';
 const PAGE_SIZE = 100;
+// Verified 2026-09-24 against the official /attributes?lang=de&returnValuesAsArray=1
+// response for medium 1000624. The federal frontend flattens child office values
+// into f=verwaltungseinheit; BFS 1083355 and SECO 1083382 are distinct offices.
+const FEDERAL_OFFICE_IDS = Object.freeze({bag:'1083353',bsv:'1083356',bfs:'1083355',seco:'1083382'});
 // AG asset-manifest -> frontend bundle fetch(`${n}/jobs`). CHUV home.html form
 // data-url + local.js GET(serialized form + p_summary/order). Listings only.
 const LISTING_FEEDS = Object.freeze({
@@ -34,6 +40,16 @@ const string = value => typeof value === 'string' ? value : '';
 const text = value => cleanText(string(value));
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 const filters = url => url.searchParams.getAll('f').sort();
+
+function verifiedFederalScope(adapter,org) {
+  const officeId = FEDERAL_OFFICE_IDS[org?.id],source = safePublicUrl(adapter.sourceUrl);
+  if (!officeId || adapter.medium !== '1000624' || adapter.boardUrl !== 'https://jobs.admin.ch' ||
+      !source || source.origin !== 'https://jobs.admin.ch') return false;
+  const selected = filters(source);
+  // Extra office or role filters could yield zero without proving this office
+  // has no vacancies, so only the single verified office filter is trusted.
+  return selected.length === 1 && selected[0] === `verwaltungseinheit:${officeId}`;
+}
 
 function listingFeed(org,url) {
   const feed = LISTING_FEEDS[org?.id];
@@ -124,7 +140,7 @@ function description(szas) {
 export function normalizeProspectivePayload(adapter,payload,org,options = {}) {
   adapter = validate(adapter,org);
   const result = {jobs:[],links:[],explicitEmpty:false,hasPagination:false,malformed:false,rejected:0,
-    method:adapter.method || 'prospective-api',complete:false,nextApiUrl:null};
+    method:adapter.method || 'prospective-api',complete:false,nextApiUrl:null,scopeVerified:verifiedFederalScope(adapter,org)};
   if (adapter.flavor === 'listing-links') return normalizeListingFeed(adapter,payload,result);
   if (!object(payload) || String(payload.medium_id) !== adapter.medium || !Array.isArray(payload.jobs) ||
       !Number.isInteger(payload.total) || payload.total < 0 || !Number.isInteger(payload.offset) || payload.offset !== adapter.pageOffset ||

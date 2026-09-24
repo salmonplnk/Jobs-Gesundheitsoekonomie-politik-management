@@ -1,4 +1,18 @@
 import { canonicalUrl, extractVacancies, isAllowedUrl, isPublicAddress, safePublicUrl, scopedListingUrl, matchesOrganizationScope } from './job-extraction.mjs';
+import { detectAdditionalAdapter, additionalFetchOrg, normalizeAdditionalPayload, extractAdditionalVacancies } from './job-additional-ats-adapter.mjs';
+import { detectRexxAdapter, normalizeRexxPage } from './job-rexx-adapter.mjs';
+import { detectSuccessFactorsAdapter, normalizeSuccessFactorsPage } from './job-successfactors-adapter.mjs';
+import { discoverJobDocuments, extractDocumentVacancy, isJobDocumentUrl } from './job-document-adapter.mjs';
+
+function extractPage(html,org,url,options = {}) {
+  const parsed = detectSuccessFactorsAdapter(org,url) ? normalizeSuccessFactorsPage(html,org,url,options) :
+    detectRexxAdapter(org,url) ? normalizeRexxPage(html,org,url,options) : extractVacancies(html,org,url,options);
+  if (options.detail) {
+    const additional = extractAdditionalVacancies(html,org,url,options);
+    if (additional.jobs.length) return {...parsed,jobs:additional.jobs,rejected:0,malformed:false};
+  }
+  return parsed;
+}
 
 export const CRAWL_LIMITS = Object.freeze({maxListingPages:8,maxDetails:12,maxJobs:60,maxPendingPages:5000,detailConcurrency:2,maxBytes:1500000,timeoutMs:7000,maxRedirects:3});
 
@@ -89,7 +103,7 @@ async function mapLimited(items,concurrency,fn) {
  * Limits are per employer; scheduled workers may raise the Edge defaults.
  * Missing content from an incomplete source never implies a vacancy has closed.
  */
-export async function crawlOrganization(org,fetchPage,{signal,limits:configuredLimits = CRAWL_LIMITS,now = () => new Date().toISOString(),fetchJson,previousJobs = []} = {}) {
+export async function crawlOrganization(org,fetchPage,{signal,limits:configuredLimits = CRAWL_LIMITS,now = () => new Date().toISOString(),fetchJson,fetchDocument,extractDocumentText,previousJobs = []} = {}) {
   const limits = {...CRAWL_LIMITS,...configuredLimits};
   for (const key of ['maxListingPages','maxDetails','maxJobs','maxPendingPages','detailConcurrency']) {
     if (!Number.isInteger(limits[key]) || limits[key] < 0) throw new TypeError(`Invalid crawl limit: ${key}`);
@@ -105,7 +119,7 @@ export async function crawlOrganization(org,fetchPage,{signal,limits:configuredL
   const notes = new Set(),methods = new Set(),unresolved = new Set(),excluded = new Set();
   const scoped = Array.isArray(org.scope_terms) && org.scope_terms.some(term => typeof term === 'string' && term.trim());
   let listingAttempts = 0,listingFailures = 0,detailFailures = 0,detailUnsupported = 0;
-  let listingEvidence = false,explicitEmpty = false,terminalUnknown = 0,expectedCount = 0;
+  let listingEvidence = false,explicitEmpty = false,verifiedScopedEmpty = false,terminalUnknown = 0,expectedCount = 0;
   const remember = job => {
     if (!matchesOrganizationScope(job,org)) { if (!jobs.has(job.id)) excluded.add(job.id); return; }
     excluded.delete(job.id);
@@ -124,7 +138,7 @@ export async function crawlOrganization(org,fetchPage,{signal,limits:configuredL
     if (queued.size + details.size >= limits.maxPendingPages) { unresolved.add(key); notes.add('Seiten-Warteschlange erreicht das Sicherheitslimit.'); return; }
     details.set(key,{...link,url:key});
   };
-  const providers = [];
+  const providers = [{detect:detectAdditionalAdapter,fetchOrg:additionalFetchOrg,normalize:normalizeAdditionalPayload}];
   if (fetchJson) {
     const [ats,prospective] = await Promise.all([import('./job-ats-adapters.mjs'),import('./job-prospective-adapter.mjs')]);
     providers.push({detect:ats.detectAdapter,fetchOrg:ats.adapterFetchOrg,normalize:ats.normalizeAdapterPayload},
@@ -140,10 +154,12 @@ export async function crawlOrganization(org,fetchPage,{signal,limits:configuredL
       if (selected) {
         const {adapter,provider} = selected;
         try {
-          const data = await fetchJson(adapter.apiUrl,provider.fetchOrg(adapter,org),{signal,limits});
-          parsed = provider.normalize(adapter,data.data,org,{fetchedAt:checkedAt,sourceUrl:org.jobs});
+          const transport = adapter.format === 'html' ? fetchPage : fetchJson;
+          const data = await transport(adapter.apiUrl,provider.fetchOrg(adapter,org),{signal,limits});
+          if (adapter.format === 'html' && (!isAllowedUrl(data.url,org) || !provider.detect(org,data.url) || !scopedListingUrl(data.url,entry.url,org))) throw new Error('HTML-Adapter wurde aus seinem bestätigten Quellenbereich umgeleitet.');
+          parsed = provider.normalize(adapter,adapter.format === 'html' ? data.html : data.data,org,{fetchedAt:checkedAt,sourceUrl:org.jobs,pageUrl:data.url});
           if (data.truncated) throw new Error('Datenantwort unvollständig.');
-          page = {url:entry.url,truncated:false}; usedAdapter = true;
+          page = {url:data.url || entry.url,html:adapter.format === 'html' ? data.html : undefined,truncated:false}; usedAdapter = true;
           methods.add(parsed.method || adapter.kind);
           if (parsed.nextApiUrl) enqueueListing({url:parsed.nextApiUrl,kind:'adapter'});
         } catch (error) {
@@ -157,28 +173,40 @@ export async function crawlOrganization(org,fetchPage,{signal,limits:configuredL
         if (!pageKey || !isAllowedUrl(pageKey,org) || !scopedListingUrl(pageKey,entry.url,org)) throw new Error('Arbeitgeberfilter ging bei einer Weiterleitung verloren oder die Quelle ist nicht freigegeben.');
         if (pageKey !== entry.url && visited.has(pageKey)) continue;
         visited.add(pageKey);
-        parsed = extractVacancies(page.html,org,page.url,{fetchedAt:checkedAt});
-        methods.add('html');
+        parsed = extractPage(page.html,org,page.url,{fetchedAt:checkedAt,expectedCount});
+        methods.add(parsed.method || 'html');
       }
       source.pages_scanned++;
       if (page.truncated) { unresolved.add(entry.url); notes.add('Mindestens eine Listenseite überschreitet das Grössenlimit.'); }
       if (parsed.malformed) { unresolved.add(entry.url); notes.add('Strukturierte Quelldaten sind teilweise ungültig.'); }
       if (parsed.rejected) { unresolved.add(entry.url); notes.add(`${parsed.rejected} Einträge ohne verifizierbaren Einzellink oder vollständigen Beschrieb.`); }
       if (parsed.dynamicPagination || parsed.blockedPagination) { unresolved.add(entry.url); notes.add('Weitere Ergebnisse benötigen einen Datenadapter oder einen unverändert gefilterten Folgeseitenlink.'); }
-      if (usedAdapter && parsed.hasPagination && !parsed.nextApiUrl) { unresolved.add(entry.url); notes.add('Der Datenadapter meldet weitere Ergebnisse ohne sicher auslesbaren Folgeseitenlink.'); }
+      if (usedAdapter && parsed.hasPagination && !parsed.nextApiUrl && !parsed.listingLinks?.some(link => link.kind === 'pagination')) { unresolved.add(entry.url); notes.add('Der Datenadapter meldet weitere Ergebnisse ohne sicher auslesbaren Folgeseitenlink.'); }
       if (parsed.blockedEntries) { unresolved.add(entry.url); notes.add('Mindestens ein Karriereportal konnte nicht sicher im Arbeitgeberfilter verfolgt werden.'); }
       if (parsed.unresolvedInlineListings) {
         unresolved.add(entry.url);
         notes.add(`${parsed.unresolvedInlineListings} eingebettete Stellenkarten benötigen einen Datenadapter für vollständige Beschriebe und verifizierbare Einzellinks.`);
       }
-      if (parsed.unsupportedDetails?.length) {
-        for (const link of parsed.unsupportedDetails) unresolved.add(link.url);
-        notes.add(`${parsed.unsupportedDetails.length} Stellenbeschriebe in Dokumentdateien benötigen einen eigenen Extraktor.`);
+      if (parsed.unresolvedEmbeddedListing) {
+        unresolved.add(entry.url);
+        notes.add('Ein eingebettetes Stellenportal liefert noch keine auslesbare Liste.');
+      }
+      const documents = new Map(discoverJobDocuments(page.html,page.url,org).map(link => [link.url,link]));
+      for (const link of parsed.unsupportedDetails || []) if (isJobDocumentUrl(link.url)) documents.set(link.url,{...link,kind:'document',sourceUrl:page.url});
+      const unreadableDocuments = (parsed.unsupportedDetails || []).filter(link => !isJobDocumentUrl(link.url));
+      for (const link of documents.values()) {
+        if (fetchDocument && extractDocumentText) enqueueDetail(link);
+        else unreadableDocuments.push(link);
+      }
+      if (unreadableDocuments.length) {
+        for (const link of unreadableDocuments) unresolved.add(link.url);
+        notes.add(`${unreadableDocuments.length} Stellenbeschriebe in Dokumentdateien benötigen einen verfügbaren Extraktor.`);
       }
       if (Number.isFinite(parsed.expectedCount)) expectedCount = Math.max(expectedCount,parsed.expectedCount);
-      const evidence = usedAdapter ? parsed.complete || parsed.jobs.length > 0 || parsed.explicitEmpty : parsed.listingEvidence;
+      const evidence = documents.size > 0 || parsed.listingEvidence || (usedAdapter && (parsed.complete || parsed.jobs.length > 0 || parsed.explicitEmpty));
       listingEvidence ||= !!evidence;
       explicitEmpty ||= !!parsed.explicitEmpty;
+      verifiedScopedEmpty ||= !!(parsed.explicitEmpty && parsed.scopeVerified);
       const nextListings = parsed.listingLinks || [];
       if (!evidence && !nextListings.length && !parsed.nextApiUrl) terminalUnknown++;
       for (const job of parsed.jobs) {
@@ -205,10 +233,11 @@ export async function crawlOrganization(org,fetchPage,{signal,limits:configuredL
     if (signal?.aborted) return;
     visited.add(link.url);
     try {
-      const page = await fetchPage(link.url,org,{signal,limits});
+      const page = link.kind === 'document' ? await fetchDocument(link.url,org,{signal,limits}) : await fetchPage(link.url,org,{signal,limits});
       if (!isAllowedUrl(page.url,org)) throw new Error('Nicht freigegebene Detailquelle.');
       source.detail_pages_scanned++;
-      const parsed = extractVacancies(page.html,org,page.url,{fetchedAt:checkedAt,detail:true});
+      const parsed = link.kind === 'document' ? await extractDocumentVacancy(page,org,{signal,extractText:extractDocumentText,fetchedAt:checkedAt,label:link.label,sourceUrl:link.sourceUrl}) : extractPage(page.html,org,page.url,{fetchedAt:checkedAt,detail:true});
+      if (link.kind === 'document' && parsed.jobs.length) methods.add('pdf-document');
       if (page.truncated || parsed.rejected || parsed.malformed) { detailFailures++; unresolved.add(link.url); }
       if (!parsed.jobs.length) { detailUnsupported++; unresolved.add(link.url); }
       for (const job of parsed.jobs) remember(job);
@@ -221,12 +250,12 @@ export async function crawlOrganization(org,fetchPage,{signal,limits:configuredL
   source.excluded_jobs = excluded.size;
   if (expectedCount > jobs.size + excluded.size) { unresolved.add(root); notes.add(`Die Quelle nennt ${expectedCount} Stellen; ${jobs.size + excluded.size} vollständige Beschriebe wurden erfasst.`); }
   if (excluded.size) notes.add(`${excluded.size} Stellen ohne belegte Zugehörigkeit zur gewählten Organisation ausgeschlossen.`);
-  if (scoped && !returned.length) notes.add('Keine Stelle ist anhand der konfigurierten Organisationsbegriffe sicher zuordenbar; daraus folgt keine Leermeldung des Arbeitgebers.');
+  if (scoped && !returned.length && !verifiedScopedEmpty) notes.add('Keine Stelle ist anhand der konfigurierten Organisationsbegriffe sicher zuordenbar; daraus folgt keine Leermeldung des Arbeitgebers.');
   if (returned.some(job => job.description_truncated)) notes.add('Mindestens ein Stellenbeschrieb wurde bei 30’000 Zeichen gekürzt.');
   source.pending_pages = new Set([...queue.filter(link => !visited.has(link.url)).map(link => link.url),...detailQueue.filter(link => !visited.has(link.url)).map(link => link.url),...unresolved]).size;
   const incomplete = notes.size > 0 || source.pending_pages > 0 || terminalUnknown > 0;
   source.coverage = listingEvidence ? (incomplete ? 'partial' : 'complete') : 'unknown';
-  if (scoped && !returned.length) source.coverage = 'unknown';
+  if (scoped && !returned.length && !verifiedScopedEmpty) source.coverage = 'unknown';
   source.status = returned.length ? (source.coverage === 'complete' ? 'ok' : 'partial') :
     (explicitEmpty && source.coverage === 'complete' ? 'empty' : (listingFailures && !source.pages_scanned ? 'error' : 'unsupported'));
   source.method = [...methods].join('+') || 'html';

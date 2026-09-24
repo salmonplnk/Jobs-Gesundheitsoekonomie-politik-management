@@ -5,7 +5,7 @@ import { isAllowedUrl, isPublicAddress, safePublicUrl } from '../supabase/functi
 import { fetchPublicPage } from '../supabase/functions/_shared/job-crawler.mjs';
 
 export const USER_AGENT = 'SwissHealthJobs/3.0 (+public vacancy index; respects robots.txt)';
-export const NETWORK_LIMITS = Object.freeze({maxBytes:2_000_000, timeoutMs:20_000, maxRedirects:5,
+export const NETWORK_LIMITS = Object.freeze({maxBytes:2_000_000, maxDocumentBytes:8 * 1024 * 1024, timeoutMs:20_000, maxRedirects:5,
   maxDetails:500, maxJobs:2000, maxListingPages:50, maxPendingPages:5000, detailConcurrency:2});
 const REDIRECTS = new Set([301,302,303,307,308]);
 
@@ -142,7 +142,23 @@ export function createPublicNetwork({fetcher = fetch, resolver = resolvePublicHo
     if (!fetchPublicJson) throw new Error('JSON-Adapter nicht verfügbar.');
     return fetchPublicJson(url, org, {...options, limits, resolver, fetcher:forOrganization(org)});
   }
-  return {page, json, allowed, forOrganization, limits};
+  async function document(url, org, options = {}) {
+    await allowed(url, org, options);
+    const {response, url:finalUrl} = await fetchBrowserResource({forOrganization, limits}, url, org, options);
+    if (!response.ok) { await response.body?.cancel(); throw new Error(`Dokument antwortet mit HTTP ${response.status}.`); }
+    const contentType = response.headers.get('content-type') || '';
+    const maxBytes = limits.maxDocumentBytes || 8 * 1024 * 1024;
+    if (Number(response.headers.get('content-length')) > maxBytes) {
+      await response.body?.cancel(); throw new Error('PDF überschreitet das Grössenlimit.');
+    }
+    if (!/^(?:application\/pdf|application\/octet-stream)(?:;|$)/i.test(contentType)) {
+      await response.body?.cancel(); throw new Error('Quelle liefert kein öffentliches PDF.');
+    }
+    const bytes = await limitedBody(response, maxBytes);
+    if (!bytes.subarray(0, 5).equals(Buffer.from('%PDF-'))) throw new Error('Dokument besitzt keine gültige PDF-Kennung.');
+    return {bytes:new Uint8Array(bytes), url:finalUrl, contentType, truncated:false};
+  }
+  return {page, json, document, allowed, forOrganization, limits};
 }
 
 /** Public JS rendering only: no persisted sessions, credentials, forms, or CAPTCHA solving. */

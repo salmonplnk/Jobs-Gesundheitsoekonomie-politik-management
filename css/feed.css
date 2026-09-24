@@ -26,7 +26,7 @@ body.dark #publicJobFeed .jf-button { color: #102c28; }
 #publicJobFeed .jf-button-secondary:not(:disabled):hover { background: var(--jf-tint); }
 body.dark #publicJobFeed .jf-button-secondary { color: var(--jf-teal); }
 #publicJobFeed .jf-heading > button { flex-shrink: 0; }
-#publicJobFeed .jf-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--jf-line); border-radius: 10px; overflow: hidden; background: var(--jf-surface); }
+#publicJobFeed .jf-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--jf-line); border-radius: 10px; overflow: hidden; background: var(--jf-surface); }
 #publicJobFeed .jf-metrics > div { padding: .7rem 1rem; border-right: 1px solid var(--jf-line); }
 #publicJobFeed .jf-metrics > div:last-child { border-right: 0; }
 #publicJobFeed .jf-metrics strong { display: block; color: var(--jf-ink); font-size: 1.15rem; font-weight: 750; }
@@ -88,10 +88,10 @@ body.dark #publicJobFeed .jf-button-secondary { color: var(--jf-teal); }
   #publicJobFeed .jf-shell { padding: 1rem; border-radius: 13px; }
   #publicJobFeed .jf-heading { flex-direction: column; gap: .8rem; }
   #publicJobFeed h2 { font-size: 1.25rem; }
-  #publicJobFeed .jf-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #publicJobFeed .jf-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #publicJobFeed .jf-metrics > div { border-bottom: 1px solid var(--jf-line); padding: .65rem; }
-  #publicJobFeed .jf-metrics > div:nth-child(3) { border-right: 0; }
-  #publicJobFeed .jf-metrics > div:nth-child(n+4) { border-bottom: 0; }
+  #publicJobFeed .jf-metrics > div:nth-child(2n) { border-right: 0; }
+  #publicJobFeed .jf-metrics > div:nth-child(n+3) { border-bottom: 0; }
   #publicJobFeed .jf-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #publicJobFeed .jf-job { flex-direction: column; align-items: stretch; padding: .85rem; gap: .85rem; }
   #publicJobFeed .jf-job-action { flex: none; align-items: stretch; }
@@ -102,3 +102,8 @@ body.dark #publicJobFeed .jf-button-secondary { color: var(--jf-teal); }
   #publicJobFeed .jf-empty-state { padding: 1.5rem .8rem; }
 }
 @media (prefers-reduced-motion: reduce) { #publicJobFeed * { scroll-behavior: auto; } }
+
+#publicJobFeed .jf-focus-note { color: var(--jf-muted); font-size: .72rem; margin-top: .45rem; max-width: 690px; }
+#publicJobFeed .jf-scope-summary { color: var(--jf-muted); font-size: .72rem; line-height: 1.5; margin-top: .5rem; }
+#publicJobFeed .jf-relevance { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem .55rem; margin-top: .5rem; color: var(--jf-muted); font-size: .67rem; line-height: 1.5; }
+#publicJobFeed .jf-focus-badge { border-radius: 5px; padding: .2rem .45rem; color: var(--jf-teal); background: var(--jf-tint); font-weight: 650; }

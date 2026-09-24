@@ -108,7 +108,7 @@ const detailPath = /(?:\/(?:jobs?|positions?|stellen?|vacanc(?:y|ies)|requisitio
 const listingEnd = /\/(?:careers?|karriere|jobs?|jobs?-karriere|jobs?-und-karriere|stellen(?:angebote|portal|markt)?|offene-stellen|vacancies|positions?|job-search|jobboerse|emplois?|offres?|offres-d-?emploi)(?:\.html?)?\/?$/i;
 const pageParameter = /^(?:page|p|offset|start|skip|from|cursor|next|pageNumber|pageIndex|currentPage|tx_[^\[]+\[(?:page|currentPage)\])$/i;
 const paginationPath = /\/(?:page|seite)\/\d+(?:\/|$)/i;
-const blockedLink = /(?:bewerbungsprozess|job[-_]?alert|privacy|datenschutz|login|register|anmelden|\/apply(?:\/|$)|\/application(?:\/|$))/i;
+const blockedLink = /(?:bewerbungsprozess|job[-_]?alert|jobabo|privacy|datenschutz|login|register|anmelden|\/apply(?:\/|$)|\/application(?:\/|$))/i;
 const careerNavigation = /\/(?:[^/]*(?:bewerbung|benefit|vorteile|kultur|werte|entwicklung|arbeiten-|berufsbild|lehrstellen|ausbildung|arbeitswelt|stellenvermittlung|job-finder|sitesearch|offres-stage|uebrige-institutionen|personalvermittler)[^/]*)$/i;
 export function looksLikeDetailUrl(raw) {
   const url = safePublicUrl(raw);
@@ -299,7 +299,7 @@ export function discoverJobPages(html, pageUrl, org) {
     const a = attributes(match[1]), raw = a.src || a['data-src'];
     if (!raw) continue;
     const target = safePublicUrl(raw,pageUrl);
-    if (!target || !isAllowedUrl(target.href,org) || /\/(?:header|footer|tracking|captcha|cookie)[^/]*(?:\/|$)/i.test(target.pathname)) continue;
+    if (!target || !isAllowedUrl(target.href,org) || blockedLink.test(target.href) || /\/(?:header|footer|tracking|captcha|cookie)[^/]*(?:\/|$)/i.test(target.pathname)) continue;
     if (/job|career|karriere|stellen|vacanc|recruit|solique|umantis|rexx|greenhouse|lever\.co|recruitee|softgarden|successfactors|csod/i.test(`${target.href} ${a.title || ''} ${a.id || ''}`)) addListing(raw,a.title || 'Karriereportal','iframe');
   }
   const visible = cleanText(html);
@@ -319,6 +319,18 @@ export function matchesOrganizationScope(job,org) {
   const normalize = text => String(text || '').normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
   const evidence = ` ${normalize(`${job.title || ''}\n${job.hiring_organization || ''}\n${job.description || ''}`)} `;
   return terms.some(term => { const wanted = normalize(term); return wanted && evidence.includes(` ${wanted} `); });
+}
+
+/** An explicit public ATS mount remains an unexamined list until its container
+ * has rendered. A PDF in another section does not prove this list is complete.
+ */
+function hasUnresolvedEmbeddedListing(html) {
+  const active = String(html).replace(/<!--[\s\S]*?-->/g,'');
+  const scripts = [...active.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)].map(match => match[1]).join('\n');
+  const ids = new Set([...scripts.matchAll(/\bOSTENDISJOBS\s*\.\s*embed\s*\(\s*["']#([a-z][\w:.-]*)["']/gi)].map(match => match[1]));
+  if (!ids.size) return false;
+  return [...active.matchAll(/<([a-z][\w:-]*)\b([^>]*)>\s*<\/\1\s*>/gi)]
+    .some(match => ids.has(attributes(match[2]).id));
 }
 
 export function extractVacancies(html, org, pageUrl, options = {}) {
@@ -353,6 +365,7 @@ export function extractVacancies(html, org, pageUrl, options = {}) {
   }
   const unique = [...new Map(jobs.map(j => [j.id, j])).values()];
   const discovery = discoverJobPages(html, pageUrl, org);
+  const unresolvedEmbeddedListing = hasUnresolvedEmbeddedListing(html);
   const links = discovery.links.filter(link => !unique.some(job => job.url === link.url));
   const visible = cleanText(html);
   // Filter widgets often ship a hidden "no matches" message beside real cards.
@@ -360,11 +373,11 @@ export function extractVacancies(html, org, pageUrl, options = {}) {
     .replace(/<template\b[^>]*>[\s\S]*?<\/template\s*>/gi, '')
     .replace(/<([a-z][\w:-]*)\b(?=[^>]*\shidden(?:\s|=|>))[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
     .replace(/<([a-z][\w:-]*)\b(?=[^>]*\saria-hidden\s*=\s*["']true["'])[^>]*>[\s\S]*?<\/\1\s*>/gi, ''));
-  const explicitEmpty = !nodes.length && !discovery.links.length && !discovery.inlineVacancyCount && /(?:keine (?:offenen |passenden |freien |aktuellen )?(?:Stellen|Vakanzen)|aktuell (?:keine|nicht auf der Suche)|no (?:open |current |matching )?(?:jobs|vacancies|positions)|aucun(?:e)? (?:poste|offre|emploi))/i.test(emptyEvidence);
+  const explicitEmpty = !unresolvedEmbeddedListing && !nodes.length && !discovery.links.length && !discovery.inlineVacancyCount && /(?:keine (?:offenen |passenden |freien |aktuellen )?(?:Stellen|Vakanzen)|aktuell (?:keine|nicht auf der Suche)|no (?:open |current |matching )?(?:jobs|vacancies|positions)|aucun(?:e)? (?:poste|offre|emploi))/i.test(emptyEvidence);
   const unresolvedInlineListings = Math.max(0, discovery.inlineVacancyCount - new Set([...unique.map(job => job.url),...discovery.links.map(link => link.url)]).size);
   const hasPagination = discovery.paginationLinks.length > 0 || discovery.dynamicPagination || discovery.blockedPagination > 0;
-  const listingEvidence = explicitEmpty || discovery.links.length > 0 || discovery.inlineVacancyCount > 0 || nodes.length > 1 || (nodes.length > 0 && !looksLikeDetailUrl(pageUrl));
+  const listingEvidence = explicitEmpty || unresolvedEmbeddedListing || discovery.links.length > 0 || discovery.inlineVacancyCount > 0 || nodes.length > 1 || (nodes.length > 0 && !looksLikeDetailUrl(pageUrl));
   const countMatch = visible.match(/\b(\d{1,5})\s+(?:offene Stellen|Stellenangebote|open positions|jobs found|offres d.emploi)\b/i) ||
     visible.match(/(?:Ergebnisse|results|Stellen)\s+\d+\s*[-–]\s*\d+\s+(?:von|of|sur)\s+(\d{1,5})\b/i);
-  return {jobs:unique,...discovery,links,explicitEmpty,hasPagination,listingEvidence,unresolvedInlineListings,expectedCount:countMatch ? Number(countMatch[1]) : null,malformed,rejected};
+  return {jobs:unique,...discovery,links,explicitEmpty,hasPagination,listingEvidence,unresolvedInlineListings,unresolvedEmbeddedListing,expectedCount:countMatch ? Number(countMatch[1]) : null,malformed,rejected};
 }

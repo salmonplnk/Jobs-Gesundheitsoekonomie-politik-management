@@ -38,9 +38,11 @@
     },
     "seco": {
       "evidence_urls": [
-        "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083355"
+        "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083382",
+        "https://ohws.prospective.ch/public/v1/medium/1000624/attributes?lang=de&returnValuesAsArray=1",
+        "https://jobs.admin.ch/careercenter/1000624/static/index-B28v8xCu.js"
       ],
-      "note": "JavaScript-Careercenter 1000624. Den bestehenden Verwaltungseinheitsfilter zwingend bis zur Datenauswahl erhalten; Gesamtliste nicht dem einzelnen Amt zuordnen. Zusätzlich Arbeitgeberzuordnung mit scope_terms prüfen, da alte Filterparameter von neuen Frontends ignoriert werden können. Unklare Zuordnung nicht übernehmen und partielle Abdeckung melden.",
+      "note": "Am 24.09.2026 anhand der offiziellen Filtermetadaten korrigiert: Staatssekretariat für Wirtschaft SECO hat Wert 1083382; bisheriger Wert 1083355 gehörte zu einem anderen Amt. Das offizielle Frontend gruppiert Kindwerte im Filter f=verwaltungseinheit. Öffentlicher gefilterter /jobs-Abruf bestätigte total19. Unverändert zusätzlich scope_terms gegen tatsächliche Arbeitgeberzuordnung prüfen; keine Gesamtstellenliste einem einzelnen Amt zuweisen.",
       "adapter": "prospective",
       "allowed_hosts": [
         "ohws.prospective.ch"
@@ -51,13 +53,16 @@
         "Secrétariat d’État à l’économie",
         "Secrétariat d’Etat à l’économie",
         "Segreteria di Stato dell’economia"
-      ]
+      ],
+      "jobs": "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083382"
     },
     "bfs": {
       "evidence_urls": [
-        "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083346"
+        "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083355",
+        "https://ohws.prospective.ch/public/v1/medium/1000624/attributes?lang=de&returnValuesAsArray=1",
+        "https://jobs.admin.ch/careercenter/1000624/static/index-B28v8xCu.js"
       ],
-      "note": "JavaScript-Careercenter 1000624. Den bestehenden Verwaltungseinheitsfilter zwingend bis zur Datenauswahl erhalten; Gesamtliste nicht dem einzelnen Amt zuordnen. Zusätzlich Arbeitgeberzuordnung mit scope_terms prüfen, da alte Filterparameter von neuen Frontends ignoriert werden können. Unklare Zuordnung nicht übernehmen und partielle Abdeckung melden.",
+      "note": "Am 24.09.2026 anhand der offiziellen Filtermetadaten korrigiert: Bundesamt für Statistik BFS hat Wert 1083355; bisheriger Wert 1083346 gehörte zu einem anderen Amt. Das offizielle Frontend gruppiert Kindwerte im Filter f=verwaltungseinheit. Öffentlicher gefilterter /jobs-Abruf bestätigte total0. Unverändert zusätzlich scope_terms gegen tatsächliche Arbeitgeberzuordnung prüfen; keine Gesamtstellenliste einem einzelnen Amt zuweisen.",
       "adapter": "prospective",
       "allowed_hosts": [
         "ohws.prospective.ch"
@@ -68,7 +73,8 @@
         "Office fédéral de la statistique",
         "OFS",
         "Ufficio federale di statistica"
-      ]
+      ],
+      "jobs": "https://jobs.admin.ch/?lang=de&f=verwaltungseinheit:1083355"
     },
     "snf": {
       "evidence_urls": [
@@ -161,12 +167,15 @@
     },
     "kpt": {
       "evidence_urls": [
-        "https://www.kpt.ch/de/ueber-kpt/arbeiten-bei-der-kpt/offene-stellen"
+        "https://www.kpt.ch/de/jobs-karriere/offene-stellen",
+        "https://jobs.kpt.ch/",
+        "https://jobs.kpt.ch/careercenter/1007102/static/index-Bt86XC4K.js"
       ],
-      "note": "Auf der offiziellen Jobs-Seite eingebettetes öffentliches Stellenportal. Filter/Query aus dem veröffentlichten iframe erhalten.",
-      "jobs": "https://ohws.prospective.ch/public/v2/careercenter/1007102/?lang=de&f=30:1690495,1690493,1690494",
+      "note": "Am 24.09.2026: offizieller Karrierepfad /de/jobs-karriere/offene-stellen HTTP200 verweist auf jobs.kpt.ch. Portal und veröffentlichtes Frontend-Bundle bestätigen Careercenter 1007102 und öffentliche /public/v1/medium/1007102/jobs-API mit12 vollständigen Inseraten. Der bisherige /public/v2/careercenter/-iframe-Pfad lieferte bei der Nachprüfung ebenfalls HTTP200, aber nur die JavaScript-Hülle; das aktuelle Portal ermöglicht den verifizierten Datenadapter. Identischen veröffentlichten Filter f=30:1690495,1690493,1690494 erhalten.",
+      "jobs": "https://jobs.kpt.ch/?lang=de&f=30:1690495,1690493,1690494",
       "adapter": "prospective",
       "allowed_hosts": [
+        "jobs.kpt.ch",
         "ohws.prospective.ch"
       ]
     },
@@ -325,13 +334,15 @@
     "helsana": {
       "evidence_urls": [
         "https://www.helsana.ch/de/helsana-gruppe/jobs/stellenangebote.html",
-        "https://careers.helsana.ch/"
+        "https://jobs.helsana.ch/?lang=de",
+        "https://jobs.helsana.ch/careercenter/1002787/assets/js/loadMoreResults.js"
       ],
-      "note": "Aktuelles offizielles SAP-SuccessFactors-Karriereportal, direkter Abruf HTTP200 am Prüftag.",
-      "jobs": "https://careers.helsana.ch/",
-      "adapter": "successfactors",
+      "note": "Am 24.09.2026 verifizierter offizieller iframe: jobs.helsana.ch/?lang=de statt veraltetem careers.helsana.ch. Portal HTTP200 mit12 verlinkten Einzelstellen direkt im HTML, Assets bestätigen Careercenter1002787. Öffentliches loadMoreResults.js blendet vorhandene DOM-Karten ein; keine weitere GET-API verifiziert. Native HTML- und Detailauslese verwenden; keine leere Stellenliste aus der alten Danke-Seite ableiten.",
+      "jobs": "https://jobs.helsana.ch/?lang=de",
+      "adapter": "prospective",
       "allowed_hosts": [
-        "careers.helsana.ch"
+        "jobs.helsana.ch",
+        "ohws.prospective.ch"
       ]
     },
     "sanitas": {
@@ -452,13 +463,15 @@
     },
     "srk": {
       "evidence_urls": [
-        "https://www.redcross.ch/de/arbeiten-beim-srk-sinnvoll-und-herausfordernd"
+        "https://www.redcross.ch/de/arbeiten-beim-srk-sinnvoll-und-herausfordernd",
+        "https://rexx.redcross.ch/"
       ],
-      "note": "Offizielle SRK-Seite verlinkt das externe Stellenportal rexx.redcross.ch.",
+      "note": "Offizielle SRK-Karriereseite verlinkt das öffentliche Stellenportal rexx.redcross.ch; am 24.09.2026 mit drei verlinkten Einzelstellen bestätigt. Einzellinks, tatsächliche Arbeitgeber und vollständige Beschriebe aus dem Portal übernehmen.",
       "adapter": "rexx",
       "allowed_hosts": [
         "rexx.redcross.ch"
-      ]
+      ],
+      "jobs": "https://rexx.redcross.ch/"
     },
     "pflegewegweiser": {
       "evidence_urls": [
@@ -543,6 +556,22 @@
         "FGM",
         "FGW"
       ]
+    },
+    "hirslanden": {
+      "evidence_urls": [
+        "https://www.hirslanden.ch/de/corporate/jobs-und-karriere/offene-stellen.html",
+        "https://careers.mediclinic.com/Hirslanden/?locale=de",
+        "https://careers.mediclinic.com/Hirslanden/go/Search-By-Keyword-MCCH/5071201/"
+      ],
+      "jobs": "https://careers.mediclinic.com/Hirslanden/go/Search-By-Keyword-MCCH/5071201/",
+      "adapter": "successfactors",
+      "allowed_hosts": [
+        "careers.mediclinic.com"
+      ],
+      "scope_terms": [
+        "Hirslanden"
+      ],
+      "note": "Offizielle Hirslanden-Stellenseite leitet am 24.09.2026 auf careers.mediclinic.com/Hirslanden um; dort veröffentlichte Suchliste HTTP200 mit 50 von365 Stellen. Listenpagination vollständig abarbeiten; ausschliesslich Hirslanden zuordnen, keine anderen Mediclinic-Landesgesellschaften übernehmen."
     }
   }
 }
