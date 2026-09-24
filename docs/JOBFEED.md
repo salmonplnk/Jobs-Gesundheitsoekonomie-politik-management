@@ -21,7 +21,11 @@ Bei eingeschränkten oder fehlgeschlagenen Abrufen bleiben bisherige Inserate er
 
 ## Automatisierung und Veröffentlichung
 
-`.github/workflows/job-feed.yml` führt den Abruf um 05:17 und 17:17 UTC sowie manuell aus. Läufe auf Entwicklungsbranches erzeugen Prüf-Artefakte. Nur der Hauptbranch veröffentlicht den Datenstand auf dem separaten Branch `job-feed-data`; er überschreibt keinen Anwendungscode.
+`.github/workflows/job-feed.yml` führt den Abruf um 05:17 und 17:17 UTC sowie manuell aus. Seine Läufe auf Entwicklungsbranches erzeugen Prüf-Artefakte. Die regelmässige Veröffentlichung auf dem separaten Branch `job-feed-data` erfolgt ausschliesslich vom Hauptbranch; sie überschreibt keinen Anwendungscode.
+
+Für den ersten Datenstand vor der Freigabe der Gesamtanwendung gibt es den ausdrücklich getrennten Workflow `.github/workflows/job-feed-bootstrap.yml`. Nur ein Push auf den fest benannten Branch `codex/job-feed-bootstrap-20260924` startet diese einmalige Veröffentlichung. Der reguläre Workflow ignoriert diesen Branch, damit derselbe Push keinen zweiten Abruf auslöst. Der Bootstrap bricht ab, sobald `job-feed-data` bereits existiert. Vor der Veröffentlichung führt er die Regressionstests, einen frischen Abruf aller 85 Quellen, die Prüfung sämtlicher Quelldateien sowie die Chromium-Prüfung der Oberfläche mit diesem Feed aus. Der neue Datenbranch enthält ausschliesslich die öffentlichen JSON-Dateien. Screenshots, Prüfbericht und Feed bleiben zusätzlich als Actions-Artefakt verfügbar.
+
+Dieser Bootstrap ändert weder den Hauptbranch noch Supabase und aktiviert keine regelmässigen Abrufe. Dafür muss der reguläre Workflow später gemäss `DEPLOYMENT.md` auf den Hauptbranch übernommen werden. Dessen Hauptbranch-Beschränkung bleibt unverändert.
 
 Standardadresse des Browsers:
 
