@@ -1,14 +1,9 @@
 /* Public snapshot controls are scoped independently from the personal workspace. */
 #publicJobFeed {
-  --jf-ink: #203a45; --jf-teal: #146b64; --jf-teal-hover: #0e554f;
-  --jf-tint: #eaf4f1; --jf-surface: #f6f8f7; --jf-line: #dce5e2; --jf-muted: #5c706f;
-  --jf-warn: #875c17; --jf-warn-tint: #fff5df; --jf-danger: #aa3434; --jf-danger-tint: #fdf0ee;
+  --jf-ink: var(--c-ink); --jf-teal: var(--c-brand); --jf-teal-hover: var(--c-brand-strong);
+  --jf-tint: var(--c-brand-tint); --jf-surface: var(--c-surface-2); --jf-line: var(--c-line); --jf-muted: var(--c-ink-2);
+  --jf-warn: var(--c-accent-ink); --jf-warn-tint: var(--c-accent-tint); --jf-danger: var(--c-danger); --jf-danger-tint: var(--c-danger-tint);
   margin-bottom: 1.6rem; color: var(--text);
-}
-body.dark #publicJobFeed {
-  --jf-ink: #e0eeec; --jf-teal: #83d5c7; --jf-teal-hover: #a8e7dc;
-  --jf-tint: #193832; --jf-surface: #19242b; --jf-line: #344347; --jf-muted: #afbfbe;
-  --jf-warn: #edc484; --jf-warn-tint: #3a3324; --jf-danger: #ffb2ac; --jf-danger-tint: #432826;
 }
 #publicJobFeed .jf-shell { padding: 1.5rem; border: 1px solid var(--jf-line); border-radius: 18px; background: var(--card); box-shadow: 0 8px 28px #203b4608; }
 #publicJobFeed .jf-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; margin-bottom: 1.25rem; }
@@ -19,9 +14,8 @@ body.dark #publicJobFeed {
 #publicJobFeed button { cursor: pointer; }
 #publicJobFeed button:disabled { opacity: .5; cursor: default; }
 #publicJobFeed :is(button, input, select, a, summary):focus-visible { outline: 3px solid var(--jf-teal); outline-offset: 3px; }
-#publicJobFeed .jf-button { min-height: 40px; padding: .55rem .85rem; background: var(--jf-teal); color: #fff; border: 1px solid var(--jf-teal); border-radius: 8px; font-size: .78rem; font-weight: 650; line-height: 1.35; }
+#publicJobFeed .jf-button { min-height: 40px; padding: .55rem .85rem; background: var(--jf-teal); color: var(--c-on-brand); border: 1px solid var(--jf-teal); border-radius: 8px; font-size: .78rem; font-weight: 650; line-height: 1.35; }
 #publicJobFeed .jf-button:not(:disabled):hover { background: var(--jf-teal-hover); }
-body.dark #publicJobFeed .jf-button { color: #102c28; }
 #publicJobFeed .jf-button-secondary { background: var(--card); color: var(--jf-teal); border-color: var(--jf-line); white-space: nowrap; }
 #publicJobFeed .jf-button-secondary:not(:disabled):hover { background: var(--jf-tint); }
 body.dark #publicJobFeed .jf-button-secondary { color: var(--jf-teal); }

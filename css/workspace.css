@@ -3,46 +3,20 @@
 .jw-shell,
 .jw-dialog,
 .jw-directory {
-  --jw-ink: #203a45;
-  --jw-teal: #146b64;
-  --jw-teal-hover: #0e554f;
-  --jw-tint: #eaf4f1;
-  --jw-surface: #f6f8f7;
-  --jw-line: #dce5e2;
-  --jw-muted: #5c706f;
-  --jw-danger: #aa3434;
-  --jw-danger-tint: #fdf0ee;
-  --jw-warn: #875c17;
-  --jw-warn-tint: #fff5df;
-  --jw-focus: #17847a;
+  --jw-ink: var(--c-ink);
+  --jw-teal: var(--c-brand);
+  --jw-teal-hover: var(--c-brand-strong);
+  --jw-tint: var(--c-brand-tint);
+  --jw-surface: var(--c-surface-2);
+  --jw-line: var(--c-line);
+  --jw-muted: var(--c-ink-2);
+  --jw-danger: var(--c-danger);
+  --jw-danger-tint: var(--c-danger-tint);
+  --jw-warn: var(--c-accent-ink);
+  --jw-warn-tint: var(--c-accent-tint);
+  --jw-focus: var(--c-focus);
   color: var(--text);
 }
-body.dark .jw-shell,
-body.dark .jw-dialog,
-body.dark .jw-directory {
-  --jw-ink: #e0eeec;
-  --jw-teal: #83d5c7;
-  --jw-teal-hover: #a8e7dc;
-  --jw-tint: #193832;
-  --jw-surface: #19242b;
-  --jw-line: #344347;
-  --jw-muted: #afbfbe;
-  --jw-danger: #ffb2ac;
-  --jw-danger-tint: #432826;
-  --jw-warn: #edc484;
-  --jw-warn-tint: #3a3324;
-  --jw-focus: #83d5c7;
-}
-.jw-site-header {
-  background: #203b46;
-  padding: 4.3rem 1.5rem 3.15rem;
-  text-align: left;
-}
-.jw-site-header h1,
-.jw-site-header > p { max-width: 1260px; margin-right: auto; margin-left: auto; }
-.jw-site-header h1 { font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 700; }
-.jw-site-header > p { color: #d0dedb; opacity: 1; max-width: 1260px; }
-.jw-site-main { max-width: 1292px; }
 .jw-shell { margin-bottom: 1.5rem; min-width: 0; }
 .jw-shell > * { min-width: 0; }
 .jw-shell [hidden],
@@ -218,7 +192,7 @@ body.dark .jw-directory {
   transition: background-color .15s, border-color .15s;
 }
 .jw-btn:hover { background: var(--jw-surface); border-color: var(--jw-muted); }
-.jw-btn.primary { color: #fff; background: #146b64; border-color: #146b64; }
+.jw-btn.primary { color: var(--c-on-brand); background: var(--c-brand); border-color: var(--c-brand); }
 .jw-btn.primary:hover { background: #0e554f; border-color: #0e554f; }
 .jw-btn.secondary { color: var(--jw-teal); background: var(--jw-tint); border-color: transparent; }
 .jw-btn.secondary:hover { border-color: var(--jw-teal); }
@@ -325,7 +299,6 @@ div.jw-history { margin: .7rem 0; padding: .7rem 1rem; border-left: 2px solid va
   .jw-split { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 720px) {
-  .jw-site-header { padding: 4.5rem 1.25rem 3rem; }
   .jw-top { padding: 1.15rem; }
   .jw-nav { padding-left: .55rem; padding-right: .55rem; }
   .jw-nav button { font-size: .8rem; padding: .8rem .65rem; }
@@ -341,7 +314,6 @@ div.jw-history { margin: .7rem 0; padding: .7rem 1rem; border-left: 2px solid va
   .jw-table :is(th, td) { min-width: 185px; padding: .75rem; }
 }
 @media (max-width: 420px) {
-  .jw-site-main { padding: 0 .65rem; }
   .jw-top .jw-actions { width: 100%; }
   .jw-top .jw-actions .jw-btn { flex: 1; }
   .jw-toolbar > select { flex: 1 1 100%; }
@@ -356,10 +328,7 @@ div.jw-history { margin: .7rem 0; padding: .7rem 1rem; border-left: 2px solid va
   .jw-shell *, .jw-dialog * { transition: none !important; scroll-behavior: auto !important; }
 }
 @media print {
-  .jw-site-header { color: #000; background: transparent; padding: 1rem 0; }
-  .jw-site-header > p { color: #333; }
   .jw-nav, .jw-toolbar, .jw-filters, .jw-actions, .jw-directory, .jw-dialog-head > button { display: none !important; }
-  .jw-site-main { margin: 0; padding: 0; max-width: none; }
   .jw-card, .jw-panel, .jw-stat { box-shadow: none; break-inside: avoid; border-color: #ccc; }
   .jw-compare-wrapper, .jw-board { overflow: visible; }
   .jw-board { display: block; }

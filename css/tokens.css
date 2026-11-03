@@ -1,0 +1,87 @@
+/* Design tokens: the single source for colour, type, radius and elevation.
+   Light values on :root, dark values on body.dark (set by js/site.js from the
+   system preference or the explicit toggle). Component stylesheets only use
+   these tokens or the legacy aliases mapped below. */
+:root {
+  --c-bg: #f4f6f5;
+  --c-surface: #ffffff;
+  --c-surface-2: #eef3f1;
+  --c-line: #dbe4e1;
+  --c-line-strong: #c2d0cc;
+  --c-ink: #142826;
+  --c-ink-2: #4f6562;
+  --c-brand: #0f5c56;
+  --c-brand-strong: #0a4540;
+  --c-brand-tint: #e2eeeb;
+  --c-on-brand: #ffffff;
+  --c-accent: #f0b44c;
+  --c-accent-ink: #7a5410;
+  --c-accent-tint: #fdf3df;
+  --c-danger: #a8322f;
+  --c-danger-tint: #fbeceb;
+  --c-ok: #1f7a4d;
+  --c-ok-tint: #e5f4ec;
+  --c-focus: #1b8a80;
+  --c-header: #0d2b29;
+  --c-header-ink: #f1f7f5;
+  --c-header-muted: #a9c4bf;
+
+  --f-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --f-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --r-s: 6px;
+  --r-m: 10px;
+  --r-l: 16px;
+  --e-1: 0 1px 2px rgba(13, 43, 41, .06), 0 2px 8px rgba(13, 43, 41, .04);
+  --e-2: 0 6px 24px rgba(13, 43, 41, .10);
+  --container: 1200px;
+
+}
+/* Legacy aliases used by older stylesheets. Declared on body so they resolve
+   against the dark values when body.dark is set. */
+body {
+  --bg: var(--c-bg);
+  --card: var(--c-surface);
+  --text: var(--c-ink);
+  --accent: var(--c-brand);
+  --accent2: var(--c-brand-strong);
+  --muted: var(--c-ink-2);
+  --border: var(--c-line);
+  --hover: var(--c-brand-tint);
+  --shadow: var(--e-1);
+  --fav: var(--c-accent);
+  --radius: var(--r-m);
+}
+html[data-theme="dark"] body,
+body.dark {
+  --c-bg: #0d1615;
+  --c-surface: #142120;
+  --c-surface-2: #1a2a28;
+  --c-line: #293b38;
+  --c-line-strong: #3a524e;
+  --c-ink: #e4eeec;
+  --c-ink-2: #9db2ae;
+  --c-brand: #6fcabb;
+  --c-brand-strong: #98ddd1;
+  --c-brand-tint: #16332f;
+  --c-on-brand: #0a2421;
+  --c-accent: #f0b44c;
+  --c-accent-ink: #f3c877;
+  --c-accent-tint: #3a2f18;
+  --c-danger: #f2a19c;
+  --c-danger-tint: #3c2120;
+  --c-ok: #7fd4a6;
+  --c-ok-tint: #173326;
+  --c-focus: #6fcabb;
+  --c-header: #0a1312;
+  --c-header-ink: #e4eeec;
+  --c-header-muted: #8fa9a4;
+  --e-1: 0 1px 2px rgba(0, 0, 0, .3);
+  --e-2: 0 8px 28px rgba(0, 0, 0, .4);
+  color-scheme: dark;
+}
+html { color-scheme: light; }
+body { font-family: var(--f-body); background: var(--c-bg); color: var(--c-ink); font-size: 16px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; }
+:where(strong, .num, td, .stat-val) { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 3px solid var(--c-focus); outline-offset: 2px; }

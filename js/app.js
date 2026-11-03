@@ -350,16 +350,7 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-/* ======== Dark Mode ======== */
-const themeBtn = document.getElementById('themeToggle');
-const isDark = localStorage.getItem('darkMode') === '1';
-document.body.classList.toggle('dark', isDark);
-themeBtn.textContent = isDark ? '☀️' : '🌙';
-themeBtn.addEventListener('click', () => {
-  const dark = document.body.classList.toggle('dark');
-  localStorage.setItem('darkMode', dark ? '1' : '0');
-  themeBtn.textContent = dark ? '☀️' : '🌙';
-});
+/* Theme handling lives in js/site.js. */
 
 /* ======== Render Card ======== */
 function cardHTML(org, isFav) {
