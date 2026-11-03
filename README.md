@@ -4,7 +4,7 @@ Stellen suchen, die Passung zum eigenen Profil prüfen und Bewerbungen organisie
 
 ## Funktionen
 
-- Öffentlicher Jobfeed ohne Anmeldung: Fachfilter für Gesundheitsökonomie, Politik, Public Health, Gesundheitsmanagement und Gesundheitsdaten. Alle 85 Katalogquellen erhalten einen eigenen Abrufstatus; passende Stellen durchsuchen und bei Bedarf in die persönliche Arbeitsfläche übernehmen.
+- Öffentlicher Jobfeed ohne Anmeldung: Fachfilter für Gesundheitsökonomie, Politik, Public Health, Gesundheitsmanagement und Gesundheitsdaten. Alle 97 Katalogquellen erhalten einen eigenen Abrufstatus; passende Stellen durchsuchen und bei Bedarf in die persönliche Arbeitsfläche übernehmen.
 
 - Arbeitgeber auf einer geografischen Schweizer Karte oder in der mobilen Standortliste auswählen. Suchtext und Kategorien grenzen die Auswahl ein; gefilterte Arbeitgeber direkt in den Suchdialog übernehmen und als Favoriten speichern.
 - Einzelne Stellen mit Direktlink, Inseratstext und verfügbaren Angaben zu Pensum, Ort und Frist durchsuchen und vergleichen.
@@ -17,6 +17,12 @@ Stellen suchen, die Passung zum eigenen Profil prüfen und Bewerbungen organisie
 - CV und bis zu fünf weitere Dokumente im privaten Benutzerkonto verwalten.
 
 Der Feed-Workflow ist für zwei Aktualisierungen täglich vorbereitet; der Zeitplan wird erst mit seiner Übernahme auf den Hauptbranch aktiv. Der getrennt veröffentlichte Datenstand kann bereits geladen werden. Persönliche Suchläufe bleiben zusätzlich auf Anforderung möglich. Es gibt keinen automatischen E-Mail-Versand. Dynamische oder geschützte Karriereseiten lassen sich teilweise nicht vollständig auslesen; die Oberfläche weist dies aus. Fachliche Passung und technische Quellenabdeckung werden getrennt gezählt. Ein fehlgeschlagener oder unvollständiger Abruf schliesst keine gespeicherten Stellen.
+
+- Navigation mit vier Bereichen: Stellen, Meine Suche, Arbeitgeber, Arbeitsmarkt; dazu «Quellen & Transparenz». Jede Stelle hat eine eigene Adresse (`#stelle-…`) mit Volltext, Fakten (Frist, Stellenantritt, Karrierestufe, Lohnklasse), ähnlichen Stellen und schema.org-`JobPosting`.
+- Filter, Sortierung und Seite stehen in der Adresse und lassen sich teilen.
+- E-Mail-Jobalarme (täglich oder wöchentlich) über Supabase und die Edge Function `send-job-alerts`; Einrichtung in [DEPLOYMENT.md](DEPLOYMENT.md).
+- Arbeitgeberseiten (`#arbeitgeber-<id>`), Karte mit offenen Stellen je Standort und eine Arbeitsmarkt-Übersicht aus dem aktuellen Feed.
+- Hell/Dunkel folgt der Systemeinstellung; Designgrundlagen in `css/tokens.css`, Logo in `assets/`.
 
 ## Lokal öffnen
 
@@ -53,7 +59,10 @@ Der GitHub-Workflow prüft zusätzlich die Syntax aller Browser-JavaScript-Datei
 
 | Pfad | Zweck |
 |---|---|
-| `index.html`, `css/styles.css` | Oberfläche und Darstellung |
+| `index.html`, `css/tokens.css`, `css/site.css`, `js/site.js` | Seitenrahmen, Designgrundlagen, Navigation und Routing |
+| `css/styles.css` | Dialoge und ältere Komponenten |
+| `js/job-facts.js` | Fristen, Lohn, Karrierestufe, Kanton und Dublettenerkennung |
+| `js/alerts.js`, `js/insights.js` | Jobalarme und Arbeitsmarkt-Übersicht |
 | `js/` | Arbeitgeberkatalog, Auth, Profil, Suche und persönliche Arbeitsfläche |
 | `js/map-geography.js`, `css/map.css` | Lokale Kartengeometrie, Ortsanker und Darstellung; [Quellen](data/map-geography-source.md) |
 | `js/feed.js`, `css/feed.css` | Öffentlicher Jobfeed mit Quellenstatus und Übernahme einzelner Inserate |

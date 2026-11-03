@@ -214,3 +214,19 @@ test('regression: a catalogue health organisation does not lend its status to ot
   assert.equal(R.employerMatches('Bundesamt für Gesundheit BAG / Eidgenössisches Departement des Innern EDI', { id: 'bag', name: 'Bundesamt für Gesundheit (BAG)' }), true);
   assert.equal(R.employerMatches('', kvg), true);
 });
+
+test('nursing titles in French and executive assistants are outside the profile', () => {
+  const R = require('../js/job-relevance.js');
+  assert.equal(R.classify({ title: 'Infirmier-ère référent-e en prévention et promotion de la santé 80%', description: 'Prévention et promotion de la santé publique.' }, { id: 'kvg', name: 'Gemeinsame Einrichtung KVG' }).eligible, false);
+  assert.equal(R.classify({ title: 'Assistenz der Geschäftsleitung (a) 50% für das OPERA in Zumikon', organization: 'Hirslanden', description: '' }, { id: 'hirslanden' }).eligible, false);
+  assert.equal(R.classify({ title: 'Assistent:in Klinikdirektor', organization: 'Insel Gruppe', description: '' }, { id: 'insel' }).eligible, false);
+  assert.equal(R.classify({ title: 'Assistent*in des Verwaltungsrates und der Geschäftsleitung 80-100%', organization: 'Universitäts-Kinderspital beider Basel', description: 'Aufgaben\nAdministrative Unterstützung der Geschäftsleitung im Spital.' }, {}).eligible, false);
+});
+
+test('belongsToSource rejects job-board listings of other employers', () => {
+  const R = require('../js/job-relevance.js');
+  const kvg = { id: 'kvg', name: 'Gemeinsame Einrichtung KVG', main: 'https://www.kvg.org', jobs: 'https://www.kvg.org/jobs/' };
+  assert.equal(R.belongsToSource({ url: 'https://www.jobs.ch/de/stellenangebote/detail/x', organization: 'Consult & Pepper AG' }, kvg), false);
+  assert.equal(R.belongsToSource({ url: 'https://www.jobs.ch/de/stellenangebote/detail/y', organization: 'Gemeinsame Einrichtung KVG' }, kvg), true);
+  assert.equal(R.belongsToSource({ url: 'https://www.kvg.org/jobs/stelle.pdf', organization: 'Andere AG' }, kvg), true);
+});

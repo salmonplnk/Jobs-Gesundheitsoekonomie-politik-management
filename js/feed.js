@@ -181,6 +181,8 @@
       job.relevance = validatedEvidence
         ? { eligible: true, category: evidence.category, reasons: evidence.reasons.slice(0, 5).map(reason => C.text(reason, 300)), policy_version: R.POLICY_VERSION }
         : R.classify(job, catalog.get(job.org_id) || sources.get(job.org_id));
+      // Older snapshots contain job-board listings of other employers crawled via an aggregator link.
+      if (job.relevance.eligible && typeof R.belongsToSource === 'function' && !R.belongsToSource(rawJob, catalog.get(job.org_id) || sources.get(job.org_id) || {})) job.relevance = { eligible: false, category: 'Ausserhalb des fachlichen Profils', reasons: ['Inserat eines anderen Arbeitgebers auf einem Stellenportal.'], policy_version: R.POLICY_VERSION };
       if (!job.relevance.eligible || !focusCategories.includes(job.relevance.category)) { if (job.status !== 'closed') excluded++; continue; }
       // Index fields win; older snapshots without them fall back to local extraction.
       const facts = cleanFacts(rawJob); given.set(job.id, facts);
