@@ -43,3 +43,44 @@ test('backend enums are readable and language filtering is usable', () => {
   assert.equal(j.role, 'Gesundheitsökonomie / HTA'); assert.equal(j.languages, 'Deutsch, Französisch');
   assert.equal(C.filterJobs([j], { languages: 'Französisch' }).length, 1);
 });
+test('seniority keys map to the agreed labels and back; old "entry" data stays readable', () => {
+  const labels = { praktikum: 'Praktikum', trainee: 'Trainee', junior: 'Junior', senior: 'Senior', lead: 'Leitung', phd: 'PhD / Doktorat', entry: 'Berufseinstieg' };
+  for (const [key, label] of Object.entries(labels)) {
+    assert.equal(C.cleanJob({ ...base, seniority: key }).seniority, label);
+    assert.equal(C.seniorityKey(label), key); assert.equal(C.seniorityKey(key), key);
+  }
+  assert.equal(C.seniorityKey('Irgendwas'), null);
+});
+test('deadline days parse ISO and Swiss dates only', () => {
+  assert.equal(C.deadlineDay('2026-11-30'), '2026-11-30'); assert.equal(C.deadlineDay('3.1.2027'), '2027-01-03');
+  assert.equal(C.deadlineDay('nach Vereinbarung'), null);
+  assert.equal(C.daysUntil('2026-11-05', new Date(2026, 10, 3, 18)), 2); assert.equal(C.daysUntil('2026-11-01', new Date(2026, 10, 3)), -2);
+});
+test('profile match: null without settings, transparent reasons, exclusions and must-criteria cap the score', () => {
+  const job = C.cleanJob({ ...base, seniority: 'senior', languages: 'DE, FR' });
+  const cantonOf = loc => ({ Bern: 'BE', Zürich: 'ZH' })[loc] || null;
+  assert.equal(C.profileMatch(job, {}), null);
+  assert.equal(C.profileMatch(job, { workload_min: 50, workload_max: 100 }), null, 'untouched defaults are not a profile');
+  const profile = { desired_regions: ['BE'], workload_min: 80, workload_max: 100, experience: '5-10', languages: { de: 'muttersprachlich', fr: 'fliessend' }, keywords: 'Datenanalyse', updated_at: '2026-10-01' };
+  const good = C.profileMatch(job, profile, { cantonOf });
+  assert.equal(good.score, 100); assert.equal(good.level, 'high'); assert.equal(good.compared, 5);
+  assert.ok(good.reasons.includes('Arbeitsort in deiner Wunschregion (BE)'));
+  const elsewhere = C.profileMatch({ ...job, location: 'Zürich' }, profile, { cantonOf });
+  assert.equal(elsewhere.score, 73); assert.ok(elsewhere.reasons.includes('Arbeitsort ausserhalb deiner Wunschregion (ZH)'));
+  const unknownPlace = C.profileMatch({ ...job, location: '' }, profile, { cantonOf });
+  assert.equal(unknownPlace.score, 100, 'unknown facts are left out instead of counted as misses');
+  const excluded = C.profileMatch(job, { ...profile, exclusions_freetext: 'Projektleiter' }, { cantonOf });
+  assert.equal(excluded.score, 20); assert.equal(excluded.label, 'Ausschlusskriterium'); assert.match(excluded.reasons[0], /Projektleiter/i);
+  const must = C.profileMatch(job, {}, { criteria: [{ field: 'remote_mode', label: 'Arbeitsmodell', value: 'remote', mode: 'must', weight: 3 }] });
+  assert.equal(must.score, 0); assert.ok(must.reasons[0].includes('nicht erfüllt'));
+});
+test('alert preview matching follows the documented sender rules', () => {
+  const job = { ...C.cleanJob({ ...base, seniority: 'junior', org_id: 'bag' }), org_ids: ['bag'], categories: ['bund'], relevance: { category: 'Gesundheitsökonomie / HTA' } };
+  const ctx = { cantonOf: loc => loc === 'Bern' ? 'BE' : null };
+  assert.equal(C.matchesAlert(job, {}, ctx), true);
+  assert.equal(C.matchesAlert(job, { q: 'gesundheitsokonomie bern', canton: 'BE', seniority: 'junior', employer: 'bag', category: 'bund', focus: 'Gesundheitsökonomie / HTA', min_workload: 100 }, ctx), true);
+  assert.equal(C.matchesAlert(job, { canton: 'ZH' }, ctx), false);
+  assert.equal(C.matchesAlert(job, { seniority: 'senior' }, ctx), false);
+  assert.equal(C.matchesAlert({ ...job, workload_min: null, workload_max: null }, { min_workload: 80 }, ctx), true, 'jobs without workload stay included');
+  assert.equal(C.matchesAlert({ ...job, status: 'closed' }, {}, ctx), false);
+});

@@ -114,6 +114,9 @@ test('profile submission remains usable after save and reset sends cleared field
   h.context.profileEvent = { preventDefault() {}, target: { querySelector: () => button } };
   await h.run('submitProfile(profileEvent)');
   assert.equal(button.disabled, false);
+  const changed = h.events.filter(event => event.type === 'healthjobs:profile-changed');
+  assert.equal(changed.length, 1, 'the feed and workspace learn about saved profiles');
+  assert.equal(changed[0].detail.profile.education, 'master');
   await h.run('submitProfile(profileEvent)');
   assert.equal(h.calls.filter(call => call.type === 'upsert').length, 2);
   await h.run('resetProfile()');

@@ -144,7 +144,7 @@ RLS: nur eigene Zeilen lesen, anlegen, ändern, löschen. Spaltenrechte erlauben
 | `focus` | exakt eine der sechs `CATEGORIES` aus `js/job-relevance.js` | `job.relevance.category` |
 | `category` | Gruppenschlüssel aus `data/organizations.json` (`bund`, `kantone`, `versicherungen`, `branchen`, `spitaeler`, `beratung`, `stiftungen`) | Gruppe eines `org_id`/`org_ids` |
 | `canton` | zweistelliger Grossbuchstaben-Code (`BE`, `ZH`, …) | Feld `canton`, sonst aus `location` abgeleitet, sonst Standort des Arbeitgebers im Katalog |
-| `seniority` | `phd`, `entry`, `junior`, `senior`, `lead` | exakt; Stellen ohne Angabe passen nicht |
+| `seniority` | `praktikum`, `trainee`, `junior`, `senior`, `lead`, `phd` | exakt; Stellen ohne Angabe passen nicht |
 | `employer` | `org_id` (`[a-z0-9_-]`) | `org_id` oder `org_ids` |
 | `min_workload` | JSON-Zahl 1–100 | `workload_max` (bzw. `workload_min`) ≥ Wert; Stellen ohne Pensumangabe bleiben enthalten |
 

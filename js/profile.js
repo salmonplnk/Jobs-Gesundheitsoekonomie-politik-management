@@ -15,6 +15,8 @@ function getProfile() {
 async function saveProfile(data) {
   const enriched = { ...data, updated_at: new Date().toISOString() };
   localStorage.setItem(LS_PROFILE, JSON.stringify(enriched));
+  // Feed fit badges and "Meine Suche" onboarding re-render from this event.
+  if (typeof window !== 'undefined' && typeof CustomEvent === 'function') window.dispatchEvent(new CustomEvent('healthjobs:profile-changed', { detail: { source: 'profile', profile: enriched } }));
   if (typeof syncProfileToSupabase === 'function' && isLoggedIn()) {
     return syncProfileToSupabase(enriched);
   }
@@ -37,7 +39,7 @@ function buildProfileModal() {
     <div class="profile-backdrop" onclick="closeProfile()"></div>
     <div class="profile-panel">
       <div class="profile-header">
-        <h2>📋 Mein Profil</h2>
+        <h2>Mein Profil</h2>
         <p>Alle Felder sind optional und überspringbar. Deine Angaben verbessern das KI-Matching.</p>
         <button class="profile-close" onclick="closeProfile()" aria-label="Schliessen">✕</button>
       </div>
@@ -45,7 +47,7 @@ function buildProfileModal() {
 
         <!-- Ausbildung -->
         <fieldset class="pf-field">
-          <legend>🎓 Höchste Ausbildung</legend>
+          <legend>Höchste Ausbildung</legend>
           <div class="pf-btn-group" data-name="education">
             <button type="button" class="pf-btn" data-value="lehre">Lehre / EFZ</button>
             <button type="button" class="pf-btn" data-value="bachelor">Bachelor</button>
@@ -57,14 +59,14 @@ function buildProfileModal() {
 
         <!-- Fachrichtung -->
         <fieldset class="pf-field">
-          <legend>📚 Fachrichtung</legend>
+          <legend>Fachrichtung</legend>
           <input type="text" class="pf-input" name="field_of_study"
             placeholder="z.B. Pflege, Gesundheitsökonomie, Medizin, Public Health...">
         </fieldset>
 
         <!-- Berufserfahrung -->
         <fieldset class="pf-field">
-          <legend>💼 Berufserfahrung</legend>
+          <legend>Berufserfahrung</legend>
           <div class="pf-btn-group" data-name="experience">
             <button type="button" class="pf-btn" data-value="0-2">0–2 Jahre</button>
             <button type="button" class="pf-btn" data-value="2-5">2–5 Jahre</button>
@@ -75,7 +77,7 @@ function buildProfileModal() {
 
         <!-- Region -->
         <fieldset class="pf-field">
-          <legend>🗺️ Gewünschte Region(en)</legend>
+          <legend>Gewünschte Region(en)</legend>
           <div class="pf-region-chips" id="regionChips">
             <button type="button" class="pf-chip" data-region="*">Ganze Schweiz</button>
             <button type="button" class="pf-chip" data-region="remote">Remote</button>
@@ -100,7 +102,7 @@ function buildProfileModal() {
 
         <!-- Sprachen -->
         <fieldset class="pf-field">
-          <legend>🌐 Sprachen</legend>
+          <legend>Sprachen</legend>
           <div class="pf-lang-grid" id="langGrid">
             ${['Deutsch','Französisch','Italienisch','Englisch'].map((lang, i) => {
               const keys = ['de','fr','it','en'];
@@ -120,14 +122,14 @@ function buildProfileModal() {
 
         <!-- Stichwort -->
         <fieldset class="pf-field">
-          <legend>🔍 Stichwort-Suche</legend>
+          <legend>Stichwort-Suche</legend>
           <input type="text" class="pf-input" name="keywords"
             placeholder="Was suchst du? z.B. Tarifwesen, Datenanalyse, Projektleitung...">
         </fieldset>
 
         <!-- Exklusionen -->
         <fieldset class="pf-field">
-          <legend>🚫 Das möchte ich nicht</legend>
+          <legend>Das möchte ich nicht</legend>
           <div class="pf-btn-group pf-multi" data-name="exclusions">
             <button type="button" class="pf-btn" data-value="administrativ">Administrativ</button>
             <button type="button" class="pf-btn" data-value="klinisch">Klinisch</button>
@@ -141,7 +143,7 @@ function buildProfileModal() {
 
         <!-- Starttermin -->
         <fieldset class="pf-field">
-          <legend>📅 Gewünschter Starttermin</legend>
+          <legend>Gewünschter Starttermin</legend>
           <div class="pf-btn-group" data-name="start_date">
             <button type="button" class="pf-btn" data-value="sofort">Sofort</button>
             <button type="button" class="pf-btn" data-value="1-3_monate">1–3 Monate</button>
@@ -151,10 +153,10 @@ function buildProfileModal() {
 
         <!-- Dokumente (CV + Arbeitszeugnisse) -->
         <fieldset class="pf-field">
-          <legend>📄 Dokumente für Matching & Bewerbungen</legend>
+          <legend>Dokumente für Matching & Bewerbungen</legend>
           ${isLoggedIn() ? `
           <div class="pf-cv-dropzone" id="cvDropzone">
-            <div class="pf-cv-icon">📄</div>
+            <div class="pf-cv-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 18v-6M9 15l3-3 3 3"/></svg></div>
             <p class="pf-cv-text">PDF hier hinziehen oder <strong>klicken</strong></p>
             <p class="pf-cv-sub">CV und Arbeitszeugnisse hochladen · Max. 5 MB pro Datei</p>
             <p class="pf-cv-sub">→ Besseres Matching + fertige Bewerbungsschreiben</p>
@@ -174,7 +176,7 @@ function buildProfileModal() {
         <p id="profileSaveStatus" role="status" aria-live="polite"></p>
         <div class="pf-actions">
           <button type="button" class="pf-btn-secondary" onclick="resetProfile()">Zurücksetzen</button>
-          <button type="submit" class="pf-btn-primary">💾 Profil speichern</button>
+          <button type="submit" class="pf-btn-primary">Profil speichern</button>
         </div>
       </form>
     </div>
@@ -329,7 +331,7 @@ async function submitProfile(e) {
     const status = document.getElementById('profileSaveStatus');
     if (status) status.textContent = 'Profil konnte nicht gespeichert werden: ' + err.message;
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Profil speichern'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Profil speichern'; }
   }
 }
 
@@ -349,7 +351,7 @@ function openProfile() {
   buildProfileModal();
   populateProfile();
   const btn = document.querySelector('#profileForm [type="submit"]');
-  if (btn) { btn.disabled = false; btn.textContent = '💾 Profil speichern'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Profil speichern'; }
   document.getElementById('profileModal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -523,9 +525,9 @@ function renderDocList() {
   const docs = getDocuments();
   if (!docs.length) { el.innerHTML = ''; return; }
 
-  el.innerHTML = `<div class="pf-doc-header">📋 Meine Dokumente (${docs.length}):</div>` +
+  el.innerHTML = `<div class="pf-doc-header">Meine Dokumente (${docs.length}):</div>` +
     docs.map((doc, i) => {
-      const icon = doc.doc_type === 'cv' ? '📄' : doc.doc_type === 'zeugnis' ? '📜' : '📎';
+      const icon = '';
       const typeLabel = doc.doc_type === 'cv' ? 'CV' : doc.doc_type === 'zeugnis' ? 'Zeugnis' : 'Dokument';
       const meta = doc.doc_type === 'zeugnis' && doc.employer
         ? `${escapeHtml(doc.employer)}${doc.period ? ' · ' + escapeHtml(doc.period) : ''}`
@@ -555,9 +557,9 @@ function showCvStatus(type, msg) {
   if (type === 'loading') {
     el.innerHTML = `<div class="pf-cv-loading"><div class="match-spinner" style="width:24px;height:24px;margin:0;"></div> ${escapeHtml(msg)}</div>`;
   } else if (type === 'error') {
-    el.innerHTML = `<div class="pf-cv-error">❌ ${escapeHtml(msg)}</div>`;
+    el.innerHTML = `<div class="pf-cv-error">${escapeHtml(msg)}</div>`;
   } else {
-    el.innerHTML = `<div class="pf-cv-success">✅ ${escapeHtml(msg)}</div>`;
+    el.innerHTML = `<div class="pf-cv-success">${escapeHtml(msg)}</div>`;
     setTimeout(() => { if (_cvStatusVersion === version) el.style.display = 'none'; }, 4000);
   }
 }

@@ -9,6 +9,8 @@
   const now = () => new Date().toISOString();
   const text = (v, max = 30000) => typeof v === 'string' ? v.slice(0, max) : Array.isArray(v) ? v.map(x => text(x, 200)).join(', ') : '';
   const stages = { interested: 'Interessant', preparing: 'In Vorbereitung', applied: 'Beworben', interview: 'Gespräch', offer: 'Angebot', rejected: 'Absage', withdrawn: 'Zurückgezogen' };
+  // Feed/backend keys -> readable labels. "entry" only occurs in older stored data.
+  const seniorityLabels = { praktikum: 'Praktikum', trainee: 'Trainee', junior: 'Junior', senior: 'Senior', lead: 'Leitung', phd: 'PhD / Doktorat', entry: 'Berufseinstieg' };
   const roles = ['Gesundheitsökonomie / HTA', 'Projektmanagement', 'Forschung / PhD', 'Data / Analytics', 'Gesundheitspolitik', 'Management', 'Weitere'];
   function safeUrl(value) {
     try { const u = new URL(value); return ['https:', 'http:'].includes(u.protocol) && !u.username && !u.password ? u.href : ''; } catch { return ''; }
@@ -48,8 +50,7 @@
     job.role = roles.includes(raw.role) ? raw.role : roleMap[raw.role] || classifyRole(job);
     const languageMap = { DE: 'Deutsch', FR: 'Französisch', IT: 'Italienisch', EN: 'Englisch' };
     job.languages = job.languages.replace(/\b(DE|FR|IT|EN)\b/g, k => languageMap[k]);
-    const seniorityMap = { phd: 'PhD / Doktorat', entry: 'Berufseinstieg', praktikum: 'Praktikum', trainee: 'Trainee', junior: 'Junior', lead: 'Leitung', senior: 'Senior' };
-    job.seniority = seniorityMap[job.seniority] || job.seniority;
+    job.seniority = seniorityLabels[job.seniority] || job.seniority;
     const contractMap = { permanent: 'Unbefristet', temporary: 'Befristet', internship: 'Praktikum' };
     job.employment_type = contractMap[job.employment_type] || job.employment_type;
     job.description_truncated = !!raw.description_truncated;
@@ -79,7 +80,7 @@
       coverage: ['complete','partial','unknown'].includes(raw.coverage) ? raw.coverage : 'unknown', method: text(raw.method, 100),
       pages_scanned: Math.max(0, Number(raw.pages_scanned) || 0), detail_pages_scanned: Math.max(0, Number(raw.detail_pages_scanned) || 0), pending_pages: Math.max(0, Number(raw.pending_pages) || 0)
     };
-    for (const [key, raw] of entries(value.applications)) if (base.jobs[key] && raw && typeof raw === 'object') base.applications[key] = Object.fromEntries(['contact','notes','next_step','next_date','applied_at','created_at','updated_at'].map(k => [k, text(raw[k])]).concat([['stage', stages[raw.stage] ? raw.stage : 'interested']]));
+    for (const [key, raw] of entries(value.applications)) if (base.jobs[key] && raw && typeof raw === 'object') base.applications[key] = Object.fromEntries(['contact','notes','next_step','next_date','applied_at','created_at','updated_at','saved_via'].map(k => [k, text(raw[k])]).concat([['stage', stages[raw.stage] ? raw.stage : 'interested']]));
     for (const [key, drafts] of entries(value.drafts)) if (base.jobs[key] && Array.isArray(drafts)) base.drafts[key] = drafts.filter(d => d && typeof d.text === 'string').map(d => ({ ...d, id: safeKey(d.id) ? d.id : 'draft_' + hash(d.text), name: text(d.name, 200), text: text(d.text, 50000), created_at: text(d.created_at), language: d.language === 'fr' ? 'fr' : 'de' }));
     if (value.sender && typeof value.sender === 'object') base.sender = Object.fromEntries(['name','address','postcode','city'].map(k => [k, text(value.sender[k], 500)]));
     if (Array.isArray(value.searchProfiles)) base.searchProfiles = value.searchProfiles.filter(p => p && safeKey(p.id) && typeof p.name === 'string' && Array.isArray(p.orgIds)).map(p => ({ id: p.id, name: text(p.name, 100), orgIds: p.orgIds.filter(safeKey), criteria: sanitizeCriteria(p.criteria), filters: p.filters && typeof p.filters === 'object' ? p.filters : {}, updated_at: text(p.updated_at), archived: !!p.archived }));
@@ -177,5 +178,127 @@
       return (Date.parse(b.first_seen) || 0) - (Date.parse(a.first_seen) || 0);
     });
   }
-  return { fingerprint: hash, normalize, now, text, stages, roles, safeUrl, canonicalUrl, identity, workload, cleanJob, classifyRole, emptyState, hydrate, ingest, freshness, defaultCriteria, evaluate, filterJobs };
+  function seniorityKey(value) {
+    const n = normalize(value).trim(); if (!n) return null;
+    for (const [key, label] of Object.entries(seniorityLabels)) if (n === key || n === normalize(label)) return key;
+    return null;
+  }
+  /** ISO day (YYYY-MM-DD) of a deadline text, or null when it is not a plain date. */
+  function deadlineDay(value) {
+    const t = text(value, 100).trim(); let m;
+    if ((m = t.match(/^(\d{4})-(\d{2})-(\d{2})/))) return `${m[1]}-${m[2]}-${m[3]}`;
+    if ((m = t.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/))) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    return null;
+  }
+  /** Whole days from today (local) until an ISO day; negative = past. */
+  function daysUntil(day, today = new Date()) {
+    if (!day) return null;
+    const [y, mo, d] = day.split('-').map(Number), start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return Math.round((new Date(y, mo - 1, d) - start) / 86400000);
+  }
+
+  // Deterministic personal fit: saved profile plus explicitly configured search criteria.
+  // Unknown facts are left out (never counted as fit); the result says what was compared.
+  const languageKeys = { deutsch: 'de', german: 'de', franzosisch: 'fr', french: 'fr', francais: 'fr', italienisch: 'it', italian: 'it', englisch: 'en', english: 'en' };
+  const languageNames = { de: 'Deutsch', fr: 'Französisch', it: 'Italienisch', en: 'Englisch' };
+  const experienceFit = {
+    '0-2': { praktikum: 1, trainee: 1, junior: 1, entry: 1, phd: 1, senior: 0, lead: 0 },
+    '2-5': { praktikum: 0, trainee: .5, junior: 1, entry: 1, phd: 1, senior: .5, lead: 0 },
+    '5-10': { praktikum: 0, trainee: 0, junior: .5, entry: 0, phd: .5, senior: 1, lead: 1 },
+    '10+': { praktikum: 0, trainee: 0, junior: 0, entry: 0, phd: 0, senior: 1, lead: 1 }
+  };
+  const exclusionPatterns = {
+    administrativ: /sachbearbeit|administrat|sekretariat|assistenz|assistant/, klinisch: /pflege|arzt|arztin|klinisch|clinical|station|therapeut/,
+    forschung: /forsch|research|wissenschaftl|postdoc|\bphd\b|doktorand/, it: /\bit\b|informatik|software|entwickler|developer|devops|system engineer/,
+    management: /leiter|leitung|head of|manager|direktor|director|geschaftsfuhr/
+  };
+  const cantonCode = value => /^[A-Z]{2}$/.test(value || '') ? value : null;
+  function profileConfigured(profile) {
+    const p = profile && typeof profile === 'object' ? profile : {};
+    return !!((Array.isArray(p.desired_regions) && p.desired_regions.length) || text(p.keywords).trim() || text(p.field_of_study).trim() || p.experience
+      || (p.languages && typeof p.languages === 'object' && Object.keys(p.languages).length) || (Array.isArray(p.exclusions) && p.exclusions.length) || text(p.exclusions_freetext).trim()
+      || (p.updated_at && (p.workload_min != null || p.workload_max != null)));
+  }
+  function profileMatch(job, profile = {}, options = {}) {
+    if (!job || typeof job !== 'object') return null;
+    const p = profile && typeof profile === 'object' ? profile : {};
+    const criteria = Array.isArray(options.criteria) ? options.criteria.filter(c => c && c.mode !== 'off' && c.value) : [];
+    if (!profileConfigured(p) && !criteria.length) return null;
+    const factors = [], title = normalize(job.title), content = normalize(`${job.title}\n${job.relevance?.category || ''}\n${job.description || ''}`);
+    const add = (weight, points, reason, kind) => factors.push({ weight, points, reason, kind });
+    // Region
+    const regions = Array.isArray(p.desired_regions) ? p.desired_regions : [];
+    const cantons = regions.map(cantonCode).filter(Boolean), remoteOk = regions.includes('remote');
+    if (cantons.length || remoteOk) {
+      const canton = cantonCode(job.canton) || (typeof options.cantonOf === 'function' ? cantonCode(options.cantonOf(job.location)) : null);
+      if (remoteOk && job.remote_mode === 'remote') add(3, 1, 'Remote möglich', 'location');
+      else if (canton && cantons.includes(canton)) add(3, 1, `Arbeitsort in deiner Wunschregion (${canton})`, 'location');
+      else if (remoteOk && job.remote_mode === 'hybrid') add(3, .5, 'Hybrid, teilweise remote', 'location');
+      else if (canton && cantons.length) add(3, 0, `Arbeitsort ausserhalb deiner Wunschregion (${canton})`, 'location');
+    }
+    // Workload overlap
+    const min = Number(p.workload_min), max = Number(p.workload_max);
+    if (p.updated_at && Number.isFinite(min) && Number.isFinite(max) && job.workload_min != null && job.workload_max != null) {
+      const range = job.workload_min === job.workload_max ? `${job.workload_min}%` : `${job.workload_min}–${job.workload_max}%`;
+      if (job.workload_max >= min && job.workload_min <= max) add(2, 1, `Pensum ${range} passt`, 'workload');
+      else add(2, 0, `Pensum ${range} ausserhalb deines Wunsches (${min}–${max}%)`, 'workload');
+    }
+    // Experience vs career level
+    const level = seniorityKey(job.seniority) || (typeof options.seniorityOf === 'function' ? seniorityKey(options.seniorityOf(job)) : null);
+    const fit = experienceFit[p.experience];
+    if (fit && level) {
+      const points = fit[level] ?? .5, label = seniorityLabels[level];
+      add(2, points, points >= 1 ? `Karrierestufe ${label} passt zu deiner Erfahrung` : points > 0 ? `Karrierestufe ${label} passt teilweise` : `Karrierestufe ${label} passt nicht zu deiner Erfahrung`);
+    }
+    // Languages
+    const spoken = p.languages && typeof p.languages === 'object' ? p.languages : {};
+    if (Object.keys(spoken).length) {
+      const required = [...new Set(normalize(job.languages).split(/[^a-z]+/).map(w => languageKeys[w]).filter(Boolean))];
+      if (required.length) {
+        const missing = required.filter(k => !spoken[k] || spoken[k] === 'grundkenntnisse');
+        if (!missing.length) add(1, 1, `Sprachen passen (${required.map(k => languageNames[k]).join(', ')})`);
+        else add(1, missing.length < required.length ? .5 : 0, `Verlangt ${missing.map(k => languageNames[k]).join(', ')}`);
+      }
+    }
+    // Subject keywords and field of study
+    const terms = [...new Set([...split(p.keywords), ...split(p.field_of_study).flatMap(t => t.split(/\s*(?:\/|\bund\b|&)\s*/))].map(t => t.trim()).filter(t => t.length >= 3))];
+    if (terms.length) {
+      const found = terms.filter(t => content.includes(t));
+      if (found.length) add(3, 1, `Stichwort «${found[0]}» im Inserat`, 'keywords');
+      else if ((job.description || '').length > 200) add(1.5, 0, 'Deine Stichwörter kommen im Inserat nicht vor', 'keywords');
+    }
+    // Explicit matching criteria from "Meine Suche"
+    for (const c of evaluate(job, criteria).criteria) {
+      if (c.status === 'unknown' || ['keywords', 'location', 'workload'].includes(c.field) && factors.some(f => f.kind === c.field)) continue;
+      add(Math.max(1, Math.min(5, Number(c.weight) || 1)), c.status === 'met' ? 1 : 0, `${c.label || c.field}: ${c.status === 'met' ? 'erfüllt' : 'nicht erfüllt'}`, c.mode === 'must' && c.status !== 'met' ? 'must' : c.field);
+    }
+    // Exclusions cap the score; they never raise it.
+    const excluded = [...split(p.exclusions_freetext).filter(t => t.length >= 3 && title.includes(t)).map(t => `Enthält dein Ausschlusswort «${t}»`),
+      ...(Array.isArray(p.exclusions) ? p.exclusions : []).filter(k => exclusionPatterns[k]?.test(title)).map(k => `Bereich «${k}» möchtest du ausschliessen`)];
+    const possible = factors.reduce((sum, f) => sum + f.weight, 0);
+    if (!possible && !excluded.length) return null;
+    let score = possible ? Math.round(factors.reduce((sum, f) => sum + f.weight * f.points, 0) / possible * 100) : 0;
+    if (excluded.length) score = Math.min(score, 20);
+    if (factors.some(f => f.kind === 'must')) score = Math.min(score, 40);
+    const label = excluded.length ? 'Ausschlusskriterium' : score >= 80 ? 'Sehr gute Passung' : score >= 60 ? 'Gute Passung' : score >= 40 ? 'Teilweise passend' : 'Wenig Passung';
+    const ordered = [...factors].sort((a, b) => b.points - a.points || b.weight - a.weight);
+    const reasons = [...excluded, ...ordered.filter(f => f.points >= .5).slice(0, 3).map(f => f.reason), ...ordered.filter(f => f.points < .5).slice(0, 2).map(f => f.reason)].slice(0, 5);
+    return { score, label, level: excluded.length || score < 40 ? 'low' : score < 70 ? 'medium' : 'high', reasons, compared: factors.length };
+  }
+
+  // Same rules as the e-mail sender (DOKUMENTATION.md, «E-Mail-Jobalarme»), for previews.
+  function matchesAlert(job, filters = {}, context = {}) {
+    if (!job || job.status === 'closed') return false;
+    const f = filters || {};
+    if (f.q) { const hay = normalize(`${job.title} ${job.organization} ${job.description || ''} ${job.location}`); if (!normalize(f.q).split(/\s+/).filter(Boolean).every(t => hay.includes(t))) return false; }
+    if (f.focus && job.relevance?.category !== f.focus) return false;
+    const orgIds = Array.isArray(job.org_ids) && job.org_ids.length ? job.org_ids : [job.org_id];
+    if (f.employer && !orgIds.includes(f.employer)) return false;
+    if (f.category) { const cats = Array.isArray(job.categories) ? job.categories : orgIds.map(id => context.categoryOf?.(id)); if (!cats.includes(f.category)) return false; }
+    if (f.canton) { const canton = cantonCode(job.canton) || context.cantonOf?.(job.location) || null; if (canton !== f.canton) return false; }
+    if (f.seniority && (seniorityKey(job.seniority) || seniorityKey(context.seniorityOf?.(job))) !== f.seniority) return false;
+    if (f.min_workload) { const top = job.workload_max ?? job.workload_min; if (top != null && top < Number(f.min_workload)) return false; }
+    return true;
+  }
+  return { fingerprint: hash, normalize, now, text, stages, roles, seniorityLabels, seniorityKey, deadlineDay, daysUntil, profileConfigured, profileMatch, matchesAlert, safeUrl, canonicalUrl, identity, workload, cleanJob, classifyRole, emptyState, hydrate, ingest, freshness, defaultCriteria, evaluate, filterJobs };
 });
