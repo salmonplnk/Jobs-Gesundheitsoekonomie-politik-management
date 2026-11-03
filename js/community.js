@@ -9,7 +9,8 @@ const CATEGORY_OPTIONS = [
   { key: 'branchen', label: 'Branchen- / Tariforganisationen' },
   { key: 'spitaeler', label: 'Leistungserbringer (Spitäler / Kliniken)' },
   { key: 'beratung', label: 'Beratung / Forschung' },
-  { key: 'stiftungen', label: 'Stiftungen / Non-Profits' }
+  { key: 'stiftungen', label: 'Stiftungen / Non-Profits' },
+  { key: 'pharma', label: 'Pharma / Medtech (Market Access)' }
 ];
 
 const CANTON_OPTIONS = [

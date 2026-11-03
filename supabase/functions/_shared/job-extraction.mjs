@@ -80,7 +80,70 @@ export function isAllowedUrl(raw, org, base = org.jobs) {
   // Supplied only by the server-owned source registry, never by requesting browsers.
   const extra = (Array.isArray(org.allowed_hosts) ? org.allowed_hosts : []).map(host =>
     safePublicUrl(String(host).includes('://') ? host : `https://${host}`)?.hostname).filter(Boolean);
+  // Registry-owned exclusions win over the generic ATS list, e.g. a catalogue page
+  // that links into a whole job board (kvg.org -> jobs.ch).
+  const blocked = (Array.isArray(org.blocked_hosts) ? org.blocked_hosts : []).map(host => String(host).toLowerCase().replace(/^https?:\/\//, '').replace(/[/:].*$/, '')).filter(Boolean);
+  if (blocked.some(root => hostWithin(url.hostname, root))) return false;
   return roots.some(root => hostWithin(url.hostname, root)) || extra.includes(url.hostname) || ATS_DOMAINS.some(root => hostWithin(url.hostname, root));
+}
+
+/** Public multi-employer job boards: their postings belong to many companies. */
+export const JOB_BOARD_DOMAINS = Object.freeze(['jobs.ch','jobup.ch','jobscout24.ch','jobwinner.ch','topjobs.ch','alpha.ch',
+  'jobcloud.ch','jobcloud.io','indeed.com','indeed.ch','linkedin.com','stepstone.ch','monster.ch','jobagent.ch','jobalino.ch','careerjet.ch']);
+export function isJobBoardUrl(raw) {
+  const url = safePublicUrl(raw);
+  return Boolean(url && JOB_BOARD_DOMAINS.some(root => hostWithin(url.hostname, root)));
+}
+
+// Same identity rule as js/job-relevance.js employerMatches (kept dependency-free for Deno).
+const GENERIC_NAME = new Set(('ag sa gmbh sarl ltd inc llc plc kg se co und and et der die das des du de la le les of for fur the von vom im in am zu '
+  + 'schweiz schweizer schweizerische schweizerischer schweizerisches suisse svizzera swiss switzerland ch gruppe group holding '
+  + 'stiftung fondation foundation verein association genossenschaft kanton canton stadt ville gemeinde amt office bundesamt '
+  + 'departement department direktion institut institute zentrum centre center universitat universite university hochschule '
+  + 'spital hopital hospital klinik clinique clinic gesundheit sante health versicherung assurance insurance krankenkasse services').split(' '));
+const plain = value => String(value ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f\u00ad\u200b]/g, '').replace(/ß/g, 'ss').replace(/&amp;/g, ' und ').replace(/<[^>]*>/g, ' ');
+const nameTokens = value => plain(value).replace(/[^a-z0-9]+/g, ' ').split(' ').filter(word => word.length >= 2 && !GENERIC_NAME.has(word));
+const compactName = value => plain(value).replace(/[^a-z0-9]+/g, '');
+export function employerMatchesOrganization(name, org = {}) {
+  const employer = nameTokens(name);
+  if (!employer.length) return true;
+  const hosts = [org.jobs, org.main].map(url => safePublicUrl(url)?.hostname || '')
+    .flatMap(host => host.split(/[.-]/)).filter(label => !/^(?:www|jobs?|careers?|karriere|apply|recruiting|ch|com|org|net|swiss|admin|de|fr|en)$/.test(label));
+  const aliases = Array.isArray(org.employer_aliases) ? org.employer_aliases : [];
+  const identity = new Set([...nameTokens(org.name), ...nameTokens(org.id), ...hosts.flatMap(nameTokens), ...aliases.flatMap(nameTokens)]);
+  if (employer.some(word => identity.has(word))) return true;
+  const full = compactName(name), names = [org.name, ...aliases].map(compactName).filter(value => value.length >= 3);
+  return names.some(value => full.includes(value) || value.includes(full)) || (compactName(org.id).length >= 3 && full.includes(compactName(org.id)));
+}
+
+/** The organisation's own career hosts (catalogue URLs and registry-verified
+ * allowed_hosts). Generic ATS domains and job boards are not "own" hosts. */
+export function isOwnHost(raw, org = {}) {
+  const url = safePublicUrl(raw);
+  if (!url || isJobBoardUrl(url.href)) return false;
+  const roots = [org.jobs, org.main].map(x => safePublicUrl(x)?.hostname.replace(/^www\./, '')).filter(Boolean);
+  const extra = (Array.isArray(org.allowed_hosts) ? org.allowed_hosts : []).map(host =>
+    safePublicUrl(String(host).includes('://') ? host : `https://${host}`)?.hostname).filter(Boolean);
+  return roots.some(root => hostWithin(url.hostname, root)) || extra.includes(url.hostname);
+}
+
+/** A vacancy of another company must not be published under this source.
+ * Groups and administrations publish for sub-units (clinics, offices) whose
+ * names need not repeat the group name; on the organisation's own career hosts
+ * these remain verified sub-units. Elsewhere (multi-employer boards, shared ATS
+ * domains) a differently named employer is excluded. */
+export function isOtherEmployerJob(job, org = {}) {
+  const named = [job?.hiring_organization, job?.organization].find(value => typeof value === 'string' && value.trim() && value.trim() !== org.name);
+  if (!named || employerMatchesOrganization(named, org)) return false;
+  return !isOwnHost(job.url, org);
+}
+
+/** Registry department filter for very large portals (e.g. pharma, consulting). */
+export function matchesIncludeTerms(job, org = {}) {
+  const terms = (Array.isArray(org.include_terms) ? org.include_terms : []).filter(term => typeof term === 'string' && term.trim());
+  if (!terms.length) return true;
+  const evidence = ` ${plain(`${job?.title || ''}\n${job?.description || ''}`).replace(/[^a-z0-9]+/g, ' ')} `;
+  return terms.some(term => { const wanted = plain(term).replace(/[^a-z0-9]+/g, ' ').trim(); return wanted && evidence.includes(` ${wanted}`); });
 }
 
 export function canonicalUrl(raw, base) {

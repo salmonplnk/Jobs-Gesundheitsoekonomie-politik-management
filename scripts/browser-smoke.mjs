@@ -6,12 +6,14 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import relevance from '../js/job-relevance.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const CATALOG_SIZE = JSON.parse(readFileSync(resolve(root, 'data/organizations.json'), 'utf8')).reduce((sum, group) => sum + group.orgs.length, 0);
 const output = resolve(root, 'browser-smoke');
 const report = { started_at: new Date().toISOString(), status: 'running', dataset: null, jobs: 0, sources: 0, checks: [], screenshots: [], scenarios: [], errors: [] };
 let browser, server, fixture;
@@ -150,19 +152,19 @@ async function inspectViewport(origin, name, viewport) {
     assert.match(metrics[2], /Quellen mit passenden Stellen$/);
     assert.match(metrics[3], /Nicht vollständig erfasst$/);
     if (report.dataset === 'fixture') {
-      assert.equal(metrics[1], '2/85Quellen vollständig abgerufen');
+      assert.equal(metrics[1], `2/${CATALOG_SIZE}Quellen vollständig abgerufen`);
       assert.equal(metrics[2], '1Quellen mit passenden Stellen');
-      assert.equal(metrics[3], '83Nicht vollständig erfasst');
+      assert.equal(metrics[3], `${CATALOG_SIZE - 2}Nicht vollständig erfasst`);
       assert.match(await page.locator('.jf-scope-summary').textContent(), /3 fachfremde/);
     }
     assert.equal(await page.locator('.jf-job').count(), Math.min(25, allJobs.length), 'Feed page size');
-    assert.equal(await page.locator('.jf-source').count(), 85, 'All 85 source statuses visible');
+    assert.equal(await page.locator('.jf-source').count(), CATALOG_SIZE, `All ${CATALOG_SIZE} source statuses visible`);
     verifiedFeedUrls.add(`${origin}/data/job-feed/index.json`);
     assert.equal(await page.evaluate(() => HealthJobs.getOwner()), null, 'Anonymous workspace');
     assert.equal(await page.evaluate(() => Object.keys(localStorage).some(key => key.startsWith('sb-') && key.includes('auth-token'))), false);
     await noOverflow();
     await screenshot('feed', 'light');
-    record(`${name}: public feed and source coverage`, `${allJobs.length} relevant open jobs, 85 source statuses; coverage and matches shown separately`);
+    record(`${name}: public feed and source coverage`, `${allJobs.length} relevant open jobs, ${CATALOG_SIZE} source statuses; coverage and matches shown separately`);
 
     if (allJobs.length > 25) {
       const firstId = await page.locator('[data-feed-action="import"]').first().getAttribute('data-feed-id');
@@ -208,7 +210,7 @@ async function inspectViewport(origin, name, viewport) {
 
     await page.locator('#organisationDirectory > summary').click();
     await page.locator('.map-section').waitFor({ state: 'visible' });
-    assert.match(await page.locator('#mapSummary').textContent(), /85/);
+    assert.match(await page.locator('#mapSummary').textContent(), new RegExp(String(CATALOG_SIZE)));
     if (viewport.width < 600) {
       assert.equal(await page.locator('#mapLocationList').isVisible(), true, 'Mobile defaults to location list');
       await page.locator('#cantonChips [data-loc="Bern"]').click();
@@ -227,7 +229,7 @@ async function inspectViewport(origin, name, viewport) {
     await page.locator('#mapEmpty').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#mapChooseEmployers').isDisabled(), true);
     await page.locator('#mapReset').click();
-    assert.match(await page.locator('#mapSummary').textContent(), /85/);
+    assert.match(await page.locator('#mapSummary').textContent(), new RegExp(String(CATALOG_SIZE)));
     await page.locator('#mapViewMap').click();
     assert.ok((await page.locator('#swissMapOutline').getAttribute('d'))?.length > 100, 'Swiss boundary path loaded');
     await noOverflow();

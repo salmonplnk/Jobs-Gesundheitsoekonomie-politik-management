@@ -6,11 +6,12 @@ const vm = require('node:vm');
 const { JSDOM, VirtualConsole } = require('jsdom');
 const root = path.join(__dirname, '..');
 const groups = JSON.parse(fs.readFileSync(path.join(root, 'data/organizations.json'), 'utf8'));
+const CATALOG_SIZE = groups.reduce((sum, group) => sum + group.orgs.length, 0);
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const stamp = new Date().toISOString(), url = 'https://feed.example/public/index.json';
 const source = { org_id: 'bag', name: 'BAG', url: 'https://jobs.admin.ch/', status: 'ok', checked_at: stamp, last_success_at: stamp, last_complete_at: stamp, coverage: 'complete', job_count: 1, message: '', pages_scanned: 1 };
 const vacancy = { id: 'bag:a1', org_id: 'bag', title: 'Gesundheitsökonomie Projektleitung', organization: 'BAG', url: 'https://jobs.admin.ch/jobs/1', location: 'Bern', description: 'Planung und Analyse im Gesundheitswesen.', pensum: '80–100%', first_seen: stamp, last_seen: stamp, fetched_at: stamp, detail_file: './bag.json', status: 'open', role: 'Gesundheitsökonomie / HTA', description_truncated: true };
-function manifest(overrides = {}) { return { version: 1, generated_at: stamp, run: { id: 'test', status: 'complete', started_at: stamp, finished_at: stamp, total_sources: 85, checked_sources: 1 }, jobs: [vacancy], sources: [source], ...overrides }; }
+function manifest(overrides = {}) { return { version: 1, generated_at: stamp, run: { id: 'test', status: 'complete', started_at: stamp, finished_at: stamp, total_sources: CATALOG_SIZE, checked_sources: 1 }, jobs: [vacancy], sources: [source], ...overrides }; }
 function shard(job = vacancy, overrides = {}) { return { version: 1, org_id: 'bag', source, jobs: [{ ...job, description: 'Volltext: Hier steht eine ausführliche Stellenbeschreibung.', description_truncated: false }], ...overrides }; }
 function response(value, extras = {}) { return { ok: true, status: 200, text: async () => JSON.stringify(value), headers: { get: () => null }, ...extras }; }
 function deferred() { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; }
@@ -31,7 +32,7 @@ test('public feed auto-loads without login or personal writes and covers all cat
   const x = await setup(); t.after(() => x.w.close());
   assert.equal(x.requests.length, 1); assert.equal(x.requests[0].options.credentials, 'omit');
   assert.equal(x.w.document.querySelectorAll('.jf-job').length, 1);
-  assert.equal(x.w.PublicJobFeed.getSourceStatus().length, 85);
+  assert.equal(x.w.PublicJobFeed.getSourceStatus().length, CATALOG_SIZE);
   assert.match(x.w.document.getElementById('jfStatus').textContent, /Noch ungeprüft/);
   assert.equal(x.w.localStorage.length, 0); assert.equal(x.imports.length, 0);
   assert.match(x.w.document.querySelector('.jf-footnote').textContent, /zuletzt veröffentlichten Abruf/);
@@ -112,9 +113,9 @@ test('unconfigured, unavailable and never-crawled feeds present honest empty sta
   assert.equal(x.requests.length, 0); assert.match(x.w.document.getElementById('jfStatus').textContent, /noch nicht konfiguriert/);
   const y = await setup({ fetcher: async () => response(null, { ok: false, status: 404 }) }); t.after(() => y.w.close());
   assert.match(y.w.document.getElementById('jfStatus').textContent, /HTTP 404/); assert.equal(y.w.document.querySelectorAll('.jf-job').length, 0);
-  const z = await setup({ index: manifest({ generated_at: null, sources: [], jobs: [], run: { status: 'pending', total_sources: 85, checked_sources: 0 } }) }); t.after(() => z.w.close());
+  const z = await setup({ index: manifest({ generated_at: null, sources: [], jobs: [], run: { status: 'pending', total_sources: CATALOG_SIZE, checked_sources: 0 } }) }); t.after(() => z.w.close());
   assert.match(z.w.document.getElementById('jfStatus').textContent, /Noch kein serverseitiger Abruf/);
-  assert.equal(z.w.PublicJobFeed.getSourceStatus().filter(s => s.status === 'pending').length, 85);
+  assert.equal(z.w.PublicJobFeed.getSourceStatus().filter(s => s.status === 'pending').length, CATALOG_SIZE);
 });
 
 test('source freshness, last confirmation and refresh failures preserve the last published data honestly', async t => {
@@ -172,8 +173,8 @@ test('older broad snapshots are filtered by professional focus before display, s
 });
 
 test('new scoped snapshots preserve full-text evidence absent from a compact excerpt', async t => {
-  const relevance = { eligible: true, category: 'Versorgungsforschung / Public Health', reasons: ['Versorgungsforschung in den Anforderungen belegt.'], policy_version: 1 };
-  const x = await setup({ index: manifest({ scope: { policy_version: 1, scanned_jobs: 100, relevant_jobs: 1, excluded_jobs: 99 }, jobs: [{ ...vacancy, title: 'Wissenschaftliche Mitarbeit', description: 'Willkommen an unserer Hochschule.', relevance }], sources: [{ ...source, raw_job_count: 100, relevant_job_count: 1, filtered_out_count: 99 }] }) }); t.after(() => x.w.close());
+  const relevance = { eligible: true, category: 'Versorgungsforschung / Public Health', reasons: ['Versorgungsforschung in den Anforderungen belegt.'], policy_version: 2 };
+  const x = await setup({ index: manifest({ scope: { policy_version: 2, scanned_jobs: 100, relevant_jobs: 1, excluded_jobs: 99 }, jobs: [{ ...vacancy, title: 'Wissenschaftliche Mitarbeit', description: 'Willkommen an unserer Hochschule.', relevance }], sources: [{ ...source, raw_job_count: 100, relevant_job_count: 1, filtered_out_count: 99 }] }) }); t.after(() => x.w.close());
   assert.equal(x.w.PublicJobFeed.getJobs().length, 1);
   assert.equal(x.w.PublicJobFeed.getJobs()[0].relevance.category, relevance.category);
   assert.match(x.w.document.querySelector('.jf-relevance').textContent, /Anforderungen belegt/);
@@ -189,7 +190,7 @@ test('technical coverage is independent of matching jobs; failed empty sources n
     { ...source, org_id: 'obsan', status: 'error', coverage: 'unknown', stale: true, job_count: 0, checked_at: stamp, last_success_at: null, last_complete_at: null },
   ] }) }); t.after(() => x.w.close());
   const metrics = Array.from(x.w.document.querySelectorAll('.jf-metrics > div'), node => node.textContent);
-  assert.deepEqual(metrics, ['1Fachlich passende Stellen', '1/85Quellen vollständig abgerufen', '1Quellen mit passenden Stellen', '84Nicht vollständig erfasst']);
+  assert.deepEqual(metrics, ['1Fachlich passende Stellen', `1/${CATALOG_SIZE}Quellen vollständig abgerufen`, '1Quellen mit passenden Stellen', `${CATALOG_SIZE - 1}Nicht vollständig erfasst`]);
   const sourceRows = Array.from(x.w.document.querySelectorAll('.jf-source'));
   const suva = sourceRows.find(node => /Suva/.test(node.querySelector('h3').textContent));
   const obsan = sourceRows.find(node => /Obsan/.test(node.querySelector('h3').textContent));

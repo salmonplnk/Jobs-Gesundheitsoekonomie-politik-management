@@ -15,6 +15,7 @@ on:
       - 'scripts/*feed*'
       - scripts/job-pdf-text.mjs
       - js/job-relevance.js
+      - js/job-facts.js
       - 'supabase/functions/_shared/**'
       - data/organizations.json
       - data/job-source-overrides.json

@@ -44,10 +44,10 @@ function setup(t, favorites = [], viewportWidth) {
 
 test('map counts canonical organizations once and separates region buckets from city markers', t => {
   const x = setup(t, ['bag', 'bsv', 'suva']);
-  assert.equal(x.ids().length, 85);
-  x.summaryHasCount(85);
-  assert.equal(x.count('Bern'), 28);
-  assert.equal(x.count('Zürich'), 11);
+  assert.equal(x.ids().length, 97);
+  x.summaryHasCount(97);
+  assert.equal(x.count('Bern'), 31);
+  assert.equal(x.count('Zürich'), 16);
   assert.equal(x.w.document.querySelectorAll('#fav-grid .org-card').length, 3);
   assert.equal(x.w.document.querySelector('.map-svg .city-bubble[data-loc="Westschweiz"]'), null);
   assert.equal(x.find('.map-region-btn[data-loc="Westschweiz"]').closest('svg'), null);
@@ -59,17 +59,17 @@ test('multiple region selection stays synchronized and removal preserves the oth
   x.click('.city-bubble[data-loc="Bern"]');
   x.click('#cantonChips [data-loc="Zürich"]');
   assert.deepEqual(x.selected().sort(), ['Bern', 'Zürich']);
-  assert.equal(x.ids().length, 39);
-  x.summaryHasCount(39);
+  assert.equal(x.ids().length, 47);
+  x.summaryHasCount(47);
   for (const city of ['Bern', 'Zürich']) {
     assert.equal(x.find(`.city-bubble[data-loc="${city}"]`).getAttribute('aria-pressed'), 'true');
     assert.equal(x.find(`#cantonChips [data-loc="${city}"]`).getAttribute('aria-pressed'), 'true');
   }
   // Counts on destinations show their availability, not the selected subset.
-  assert.equal(x.count('Basel'), 7);
+  assert.equal(x.count('Basel'), 10);
   x.click('#activeLocs [data-remove-loc="Bern"]');
   assert.deepEqual(x.selected(), ['Zürich']);
-  assert.equal(x.ids().length, 11);
+  assert.equal(x.ids().length, 16);
   assert.equal(x.find('.city-bubble[data-loc="Bern"]').getAttribute('aria-pressed'), 'false');
   assert.deepEqual(x.errors, []);
 });
@@ -105,10 +105,10 @@ test('reset clears locations, category and search after an empty result', async 
   assert.deepEqual(x.selected(), []);
   assert.deepEqual(Array.from(x.run('activeCats')), []);
   assert.equal(x.find('#searchInput').value, '');
-  assert.equal(x.ids().length, 85);
+  assert.equal(x.ids().length, 97);
   assert.equal(x.find('#mapEmpty').hidden, true);
   assert.equal(x.find('#mapChooseEmployers').disabled, false);
-  assert.equal(x.count('Bern'), 28);
+  assert.equal(x.count('Bern'), 31);
   assert.deepEqual(x.errors, []);
 });
 
@@ -159,11 +159,11 @@ test('map handoff includes only current searchable organizations without startin
   const calls = [];
   x.w.HealthJobs = { openEmployerSelection: ids => calls.push(Array.from(ids)), startSearch: () => assert.fail('Map must open a chooser, not start a search') };
   x.click('#mapChooseEmployers');
-  assert.equal(calls[0].length, 81);
-  assert.equal(new Set(calls[0]).size, 81);
+  assert.equal(calls[0].length, 93);
+  assert.equal(new Set(calls[0]).size, 93);
   x.click('.city-bubble[data-loc="Bern"]');
   x.click('#mapChooseEmployers');
-  assert.equal(calls[1].length, 25);
+  assert.equal(calls[1].length, 28);
   assert.ok(calls[1].includes('bag'));
   assert.ok(!calls[1].includes('hplus'));
   x.click('.cat-chip[data-cat="versicherungen"]');
@@ -180,9 +180,9 @@ test('favorite changes and directory rerenders retain map filters and canonical 
   x.click('.city-bubble[data-loc="Bern"]');
   x.click('#categories .org-card[data-id="bag"] [data-fav]');
   assert.deepEqual(x.selected(), ['Bern']);
-  assert.equal(x.ids().length, 28);
-  x.summaryHasCount(28);
-  assert.equal(x.count('Bern'), 28);
+  assert.equal(x.ids().length, 31);
+  x.summaryHasCount(31);
+  assert.equal(x.count('Bern'), 31);
   assert.equal(x.w.document.querySelectorAll('#fav-grid .org-card[data-id="bag"]').length, 1);
   assert.equal(x.find('.city-bubble[data-loc="Bern"]').getAttribute('aria-pressed'), 'true');
   assert.deepEqual(x.errors, []);
@@ -192,11 +192,11 @@ test('Westschweiz selection retains its existing distinct bucket and excludes Ne
   const x = setup(t);
   x.click('.map-region-btn[data-loc="Westschweiz"]');
   assert.deepEqual(x.selected(), ['Westschweiz']);
-  assert.equal(x.ids().length, 8);
+  assert.equal(x.ids().length, 9);
   assert.ok(!x.ids().includes('bfs'));
   assert.equal(x.count('Neuenburg'), 2);
   x.click('.city-bubble[data-loc="Neuenburg"]');
-  assert.equal(x.ids().length, 10);
+  assert.equal(x.ids().length, 11);
   assert.ok(x.ids().includes('bfs'));
   assert.deepEqual(x.errors, []);
 });

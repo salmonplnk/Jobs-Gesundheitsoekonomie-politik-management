@@ -94,7 +94,7 @@
     for (const rawSource of raw.sources) { const source = cleanSource(rawSource); if (source && !sources.has(source.org_id)) sources.set(source.org_id, source); }
     for (const org of catalog.values()) if (!sources.has(org.id)) sources.set(org.id, cleanSource(null, org));
     const jobs = [], ids = new Set(); let ignored = 0, excluded = 0;
-    const scoped = raw.scope?.policy_version === 1;
+    const scoped = raw.scope?.policy_version === R.POLICY_VERSION;
     const observed = new Map(), accepted = new Map();
     for (const rawJob of raw.jobs) {
       const job = cleanPublicJob(rawJob, sources, url, true);
@@ -104,9 +104,9 @@
       // New snapshots carry the full-text classification: compact excerpts may omit
       // its evidence. Older broad snapshots are checked locally before display.
       const evidence = rawJob.relevance;
-      const validatedEvidence = scoped && evidence?.policy_version === 1 && evidence.eligible === true && focusCategories.includes(evidence.category) && Array.isArray(evidence.reasons) && evidence.reasons.length > 0 && evidence.reasons.every(reason => typeof reason === 'string' && reason.trim());
+      const validatedEvidence = scoped && evidence?.policy_version === R.POLICY_VERSION && evidence.eligible === true && focusCategories.includes(evidence.category) && Array.isArray(evidence.reasons) && evidence.reasons.length > 0 && evidence.reasons.every(reason => typeof reason === 'string' && reason.trim());
       job.relevance = validatedEvidence
-        ? { eligible: true, category: evidence.category, reasons: evidence.reasons.slice(0, 5).map(reason => C.text(reason, 300)), policy_version: 1 }
+        ? { eligible: true, category: evidence.category, reasons: evidence.reasons.slice(0, 5).map(reason => C.text(reason, 300)), policy_version: R.POLICY_VERSION }
         : R.classify(job, catalog.get(job.org_id) || sources.get(job.org_id));
       if (!job.relevance.eligible || !focusCategories.includes(job.relevance.category)) { if (job.status !== 'closed') excluded++; continue; }
       if (job.status !== 'closed') for (const id of job.org_ids) accepted.set(id, (accepted.get(id) || 0) + 1);
@@ -117,7 +117,7 @@
       source.relevant_job_count = accepted.get(source.org_id) || 0;
       source.filtered_out_count = scoped ? source.filtered_out_count + Math.max(0, (observed.get(source.org_id) || 0) - source.relevant_job_count) : Math.max(0, source.raw_job_count - source.relevant_job_count);
     }
-    const scope = { policy_version: 1, excluded_jobs: scoped ? count(raw.scope.excluded_jobs) + excluded : excluded, relevant_jobs: jobs.filter(job => job.status !== 'closed').length, scanned_jobs: scoped ? count(raw.scope.scanned_jobs) : observed.size ? raw.jobs.filter(job => job?.status !== 'closed').length - ignored : 0 };
+    const scope = { policy_version: R.POLICY_VERSION, excluded_jobs: scoped ? count(raw.scope.excluded_jobs) + excluded : excluded, relevant_jobs: jobs.filter(job => job.status !== 'closed').length, scanned_jobs: scoped ? count(raw.scope.scanned_jobs) : observed.size ? raw.jobs.filter(job => job?.status !== 'closed').length - ignored : 0 };
     return { url, generated_at: iso(raw.generated_at), sources, jobs, ignored, scope, run: { id: C.text(raw.run.id, 100), started_at: iso(raw.run.started_at), finished_at: iso(raw.run.finished_at), status: C.text(raw.run.status, 50), total_sources: count(raw.run.total_sources), checked_sources: count(raw.run.checked_sources) } };
   }
   function coverageLabel(value) { const names = { complete: 'Vollständig erfasst', partial: 'Teilweise erfasst', unknown: 'Abdeckung unbekannt' }; return Object.hasOwn(names, value) ? names[value] : value; }

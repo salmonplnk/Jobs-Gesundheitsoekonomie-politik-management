@@ -571,7 +571,273 @@
       "scope_terms": [
         "Hirslanden"
       ],
-      "note": "Offizielle Hirslanden-Stellenseite leitet am 24.09.2026 auf careers.mediclinic.com/Hirslanden um; dort veröffentlichte Suchliste HTTP200 mit 50 von365 Stellen. Listenpagination vollständig abarbeiten; ausschliesslich Hirslanden zuordnen, keine anderen Mediclinic-Landesgesellschaften übernehmen."
+      "note": "Offizielle Hirslanden-Stellenseite leitet am 24.09.2026 auf careers.mediclinic.com/Hirslanden um; dort veröffentlichte Suchliste HTTP200 mit 50 von365 Stellen. Listenpagination vollständig abarbeiten; ausschliesslich Hirslanden zuordnen, keine anderen Mediclinic-Landesgesellschaften übernehmen.",
+      "employer_aliases": [
+        "Mediclinic"
+      ]
+    },
+    "kvg": {
+      "evidence_urls": [
+        "https://www.kvg.org/jobs/",
+        "https://www.jobs.ch/robots.txt"
+      ],
+      "note": "Am 2026-11-03 geprüft: kvg.org/jobs listet die eigenen Stellen als Karten mit PDF-Stellenausschreibung auf kvg.org; «Jetzt bewerben» führt in die allgemeine jobs.ch-Suche. Der Crawler folgte von dort dem gesamten jobs.ch-Katalog (145 fremde Inserate unter KVG). jobs.ch bietet keine verlässlich serverseitig gefilterte Firmenliste; deshalb nur kvg.org-Quellen (PDF-Inserate) auswerten und Stellenbörsen sperren.",
+      "blocked_hosts": [
+        "jobs.ch",
+        "jobup.ch",
+        "jobcloud.ch",
+        "jobscout24.ch"
+      ],
+      "employer_aliases": [
+        "Gemeinsame Einrichtung KVG",
+        "Institution commune LAMal",
+        "Istituzione comune LAMal",
+        "Common Institution KVG"
+      ]
+    },
+    "swissdrg": {
+      "evidence_urls": [
+        "https://www.swissdrg.org/de/ueber-uns/stellenangebote"
+      ],
+      "note": "Am 2026-11-03 HTTP200; die Seite meldet ausdrücklich keine offenen Stellen."
+    },
+    "iqvia": {
+      "evidence_urls": [
+        "https://jobs.iqvia.com/en/search-jobs?k=health+economics"
+      ],
+      "note": "Am 2026-11-03 HTTP200 (Weiterleitung auf /en/jobs). Weltweites Portal: nur Inserate mit HEOR-/Market-Access-/RWE-Bezug übernehmen.",
+      "include_terms": [
+        "market access",
+        "marktzugang",
+        "value and access",
+        "value & access",
+        "HEOR",
+        "health economic",
+        "Gesundheitsökonom",
+        "économie de la santé",
+        "outcomes research",
+        "real world evidence",
+        "real-world evidence",
+        "RWE",
+        "pricing",
+        "reimbursement",
+        "Vergütung",
+        "remboursement",
+        "HTA",
+        "health technology assessment",
+        "epidemiolog",
+        "public health",
+        "health policy",
+        "Gesundheitspolitik",
+        "public affairs",
+        "evidence generation",
+        "patient access"
+      ]
+    },
+    "deloitte": {
+      "evidence_urls": [
+        "https://www.deloitte.com/ch/en/careers/deloitte-life/jobs-in-zurich.html",
+        "https://apply.deloitte.ch/CHCareers/"
+      ],
+      "note": "Am 2026-11-03 HTTP200; offizielles Avature-Portal der Schweizer Gesellschaft mit JobDetail-Links. Nur Inserate mit Gesundheits-/Life-Sciences-Bezug übernehmen.",
+      "include_terms": [
+        "health",
+        "Gesundheit",
+        "santé",
+        "healthcare",
+        "life sciences",
+        "pharma",
+        "hospital",
+        "Spital",
+        "Krankenversicher",
+        "medtech",
+        "public sector"
+      ]
+    },
+    "kpmg": {
+      "evidence_urls": [
+        "https://kpmg.com/ch/en/careers/jobs.html",
+        "https://jobs.kpmg.ch/?lang=en"
+      ],
+      "note": "Am 2026-11-03 HTTP200; offizielles Portal (Prospective-Careercenter 1693, JavaScript). Nur Inserate mit Gesundheits-/Life-Sciences-Bezug übernehmen.",
+      "allowed_hosts": [
+        "ohws.prospective.ch"
+      ],
+      "include_terms": [
+        "health",
+        "Gesundheit",
+        "santé",
+        "healthcare",
+        "life sciences",
+        "pharma",
+        "hospital",
+        "Spital",
+        "Krankenversicher",
+        "medtech",
+        "public sector"
+      ]
+    },
+    "ey": {
+      "evidence_urls": [
+        "https://www.ey.com/en_ch/careers",
+        "https://careers.ey.com/ey/search/?q=health&locationsearch=Switzerland"
+      ],
+      "note": "Am 2026-11-03 HTTP200; Suche ist auf health und Switzerland gefiltert, enthält aber auch andere Länder. Nur Gesundheitsbezug übernehmen.",
+      "include_terms": [
+        "health",
+        "Gesundheit",
+        "santé",
+        "healthcare",
+        "life sciences",
+        "pharma",
+        "hospital",
+        "Spital",
+        "Krankenversicher",
+        "medtech",
+        "public sector"
+      ]
+    },
+    "ispm": {
+      "evidence_urls": [
+        "https://www.ispm.unibe.ch/about_us/job_openings/index_eng.html"
+      ],
+      "note": "Am 2026-11-03 HTTP200; Institutsseite verlinkt Einzelinserate auf jobs.unibe.ch.",
+      "allowed_hosts": [
+        "jobs.unibe.ch"
+      ]
+    },
+    "ebpi": {
+      "evidence_urls": [
+        "https://www.ebpi.uzh.ch/en/aboutus.html",
+        "https://www.uzh.ch/en/explore/work/jobs.html"
+      ],
+      "note": "Am 2026-11-03 HTTP200; EBPI verweist auf das UZH-Stellenportal (eingebettetes Prospective-Careercenter 1002007). Nur Stellen mit EBPI-Zuordnung übernehmen; Gesamtliste der UZH nicht dem Institut zuordnen.",
+      "allowed_hosts": [
+        "ohws.prospective.ch"
+      ],
+      "scope_terms": [
+        "Epidemiology, Biostatistics and Prevention Institute",
+        "Epidemiologie, Biostatistik und Prävention",
+        "EBPI"
+      ]
+    },
+    "unisante": {
+      "evidence_urls": [
+        "https://www.unisante.ch/fr/propos-dunisante/travailler-unisante",
+        "https://emploi.unisante.ch/offres"
+      ],
+      "note": "Am 2026-11-03 HTTP200; serverseitige Liste mit Einzelinseraten /offre/...."
+    },
+    "bfh": {
+      "evidence_urls": [
+        "https://www.bfh.ch/de/ueber-die-bfh/karriere/jobs/"
+      ],
+      "note": "Am 2026-11-03 HTTP200; gemeinsames BFH-Portal. Nur Stellen des Departements Gesundheit übernehmen.",
+      "scope_terms": [
+        "Departement Gesundheit",
+        "BFH Gesundheit",
+        "Department of Health Professions",
+        "Département Santé"
+      ]
+    },
+    "roche": {
+      "evidence_urls": [
+        "https://careers.roche.com/global/en/search-results?keywords=market%20access"
+      ],
+      "note": "Am 2026-11-03 HTTP200; globales Phenom-Portal (JavaScript). Suche auf market access eingeschränkt; zusätzlich nur Inserate mit Market-Access-/HEOR-/RWE-Bezug übernehmen.",
+      "include_terms": [
+        "market access",
+        "marktzugang",
+        "value and access",
+        "value & access",
+        "HEOR",
+        "health economic",
+        "Gesundheitsökonom",
+        "économie de la santé",
+        "outcomes research",
+        "real world evidence",
+        "real-world evidence",
+        "RWE",
+        "pricing",
+        "reimbursement",
+        "Vergütung",
+        "remboursement",
+        "HTA",
+        "health technology assessment",
+        "epidemiolog",
+        "public health",
+        "health policy",
+        "Gesundheitspolitik",
+        "public affairs",
+        "evidence generation",
+        "patient access"
+      ]
+    },
+    "novartis": {
+      "evidence_urls": [
+        "https://www.novartis.com/careers/career-search?search_api_fulltext=market%20access&country%5B0%5D=LOC_CH"
+      ],
+      "note": "Am 2026-11-03 HTTP200 mit serverseitigen Detail-Links; der Suchfilter wird nicht strikt angewendet. Nur Inserate mit Market-Access-/HEOR-Bezug übernehmen.",
+      "include_terms": [
+        "market access",
+        "marktzugang",
+        "value and access",
+        "value & access",
+        "HEOR",
+        "health economic",
+        "Gesundheitsökonom",
+        "économie de la santé",
+        "outcomes research",
+        "real world evidence",
+        "real-world evidence",
+        "RWE",
+        "pricing",
+        "reimbursement",
+        "Vergütung",
+        "remboursement",
+        "HTA",
+        "health technology assessment",
+        "epidemiolog",
+        "public health",
+        "health policy",
+        "Gesundheitspolitik",
+        "public affairs",
+        "evidence generation",
+        "patient access"
+      ]
+    },
+    "takeda": {
+      "evidence_urls": [
+        "https://jobs.takeda.com/search-jobs/market%20access/Switzerland"
+      ],
+      "note": "Am 2026-11-03 HTTP200; globales Portal liefert auch Stellen ausserhalb der Schweiz. Nur Inserate mit Market-Access-/HEOR-Bezug übernehmen.",
+      "include_terms": [
+        "market access",
+        "marktzugang",
+        "value and access",
+        "value & access",
+        "HEOR",
+        "health economic",
+        "Gesundheitsökonom",
+        "économie de la santé",
+        "outcomes research",
+        "real world evidence",
+        "real-world evidence",
+        "RWE",
+        "pricing",
+        "reimbursement",
+        "Vergütung",
+        "remboursement",
+        "HTA",
+        "health technology assessment",
+        "epidemiolog",
+        "public health",
+        "health policy",
+        "Gesundheitspolitik",
+        "public affairs",
+        "evidence generation",
+        "patient access"
+      ]
     }
   }
 }

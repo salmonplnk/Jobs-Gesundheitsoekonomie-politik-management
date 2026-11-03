@@ -324,3 +324,19 @@ test('only the exact verified BFS office filter can certify a zero-job federal A
     assert.equal(result.source.coverage,office==='1083355'?'complete':'unknown');
   }
 });
+
+test('crawler excludes other employers and departments outside include_terms with a reason',async () => {
+  const {crawlOrganization} = await crawler;
+  const {isOtherEmployerJob,matchesIncludeTerms,isJobBoardUrl} = await helpers;
+  const ld = (title,employer,url) => `<script type="application/ld+json">${JSON.stringify({'@type':'JobPosting',title,url,description:description.repeat(2),hiringOrganization:{name:employer}})}</script>`;
+  const f = fixtures({'https://hospital.ch/careers':ld('Health Economist','Hospital','https://hospital.ch/jobs/a') + ld('Controller','Consult & Pepper AG','https://www.jobs.ch/de/stellenangebote/detail/f69c4cba-a0ba-4db2-87ec-f113fd944f02')});
+  const result = await crawlOrganization(org,async url => f.fetch(url),{limits:{maxDetails:0}});
+  assert.deepEqual(result.jobs.map(job => job.title),['Health Economist']);
+  assert.equal(result.source.excluded_reasons.other_employer,1);
+  assert.match(result.source.message,/anderer Arbeitgeber/);
+  assert.equal(isJobBoardUrl('https://www.jobup.ch/fr/emplois/detail/x'),true);
+  assert.equal(isOtherEmployerJob({hiring_organization:'Klinik Im Park',url:'https://hospital.ch/jobs/b'},org),false,'own career host');
+  assert.equal(matchesIncludeTerms({title:'Manager Market Access Switzerland',description:''},{include_terms:['market access']}),true);
+  assert.equal(matchesIncludeTerms({title:'QC Specialist',description:'Laboratory'},{include_terms:['market access','HEOR']}),false);
+  assert.equal(matchesIncludeTerms({title:'Senior Epidemiologist',description:''},{include_terms:['epidemiolog']}),true);
+});

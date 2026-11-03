@@ -56,18 +56,20 @@ test('index deduplicates canonical URLs while retaining all source associations 
   assert.equal(index[0].detail_file,'./health.json');
 });
 
-test('default run represents and visits all 85 catalogue organisations including entries without URLs', async () => {
+test('default run represents and visits all catalogue organisations including entries without URLs', async () => {
   const catalog = JSON.parse(await readFile(new URL('../data/organizations.json',import.meta.url),'utf8'));
   const organizations = catalogOrganizations(catalog), calls=[];
+  const size = catalog.reduce((sum,group)=>sum+group.orgs.length,0);
+  assert.equal(size,97);
   const result = await runFeed({organizations,now:()=>time,crawl:async organization=>{
     calls.push(organization.id);
     return {jobs:[],source:{status:organization.jobs?'empty':'unsupported',coverage:organization.jobs?'complete':'unknown'}};
   }});
-  assert.equal(calls.length,85);
-  assert.equal(result.index.sources.length,85);
-  assert.equal(result.index.run.total_sources,85);
-  assert.equal(result.index.run.checked_sources,85);
-  assert.equal(result.index.run.configured,81);
+  assert.equal(calls.length,size);
+  assert.equal(result.index.sources.length,size);
+  assert.equal(result.index.run.total_sources,size);
+  assert.equal(result.index.run.checked_sources,size);
+  assert.equal(result.index.run.configured,93);
   assert.equal(result.index.run.limited,false);
 });
 
@@ -149,8 +151,8 @@ test('current verified scopes remove unrelated old jobs even if the latest crawl
   assert.equal(result.jobs.length,0);
   assert.equal(result.source.excluded_jobs,1);
   assert.match(result.source.message,/Quellenbereichs/);
-  const valid=job('two',{description:'A public health research role. '.repeat(10),hiring_organization:'Actual clinic'});
-  assert.equal(mergeSourceSnapshot(scoped,{jobs:[valid],source:{status:'partial'}},{},time).jobs[0].organization,'Actual clinic');
+  const valid=job('two',{description:'A public health research role. '.repeat(10),hiring_organization:'Health employer – Actual clinic'});
+  assert.equal(mergeSourceSnapshot(scoped,{jobs:[valid],source:{status:'partial'}},{},time).jobs[0].organization,'Health employer – Actual clinic');
 });
 
 test('failed and unselected sources lose off-topic old records while relevant stale vacancies survive', async () => {
@@ -381,4 +383,54 @@ test('challenge pages are errors, never successful empty employer lists', async 
   await assert.rejects(network.page(org.jobs,org),/CAPTCHA/);
   assert.equal(NETWORK_LIMITS.maxDetails,500);
   assert.equal(NETWORK_LIMITS.maxListingPages,50);
+});
+
+const kvg = {id:'kvg', name:'Gemeinsame Einrichtung KVG', category:'bund', main:'https://www.kvg.org', jobs:'https://www.kvg.org/jobs/'};
+const boardJob = (uuid, extra = {}) => ({id:`kvg:${uuid.slice(0,8)}`, org_id:'kvg', organization:'Consult & Pepper AG', hiring_organization:'Consult & Pepper AG',
+  title:'Head of Finance / Leiter Buchhaltung & Controlling (a)', url:`https://www.jobs.ch/de/stellenangebote/detail/${uuid}`,
+  description:'Ihre Aufgaben\nControlling, Budgetierung und Strategie der Finanzabteilung.\nIhr Profil\nBetriebswirtschaftliches Studium.',
+  fetched_at:time, first_seen:time, last_seen:time, status:'open', ...extra});
+
+test('regression: jobs of other employers reached through a job board never stay under the linking source (kvg leak)', async () => {
+  const leaked = boardJob('be58b557-ef55-411d-b982-ae43bb2c9da9');
+  const own = {...job('pdf', {org_id:'kvg', id:'kvg:own', organization:kvg.name, url:'https://www.kvg.org/wp-content/uploads/sb-ge-kvg.pdf',
+    title:'Projektleiter/in Gesundheitswesen', description:'Aufgaben\nProjekte zur Krankenversicherung und zum Gesundheitswesen leiten.\nAnforderungen\nStudium Gesundheitsökonomie.'})};
+  // Previously published leaked records are removed and counted, even when the new crawl fails.
+  const merged = mergeSourceSnapshot(kvg, {jobs:[], source:{status:'error'}}, {jobs:[leaked, own], source:{}}, time);
+  assert.deepEqual(merged.jobs.map(item => item.id), ['kvg:own']);
+  assert.equal(merged.source.excluded_jobs, 1);
+  // The same posting under the actual employer's own career host is kept.
+  const insel = {id:'insel', name:'Insel Gruppe Bern', main:'https://www.inselgruppe.ch', jobs:'https://jobs.inselgruppe.ch/?lang=de'};
+  const clinic = {...leaked, id:'insel:clinic', org_id:'insel', organization:'Tiefenauspital', hiring_organization:'Tiefenauspital', url:'https://jobs.inselgruppe.ch/offene-stellen/x/1'};
+  assert.equal(mergeSourceSnapshot(insel, {jobs:[clinic], source:{status:'ok', coverage:'complete'}}, {}, time).jobs.length, 1);
+  // The full run publishes neither the leaked job nor a "health employer" classification for it.
+  const result = await runFeed({organizations:[kvg], now:()=>time, crawl:async () => ({jobs:[leaked, own], source:{status:'ok', coverage:'complete'}})});
+  assert.ok(result.index.jobs.every(item => !item.url.includes('jobs.ch')));
+  assert.ok(result.shards[0].jobs.every(item => item.organization === kvg.name));
+});
+
+test('override fields reach the organisation; kvg must not crawl job boards', async () => {
+  const catalog = JSON.parse(await readFile(new URL('../data/organizations.json',import.meta.url),'utf8'));
+  const overrides = JSON.parse(await readFile(new URL('../data/job-source-overrides.json',import.meta.url),'utf8'));
+  const organizations = catalogOrganizations(catalog, overrides);
+  const source = organizations.find(item => item.id === 'kvg');
+  assert.ok(source.blocked_hosts.includes('jobs.ch'));
+  const {isAllowedUrl} = await import('../supabase/functions/_shared/job-extraction.mjs');
+  assert.equal(isAllowedUrl('https://www.jobs.ch/de/stellenangebote/?term=gemeinsame%20einrichtung%20kvg', source), false);
+  assert.equal(isAllowedUrl('https://www.kvg.org/wp-content/uploads/sb-ge-kvg-berufserfahren.pdf', source), true);
+  // Large portals are restricted to relevant departments.
+  for (const id of ['roche','novartis','takeda','iqvia','deloitte','kpmg','ey']) assert.ok(organizations.find(item => item.id === id).include_terms.length > 3, id);
+  const pharma = catalog.find(group => group.key === 'pharma');
+  assert.equal(pharma.emoji, '💊');
+});
+
+test('index dedupes language variants and repeated postings and carries compact facts', () => {
+  const a = job('a', {title:'Health Economist (80-100%)', url:'https://www.jobs.ch/de/stellenangebote/detail/f69c4cba-a0ba-4db2-87ec-f113fd944f02',
+    location:'Basel', deadline:'2026-10-15', start_date:'sofort', canton:'BS', seniority:'senior',
+    salary_hint:'Lohnklasse 23', salary_range:{min:null,max:149807,currency:'CHF',period:'year',source:'Lohnklasse 23 (Bund)'}});
+  const b = {...a, id:'health:b', url:'https://www.jobs.ch/fr/offres-emplois/detail/f69c4cba-a0ba-4db2-87ec-f113fd944f02'};
+  const c = {...a, id:'health:c', url:'https://www.jobs.ch/en/vacancies/detail/00000000-a0ba-4db2-87ec-f113fd944f02', title:'Health Economist (w/m/d) 80–100%'};
+  const index = compactIndexJobs([{jobs:[a,b,c]}]);
+  assert.equal(index.length, 1);
+  for (const key of ['deadline','start_date','canton','seniority','salary_hint','salary_range']) assert.deepEqual(index[0][key], a[key], key);
 });

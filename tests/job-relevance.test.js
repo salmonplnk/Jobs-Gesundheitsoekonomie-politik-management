@@ -11,7 +11,8 @@ test('explicit health economics and HTA titles are in the core category', () => 
     const x = R.classify(job(title, '', 'unknown'));
     assert.equal(x.eligible, true, title);
     assert.equal(x.category, R.CATEGORIES[0]);
-    assert.equal(x.policy_version, 1);
+    assert.equal(x.policy_version, R.POLICY_VERSION);
+    assert.equal(R.POLICY_VERSION, 2);
     assert.ok(x.reasons.length && x.reasons.every(reason => typeof reason === 'string'));
     assert.equal('score' in x, false);
   }
@@ -190,4 +191,26 @@ test('browser global and Node entry point produce the same policy result', () =>
   const input = job('Gesundheitsökonom/in');
   assert.deepEqual(JSON.parse(JSON.stringify(context.HealthJobRelevance.classify(input))), R.classify(input));
   assert.equal(context.HealthJobRelevance.POLICY_VERSION, R.POLICY_VERSION);
+});
+
+test('regression: a catalogue health organisation does not lend its status to other employers (kvg leak)', () => {
+  const kvg = { id: 'kvg', name: 'Gemeinsame Einrichtung KVG', main: 'https://www.kvg.org', jobs: 'https://www.kvg.org/jobs/' };
+  const description = 'Ihre Aufgaben\nBuchhaltung, Budgetierung und Controlling der Unternehmensgruppe verantworten.\nIhr Profil\nStudium in Betriebswirtschaft.';
+  const leaked = { title: 'Head of Finance / Leiter Buchhaltung & Controlling (a)', description, org_id: 'kvg', organization: 'Consult & Pepper AG',
+    url: 'https://www.jobs.ch/en/vacancies/detail/be58b557-ef55-411d-b982-ae43bb2c9da9' };
+  assert.equal(R.classify(leaked, kvg).eligible, false);
+  for (const title of ['Projektleiter:in Elektroplanung im Hochbau', 'Senior Business Analyst Digital Banking Security']) {
+    assert.equal(R.classify({ ...leaked, title }, kvg).eligible, false, title);
+  }
+  // The organisation's own vacancy keeps the employer context.
+  const own = { ...leaked, title: 'Leiter/in Controlling', organization: 'Gemeinsame Einrichtung KVG', url: 'https://www.kvg.org/wp-content/uploads/controlling.pdf' };
+  assert.equal(R.classify(own, kvg).category, R.CATEGORIES[4]);
+  // Sub-units on the group's own career host (here a clinic) remain the group's vacancies.
+  const insel = { id: 'insel', name: 'Insel Gruppe Bern', main: 'https://www.inselgruppe.ch', jobs: 'https://jobs.inselgruppe.ch/?lang=de' };
+  assert.equal(R.classify({ ...own, org_id: 'insel', organization: 'Tiefenauspital', url: 'https://jobs.inselgruppe.ch/offene-stellen/x/1' }, insel).eligible, true);
+  assert.equal(R.employerMatches('Gemeinsame Einrichtung KVG', kvg), true);
+  assert.equal(R.employerMatches('Institution commune LAMal', { ...kvg, employer_aliases: ['Institution commune LAMal'] }), true);
+  assert.equal(R.employerMatches('Consult & Pepper AG', kvg), false);
+  assert.equal(R.employerMatches('Bundesamt für Gesundheit BAG / Eidgenössisches Departement des Innern EDI', { id: 'bag', name: 'Bundesamt für Gesundheit (BAG)' }), true);
+  assert.equal(R.employerMatches('', kvg), true);
 });

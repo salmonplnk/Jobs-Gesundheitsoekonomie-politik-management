@@ -5,19 +5,20 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { crawlOrganization } from '../supabase/functions/_shared/job-crawler.mjs';
-import { canonicalUrl, isAllowedUrl, matchesOrganizationScope } from '../supabase/functions/_shared/job-extraction.mjs';
+import { canonicalUrl, isAllowedUrl, isOtherEmployerJob, matchesIncludeTerms, matchesOrganizationScope } from '../supabase/functions/_shared/job-extraction.mjs';
 import { createPublicNetwork, createBrowserRenderer, NETWORK_LIMITS } from './feed-network.mjs';
 import Relevance from '../js/job-relevance.js';
+import Facts from '../js/job-facts.js';
 import { extractPdfText } from './job-pdf-text.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE_STATUSES = new Set(['ok','empty','partial','unsupported','error','pending']);
 const JOB_FIELDS = ['id','org_id','organization','title','url','source_url','fetched_at','description','description_truncated',
-  'location','hiring_organization','pensum','workload_min','workload_max','languages','salary_hint','deadline','remote_mode',
+  'location','hiring_organization','pensum','workload_min','workload_max','languages','salary_hint','salary_range','deadline','start_date','canton','remote_mode',
   'employment_type','employment_type_raw','seniority','role','first_seen','last_seen','status','closed_at'];
 const SOURCE_FIELDS = ['org_id','name','url','status','checked_at','job_count','message','coverage','pages_scanned',
   'detail_pages_scanned','pending_pages','method','cached','last_success_at','last_complete_at','stale','retained_count',
-  'scraped_count','has_portal','excluded_jobs','raw_job_count','relevant_job_count','filtered_out_count'];
+  'scraped_count','has_portal','excluded_jobs','excluded_reasons','raw_job_count','relevant_job_count','filtered_out_count'];
 const pick = (object, fields) => Object.fromEntries(fields.filter(key => object[key] !== undefined).map(key => [key, object[key]]));
 const validId = id => typeof id === 'string' && /^[a-z0-9][a-z0-9_-]{0,79}$/.test(id);
 export const FEED_BYTE_LIMITS = Object.freeze({index:24 * 1024 * 1024, shard:12 * 1024 * 1024});
@@ -29,15 +30,23 @@ export function catalogOrganizations(catalog, overrides = {version:1, sources:{}
   return catalog.flatMap(group => (group.orgs || []).map(org => ({...org,category:group.key,category_name:group.title}))).map(org => {
     if (!validId(org.id) || seen.has(org.id)) throw new Error(`Ungültige oder doppelte Organisations-ID: ${org.id}`);
     seen.add(org.id);
-    return {...org, ...pick(overrides.sources[org.id] || {}, ['jobs','allowed_hosts','adapter','scope_terms'])};
+    return {...org, ...pick(overrides.sources[org.id] || {}, ['jobs','allowed_hosts','adapter','scope_terms','blocked_hosts','employer_aliases','include_terms'])};
   });
+}
+
+/** Why a stored or crawled record does not belong to this source, or null. */
+export function exclusionReason(raw, org) {
+  if (!matchesOrganizationScope(raw, org)) return 'scope';
+  if (isOtherEmployerJob(raw, org)) return 'other_employer';
+  if (!matchesIncludeTerms(raw, org)) return 'department';
+  return null;
 }
 
 /** The public feed cannot carry CVs, accounts, applications, notes, or other workspace state. */
 export function publicJob(raw, org) {
   if (!raw || raw.org_id !== org.id || typeof raw.id !== 'string' || !raw.id.startsWith(`${org.id}:`) ||
     typeof raw.title !== 'string' || typeof raw.description !== 'string' || !isAllowedUrl(raw.url, org) ||
-    !matchesOrganizationScope(raw, org)) return null;
+    exclusionReason(raw, org)) return null;
   const url = canonicalUrl(raw.url);
   if (!url) return null;
   const job = pick(raw, JOB_FIELDS);
@@ -45,6 +54,12 @@ export function publicJob(raw, org) {
     .find(name => typeof name === 'string' && name.trim())?.trim() || org.name;
   job.url = url;
   job.status = job.status === 'closed' ? 'closed' : 'open';
+  // Deterministic facts are recomputed from the full text, also for older records.
+  const facts = Facts.extractFacts(job, org);
+  for (const key of ['deadline','start_date','seniority','salary_hint','salary_range','canton']) {
+    if (facts[key] != null) job[key] = facts[key];
+    else if (job[key] != null) job[key] = null; // e.g. implausible machine validThrough
+  }
   return job;
 }
 
@@ -53,7 +68,7 @@ export function mergeSourceSnapshot(org, fresh, previous = {}, checkedAt = new D
     url:org.jobs || org.main || '', has_portal:Boolean(org.jobs), checked_at:checkedAt};
   if (!SOURCE_STATUSES.has(source.status)) source.status = 'error';
   const before = new Map((previous.jobs || []).map(raw => publicJob(raw, org)).filter(Boolean).map(job => [job.id, job]));
-  const excludedPrevious = (previous.jobs || []).filter(job => job && typeof job === 'object' && !matchesOrganizationScope(job, org)).length;
+  const excludedPrevious = (previous.jobs || []).filter(job => job && typeof job === 'object' && exclusionReason(job, org)).length;
   const observed = new Map((fresh.jobs || []).map(raw => publicJob(raw, org)).filter(Boolean).map(job => [job.id, job]));
   const verified = ['ok','empty'].includes(source.status) && source.coverage === 'complete';
   const successful = ['ok','empty','partial'].includes(source.status) && (observed.size > 0 || verified);
@@ -88,22 +103,20 @@ export function mergeSourceSnapshot(org, fresh, previous = {}, checkedAt = new D
 
 export function compactJob(job) {
   const compact = pick(job, ['id','org_id','title','organization','url','location','pensum','workload_min','workload_max',
-    'role','languages','remote_mode','employment_type','seniority','salary_hint','deadline','first_seen','last_seen','fetched_at','status','relevance']);
+    'role','languages','remote_mode','employment_type','seniority','salary_hint','salary_range','deadline','start_date','canton',
+    'first_seen','last_seen','fetched_at','status','relevance']);
   compact.description = job.description.slice(0, 1000);
   compact.description_truncated = Boolean(job.description_truncated || job.description.length > 1000);
   compact.detail_file = `./${job.org_id}.json`;
   return compact;
 }
 
+/** One index entry per posting: the same vacancy in several languages/URLs or
+ * posted repeatedly (same employer, normalised title and location) is merged,
+ * keeping the newest/most complete record and every catalogue source in org_ids. */
 export function compactIndexJobs(shards) {
-  const byUrl = new Map();
-  for (const job of shards.flatMap(shard => shard.jobs).filter(job => job.status !== 'closed')) {
-    const key = canonicalUrl(job.url);
-    const existing = byUrl.get(key);
-    if (!existing) byUrl.set(key, {...compactJob(job), org_ids:[job.org_id]});
-    else if (!existing.org_ids.includes(job.org_id)) existing.org_ids.push(job.org_id);
-  }
-  return [...byUrl.values()];
+  const open = shards.flatMap(shard => shard.jobs).filter(job => job.status !== 'closed');
+  return Facts.dedupeJobs(open.map(job => ({...compactJob(job), url:canonicalUrl(job.url) || job.url, org_ids:[job.org_id]})));
 }
 
 /** Apply the public subject scope after crawling/closure decisions. Source

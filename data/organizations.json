@@ -408,6 +408,14 @@
         "main": "https://sbk-asi.ch",
         "jobs": "https://sbk-asi.ch/de/pflege-und-arbeit/arbeit/jobs",
         "desc": "Schweizer Berufsverband der Pflegefachfrauen und Pflegefachmänner."
+      },
+      {
+        "id": "swissdrg",
+        "name": "SwissDRG AG",
+        "loc": "Bern",
+        "main": "https://www.swissdrg.org",
+        "jobs": "https://www.swissdrg.org/de/ueber-uns/stellenangebote",
+        "desc": "Tarifstrukturen SwissDRG, TARPSY und ST Reha – Tarifentwicklung und Kostendaten."
       }
     ]
   },
@@ -630,6 +638,101 @@
         "main": "https://www.interface-pol.ch",
         "jobs": "https://www.interface-pol.ch/category/stellen",
         "desc": "Politikstudien, Forschung & Beratung – u.a. Gesundheitspolitik."
+      },
+      {
+        "id": "iqvia",
+        "name": "IQVIA Schweiz",
+        "loc": "Basel",
+        "main": "https://www.iqvia.com/locations/switzerland",
+        "jobs": "https://jobs.iqvia.com/en/jobs?k=health+economics",
+        "desc": "Real World Evidence, HEOR und Market-Access-Beratung für Life Sciences."
+      },
+      {
+        "id": "deloitte",
+        "name": "Deloitte Schweiz",
+        "loc": "Zürich",
+        "main": "https://www.deloitte.com/ch/de.html",
+        "jobs": "https://apply.deloitte.ch/CHCareers/",
+        "desc": "Beratung Life Sciences & Health Care – Spitäler, Versicherer, Pharma."
+      },
+      {
+        "id": "kpmg",
+        "name": "KPMG Schweiz",
+        "loc": "Zürich",
+        "main": "https://kpmg.com/ch/de.html",
+        "jobs": "https://jobs.kpmg.ch/?lang=en",
+        "desc": "Beratung Healthcare & Life Sciences, Spital- und Gesundheitsfinanzierung."
+      },
+      {
+        "id": "ey",
+        "name": "EY Schweiz",
+        "loc": "Zürich",
+        "main": "https://www.ey.com/de_ch",
+        "jobs": "https://careers.ey.com/ey/search/?q=health&locationsearch=Switzerland",
+        "desc": "Beratung Health Sciences & Wellness, Digital Health und Gesundheitswesen."
+      },
+      {
+        "id": "ispm",
+        "name": "ISPM – Universität Bern",
+        "loc": "Bern",
+        "main": "https://www.ispm.unibe.ch",
+        "jobs": "https://www.ispm.unibe.ch/about_us/job_openings/index_eng.html",
+        "desc": "Institut für Sozial- und Präventivmedizin – Epidemiologie, Public Health, Versorgungsforschung."
+      },
+      {
+        "id": "ebpi",
+        "name": "EBPI – Universität Zürich",
+        "loc": "Zürich",
+        "main": "https://www.ebpi.uzh.ch",
+        "jobs": "https://www.uzh.ch/en/explore/work/jobs.html",
+        "desc": "Epidemiologie, Biostatistik und Prävention – inkl. Gesundheitsökonomie und Public Health."
+      },
+      {
+        "id": "unisante",
+        "name": "Unisanté Lausanne",
+        "loc": "Westschweiz",
+        "main": "https://www.unisante.ch",
+        "jobs": "https://emploi.unisante.ch/offres",
+        "desc": "Centre universitaire de médecine générale et santé publique – Public Health und Versorgungsforschung."
+      },
+      {
+        "id": "bfh",
+        "name": "BFH Gesundheit",
+        "loc": "Bern",
+        "main": "https://www.bfh.ch/gesundheit/de/",
+        "jobs": "https://www.bfh.ch/de/ueber-die-bfh/karriere/jobs/",
+        "desc": "Berner Fachhochschule, Departement Gesundheit – Forschung und Lehre."
+      }
+    ]
+  },
+  {
+    "key": "pharma",
+    "emoji": "💊",
+    "title": "Pharma / Medtech (Market Access)",
+    "orgs": [
+      {
+        "id": "roche",
+        "name": "Roche",
+        "loc": "Basel",
+        "main": "https://www.roche.com",
+        "jobs": "https://careers.roche.com/global/en/search-results?keywords=market%20access",
+        "desc": "Pharma Basel – Market Access, Pricing & Reimbursement, HEOR und Real World Evidence."
+      },
+      {
+        "id": "novartis",
+        "name": "Novartis",
+        "loc": "Basel",
+        "main": "https://www.novartis.com/ch-de/",
+        "jobs": "https://www.novartis.com/careers/career-search?search_api_fulltext=market%20access&country%5B0%5D=LOC_CH",
+        "desc": "Pharma Basel – Value & Access, HEOR, Health Economics und Public Affairs."
+      },
+      {
+        "id": "takeda",
+        "name": "Takeda Schweiz",
+        "loc": "Zürich",
+        "main": "https://www.takeda.com/de-ch/",
+        "jobs": "https://jobs.takeda.com/search-jobs/market%20access/Switzerland",
+        "desc": "Pharma mit Schweizer Sitz in Opfikon – Market Access, Pricing und Value."
       }
     ]
   },

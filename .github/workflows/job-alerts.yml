@@ -1,0 +1,58 @@
+name: Send e-mail job alerts
+
+# Runs after the morning feed refresh ('17 5,17 * * *'). The Edge Function decides
+# which alerts are due (daily ~20 h, weekly ~6.5 days), so one run per day suffices.
+on:
+  schedule:
+    - cron: '47 5 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only count matching jobs, send nothing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: job-alerts
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Call send-job-alerts
+        env:
+          FUNCTIONS_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          CRON_SECRET: ${{ secrets.JOB_ALERTS_CRON_SECRET }}
+          DRY_RUN: ${{ inputs.dry_run == true && 'true' || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FUNCTIONS_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::notice title=Job alerts skipped::Secrets SUPABASE_FUNCTIONS_URL and JOB_ALERTS_CRON_SECRET are not configured."
+            exit 0
+          fi
+          endpoint="${FUNCTIONS_URL%/}/send-job-alerts"
+          # Each call handles a bounded batch; repeat while the function reports more due alerts.
+          for round in 1 2 3 4 5 6 7 8 9 10; do
+            status=$(curl -sS -o response.json -w '%{http_code}' --max-time 300 \
+              -X POST "$endpoint" \
+              -H "x-cron-secret: ${CRON_SECRET}" \
+              -H 'Content-Type: application/json' \
+              --data "{\"dry_run\": ${DRY_RUN}}")
+            # Print counts only; outcomes contain alert ids, never e-mail addresses.
+            jq -c 'del(.outcomes)' response.json || cat response.json
+            if [ "$status" != "200" ]; then
+              echo "::error title=Job alerts failed::HTTP $status from send-job-alerts"
+              exit 1
+            fi
+            if [ "$(jq -r '.failed // 0' response.json)" != "0" ]; then
+              echo "::warning title=Job alerts::Some alerts failed in round $round; they are retried on a later run."
+            fi
+            if [ "$(jq -r '.remaining // false' response.json)" != "true" ]; then
+              break
+            fi
+          done

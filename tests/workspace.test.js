@@ -149,7 +149,7 @@ test('map opens the real employer chooser with filtered IDs and cancellation kee
   x.click('[data-action=choose-region]'); assert.deepEqual(checked(), ['atupri', 'kpt', 'visana']);
   x.w.document.querySelector('.jw-dialog').close();
   assert.deepEqual(JSON.parse(x.w.localStorage.getItem('healthjobs.workspace.v1.guest')).data.selectedOrgIds, ['suva']);
-  x.click('#mapReset'); x.click('#mapChooseEmployers'); assert.equal(checked().length, 81);
+  x.click('#mapReset'); x.click('#mapChooseEmployers'); assert.equal(checked().length, 93);
   assert.equal(requests, 0); assert.deepEqual(x.errors, []);
 });
 
@@ -174,7 +174,7 @@ test('public feed loads without login and imports full text into the real worksp
   const full = { ...item, description: 'Vollständiger Originalbeschrieb mit Aufgaben und Anforderungen.', description_truncated: false };
   const unrelated = { ...item, id: 'bag:clinical', title: 'Dipl. Pflegefachperson', description: 'Pflege auf einer medizinischen Station.' };
   const requests = [];
-  const x = await setup({ feedData: { version: 1, generated_at: stamp, run: { total_sources: 85, checked_sources: 1 }, jobs: [item, unrelated], sources: [{ ...source, job_count: 2 }] }, fetcher: async url => {
+  const x = await setup({ feedData: { version: 1, generated_at: stamp, run: { total_sources: 97, checked_sources: 1 }, jobs: [item, unrelated], sources: [{ ...source, job_count: 2 }] }, fetcher: async url => {
     requests.push(String(url));
     assert.match(String(url), /\/job-feed-data\/data\/job-feed\/bag\.json$/);
     return { ok: true, status: 200, text: async () => JSON.stringify({ version: 1, org_id: 'bag', source, jobs: [full] }) };

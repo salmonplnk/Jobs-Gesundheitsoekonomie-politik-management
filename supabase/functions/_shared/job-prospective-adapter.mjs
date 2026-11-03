@@ -123,6 +123,14 @@ function employerLabels(row) {
     .flatMap(([,value]) => Array.isArray(value) ? value : [value]).filter(value => typeof value === 'string');
 }
 
+function payClass(row) {
+  const values = (object(row.attributes) && Array.isArray(row.attributes.lohnklasse) ? row.attributes.lohnklasse : [])
+    .map(value => Number(String(value).trim())).filter(value => Number.isInteger(value) && value >= 1 && value <= 38);
+  if (!values.length) return undefined;
+  const low = Math.min(...values),high = Math.max(...values);
+  return low === high ? `Lohnklasse ${low}` : `Lohnklassen ${low}–${high}`;
+}
+
 function description(szas) {
   const parts = [string(szas.sza_introduction),string(szas.sza_description)];
   for (const [label,keys] of [
@@ -170,7 +178,9 @@ export function normalizeProspectivePayload(adapter,payload,org,options = {}) {
       hiringOrganization:labels.length ? {name:labels.join(' / ')} : undefined,
       jobLocation:{address:{addressLocality:szas['sza_location.city'] || szas['sza_workplace.city'],
         addressRegion:szas['sza_location.region'] || szas['sza_workplace.region'],addressCountry:szas['sza_location.country'] || szas['sza_workplace.country']}},
-      employmentType:employment === 'Festanstellung' ? 'permanent' : employment,languageRequirements:szas.sza_language_requirements};
+      employmentType:employment === 'Festanstellung' ? 'permanent' : employment,languageRequirements:szas.sza_language_requirements,
+      // jobs.admin.ch publishes the federal salary class as a structured attribute.
+      baseSalary:payClass(row)};
     const html = `<script type="application/ld+json">${JSON.stringify(node).replace(/</g,'\\u003c')}</script>`;
     const parsed = extractVacancies(html,{...org,jobs:adapter.boardUrl},adapter.apiUrl,{fetchedAt:options.fetchedAt,sourceUrl:options.sourceUrl || org.jobs});
     if (!parsed.jobs.length) { links.set(direct,{url:direct,label:title}); continue; }

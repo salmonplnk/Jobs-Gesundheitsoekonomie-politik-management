@@ -6,10 +6,10 @@ import sourceOverrides from '../../../data/job-source-overrides.json' with { typ
 import { CACHE_VERSION, isAllowedUrl, matchesOrganizationScope } from '../_shared/job-extraction.mjs'
 import { crawlOrganization, fetchPublicPage, fetchPublicJson } from '../_shared/job-crawler.mjs'
 
-type Organization = { id: string; name: string; main: string; jobs: string; allowed_hosts?: string[]; scope_terms?: string[]; adapter?: string }
+type Organization = { id: string; name: string; main: string; jobs: string; allowed_hosts?: string[]; scope_terms?: string[]; adapter?: string; blocked_hosts?: string[]; employer_aliases?: string[]; include_terms?: string[] }
 const organizations = new Map<string, Organization>(catalog.flatMap(category => category.orgs).map(org => {
   const overrides = (sourceOverrides.sources as Record<string, Partial<Organization>>)[org.id] || {}
-  return [org.id, {...org, ...Object.fromEntries(['jobs','allowed_hosts','scope_terms','adapter'].filter(key => key in overrides).map(key => [key, overrides[key as keyof Organization]]))}]
+  return [org.id, {...org, ...Object.fromEntries(['jobs','allowed_hosts','scope_terms','adapter','blocked_hosts','employer_aliases','include_terms'].filter(key => key in overrides).map(key => [key, overrides[key as keyof Organization]]))}]
 }))
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

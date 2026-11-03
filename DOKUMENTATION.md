@@ -98,7 +98,7 @@ Suchprofile speichern Kriterien und Arbeitgeberauswahl getrennt vom persönliche
 
 Gespeicherte Stellen können mit Bewerbungsstatus, Notizen, Datum, Kontakt und nächstem Schritt ergänzt werden. Bewerbungsentwürfe gehören zur jeweiligen Stelle, enthalten deren Inseratstext als Grundlage und werden als Versionen gespeichert. Bearbeitung, Kopieren und Exporte ermöglichen die weitere Verwendung ausserhalb der App. Der DOCX-Export erzeugt ein echtes OOXML-Dokument lokal im Browser. Für PDF öffnet die App eine Druckansicht; im Druckdialog wird «Als PDF speichern» gewählt. Diese Exporte benötigen keine zusätzlichen Bibliotheken.
 
-Die App verschickt keine Bewerbungen und keine automatischen Benachrichtigungen. Neben der Prüfung des Anwendungscodes gibt es einen getrennten Workflow für den öffentlichen Jobfeed. Dessen Zeitplan wird erst nach Übernahme auf den Hauptbranch aktiv.
+Die App verschickt keine Bewerbungen. Automatische Mails gibt es nur für selbst eingerichtete Jobalarme (siehe «E-Mail-Jobalarme»). Neben der Prüfung des Anwendungscodes gibt es einen getrennten Workflow für den öffentlichen Jobfeed. Dessen Zeitplan wird erst nach Übernahme auf den Hauptbranch aktiv.
 
 ## Installation und Betrieb
 
@@ -114,3 +114,49 @@ Lokale Tests prüfen die Logik ohne API-Kosten. Ein bestandener JavaScript-Testl
 `js/job-relevance.js` wird vor der Veröffentlichung auf die vollständigen Aufgaben und Anforderungen angewendet. Nur Stellen mit belegtem Fachbezug zu Gesundheitsökonomie, Politik, Public Health, Gesundheitsmanagement, fachlichen Gesundheitsprojekten oder Gesundheitsdaten gelangen in den Feed. Klinische Tätigkeiten und fachfremde Funktionen werden ausgeschlossen. Der Browser prüft beim Import den Volltext erneut. Technische Abdeckung, Rohbestand und fachlich passende Treffer besitzen getrennte Zähler.
 
 Der Node-Runner in `scripts/` und der serverseitige Such-Endpunkt verwenden denselben Extraktionscode. Der regelmässige Feed wird getrennt vom Anwendungscode veröffentlicht. Beschreibung, Quellenstatus, Abdeckungsgrenzen und Betrieb: [docs/JOBFEED.md](docs/JOBFEED.md).
+
+## E-Mail-Jobalarme
+
+Angemeldete Personen speichern bis zu zehn Jobalarme mit Filtern. Ein geplanter Lauf (`.github/workflows/job-alerts.yml` → Edge Function `send-job-alerts`) verschickt pro fälligem Alarm eine Mail mit den Stellen des öffentlichen Jobfeeds, die seit dem letzten Versand neu sind. Ohne neue Stellen wird nichts versendet. Diese Benachrichtigungen ersetzen die frühere Aussage, die App verschicke keine automatischen Benachrichtigungen; Bewerbungen werden weiterhin nie versendet. Installation: [DEPLOYMENT.md, Abschnitt 7](DEPLOYMENT.md).
+
+### Tabelle `public.job_alerts`
+
+| Spalte | Typ | Browser | Bedeutung |
+|---|---|---|---|
+| `id` | uuid | lesen | Primärschlüssel |
+| `user_id` | uuid | lesen | Standard `auth.uid()`, nicht änderbar |
+| `name` | text, ≤ 120 | lesen/schreiben | Anzeigename; leer = «Ihr Jobalarm» in der Mail |
+| `filters` | jsonb | lesen/schreiben | siehe unten; wird beim Speichern bereinigt |
+| `frequency` | `'daily'` \| `'weekly'` | lesen/schreiben | Standard `weekly` |
+| `active` | boolean | lesen/schreiben | Standard `true` |
+| `email` | text | nur lesen | optionale Empfängerüberschreibung durch den Betrieb; `null` = bestätigte Login-Adresse |
+| `unsubscribe_token` | uuid | lesen | geheimer Abmeldeschlüssel |
+| `last_sent_at`, `last_checked_at` | timestamptz | lesen | Versandstand; nur der Server schreibt |
+| `created_at`, `updated_at` | timestamptz | lesen | |
+
+RLS: nur eigene Zeilen lesen, anlegen, ändern, löschen. Spaltenrechte erlauben `INSERT`/`UPDATE` ausschliesslich für `name`, `filters`, `frequency`, `active`; so kann kein Alarm an eine fremde Adresse gerichtet werden. Fehlercodes des Triggers: `INVALID_ALERT_FILTERS` (SQLSTATE 22023, `DETAIL` = Filterschlüssel), `ALERT_LIMIT_REACHED` (22023, mehr als zehn Alarme), `INVALID_ALERT_OWNER`.
+
+**Filter** (alle optional, UND-verknüpft; `null` und leere Strings werden entfernt, unbekannte Schlüssel abgewiesen; maximal 2 KB):
+
+| Schlüssel | Wert | Abgleich |
+|---|---|---|
+| `q` | String ≤ 200 | jedes Wort muss in Titel, Arbeitgeber, Beschrieb oder Ort vorkommen (ohne Gross-/Kleinschreibung und Akzente) |
+| `focus` | exakt eine der sechs `CATEGORIES` aus `js/job-relevance.js` | `job.relevance.category` |
+| `category` | Gruppenschlüssel aus `data/organizations.json` (`bund`, `kantone`, `versicherungen`, `branchen`, `spitaeler`, `beratung`, `stiftungen`) | Gruppe eines `org_id`/`org_ids` |
+| `canton` | zweistelliger Grossbuchstaben-Code (`BE`, `ZH`, …) | Feld `canton`, sonst aus `location` abgeleitet, sonst Standort des Arbeitgebers im Katalog |
+| `seniority` | `phd`, `entry`, `junior`, `senior`, `lead` | exakt; Stellen ohne Angabe passen nicht |
+| `employer` | `org_id` (`[a-z0-9_-]`) | `org_id` oder `org_ids` |
+| `min_workload` | JSON-Zahl 1–100 | `workload_max` (bzw. `workload_min`) ≥ Wert; Stellen ohne Pensumangabe bleiben enthalten |
+
+### RPCs
+
+- `unsubscribe_job_alert(token uuid)` – für `anon` und `authenticated`. Setzt `active = false` und liefert `{"unsubscribed": true, "name": "…"}` bzw. `{"unsubscribed": false}` bei unbekanntem Token. Mehrfacher Aufruf ist unschädlich. Die Abmeldelinks der Mails lauten `${SITE_URL}/#abmelden-<unsubscribe_token>`; die Verwaltungslinks `${SITE_URL}/#jobalarme`.
+- `claim_due_job_alerts(max_alerts integer)`, `job_alert_delivered_ids(alert_id uuid)`, `record_job_alert_delivery(alert_id uuid, job_ids text[], provider_message_id text)` – nur `service_role`. Fällig ist ein aktiver Alarm ohne Versand bzw. mit Versand vor mehr als 20 Stunden (`daily`) oder 156 Stunden (`weekly`), der in den letzten zwei Stunden nicht bereits beansprucht wurde (`FOR UPDATE SKIP LOCKED`).
+
+`private.job_alert_deliveries` protokolliert pro Versand Zeitpunkt, Resend-ID und alle gemeldeten Stellen-IDs (auch jene jenseits der Obergrenze pro Mail). Sie ist nicht über die API erreichbar.
+
+### Function `send-job-alerts`
+
+`POST` mit Header `x-cron-secret: <JOB_ALERTS_CRON_SECRET>`, Body optional `{"dry_run": true, "max_alerts": 50}`. Ablauf: Feed-Index laden (`JOB_FEED_INDEX_URL`), fällige Alarme beanspruchen, pro Alarm neue Stellen bestimmen (`first_seen` nach `last_sent_at`, beim ersten Versand nach `created_at`; nur `status = open`; dedupliziert nach ID, Direktlink und bereits gemeldeten IDs; neueste zuerst, höchstens 25 pro Mail mit «und N weitere»), Empfänger bestimmen (`email` oder bestätigte Auth-Adresse über die Admin-API), über Resend versenden (`Idempotency-Key` aus Alarm und Stellen-IDs, 0,6 s Abstand) und erst nach Annahme durch Resend `record_job_alert_delivery` aufrufen. Antwort: `{dry_run, feed_generated_at, feed_jobs, claimed, sent, no_new_jobs, no_email, failed, would_send, rate_limited, remaining, outcomes:[{alert_id,status,jobs?,error?}]}`; der Workflow ruft erneut auf, solange `remaining` wahr ist. HTTP 401 bei falschem Secret, 503 bei fehlender Konfiguration/Migration, 502 bei unerreichbarem Feed. `dry_run` liest aktive Alarme ohne Fälligkeitsprüfung, beansprucht nichts und versendet nichts.
+
+Abgleich und Mail-Darstellung liegen rein funktional in `supabase/functions/_shared/job-alerts.mjs` (Tests: `tests/job-alerts.test.mjs`). Feedtexte werden im HTML maskiert; verlinkt werden nur `http(s)`-Adressen.

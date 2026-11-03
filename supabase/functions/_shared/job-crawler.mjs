@@ -1,4 +1,4 @@
-import { canonicalUrl, extractVacancies, isAllowedUrl, isPublicAddress, safePublicUrl, scopedListingUrl, matchesOrganizationScope } from './job-extraction.mjs';
+import { canonicalUrl, extractVacancies, isAllowedUrl, isPublicAddress, safePublicUrl, scopedListingUrl, matchesOrganizationScope, isOtherEmployerJob, matchesIncludeTerms } from './job-extraction.mjs';
 import { detectAdditionalAdapter, additionalFetchOrg, normalizeAdditionalPayload, extractAdditionalVacancies } from './job-additional-ats-adapter.mjs';
 import { detectRexxAdapter, normalizeRexxPage } from './job-rexx-adapter.mjs';
 import { detectSuccessFactorsAdapter, normalizeSuccessFactorsPage } from './job-successfactors-adapter.mjs';
@@ -120,9 +120,13 @@ export async function crawlOrganization(org,fetchPage,{signal,limits:configuredL
   const scoped = Array.isArray(org.scope_terms) && org.scope_terms.some(term => typeof term === 'string' && term.trim());
   let listingAttempts = 0,listingFailures = 0,detailFailures = 0,detailUnsupported = 0;
   let listingEvidence = false,explicitEmpty = false,verifiedScopedEmpty = false,terminalUnknown = 0,expectedCount = 0;
+  const otherEmployer = new Set(),outsideDepartment = new Set();
   const remember = job => {
     if (!matchesOrganizationScope(job,org)) { if (!jobs.has(job.id)) excluded.add(job.id); return; }
-    excluded.delete(job.id);
+    // Postings of other companies (e.g. reached through a linked job board) are never this source's vacancies.
+    if (isOtherEmployerJob(job,org)) { if (!jobs.has(job.id)) otherEmployer.add(job.id); return; }
+    if (!matchesIncludeTerms(job,org)) { if (!jobs.has(job.id)) outsideDepartment.add(job.id); return; }
+    excluded.delete(job.id); otherEmployer.delete(job.id); outsideDepartment.delete(job.id);
     if (jobs.has(job.id) || jobs.size < limits.maxJobs) jobs.set(job.id,job);
     else { unresolved.add(job.url); notes.add(`Ergebnis auf ${limits.maxJobs} Stellen begrenzt.`); }
   };
@@ -247,9 +251,13 @@ export async function crawlOrganization(org,fetchPage,{signal,limits:configuredL
   if (detailFailures) notes.add(`${detailFailures} Detailseiten nicht vollständig abrufbar.`);
   if (detailUnsupported) notes.add(`${detailUnsupported} Links liefern keine sicher auslesbare Einzelstelle.`);
   const returned = [...jobs.values()];
-  source.excluded_jobs = excluded.size;
-  if (expectedCount > jobs.size + excluded.size) { unresolved.add(root); notes.add(`Die Quelle nennt ${expectedCount} Stellen; ${jobs.size + excluded.size} vollständige Beschriebe wurden erfasst.`); }
+  const excludedTotal = excluded.size + otherEmployer.size + outsideDepartment.size;
+  source.excluded_jobs = excludedTotal;
+  source.excluded_reasons = {scope:excluded.size,other_employer:otherEmployer.size,department:outsideDepartment.size};
+  if (expectedCount > jobs.size + excludedTotal) { unresolved.add(root); notes.add(`Die Quelle nennt ${expectedCount} Stellen; ${jobs.size + excludedTotal} vollständige Beschriebe wurden erfasst.`); }
   if (excluded.size) notes.add(`${excluded.size} Stellen ohne belegte Zugehörigkeit zur gewählten Organisation ausgeschlossen.`);
+  if (otherEmployer.size) notes.add(`${otherEmployer.size} Stellen anderer Arbeitgeber (z. B. über eine Stellenbörse verlinkt) ausgeschlossen.`);
+  if (outsideDepartment.size) notes.add(`${outsideDepartment.size} Stellen ausserhalb der konfigurierten Fachbereiche ausgeschlossen.`);
   if (scoped && !returned.length && !verifiedScopedEmpty) notes.add('Keine Stelle ist anhand der konfigurierten Organisationsbegriffe sicher zuordenbar; daraus folgt keine Leermeldung des Arbeitgebers.');
   if (returned.some(job => job.description_truncated)) notes.add('Mindestens ein Stellenbeschrieb wurde bei 30’000 Zeichen gekürzt.');
   source.pending_pages = new Set([...queue.filter(link => !visited.has(link.url)).map(link => link.url),...detailQueue.filter(link => !visited.has(link.url)).map(link => link.url),...unresolved]).size;

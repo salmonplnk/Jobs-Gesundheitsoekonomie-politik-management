@@ -149,3 +149,12 @@ test('CHUV is pinned to the public website and summaries only become detail link
   const privateOnly=normalizeProspectivePayload(a,{total:1,jobs:[{...job,publication:{internet:{live:'N'}}}]},org);
   assert.equal(privateOnly.links.length,0); assert.equal(privateOnly.rejected,1);
 });
+
+test('federal salary class attribute becomes the salary hint',async()=>{
+  const {detectProspectiveAdapter,normalizeProspectivePayload}=await adapters;
+  const a=detectProspectiveAdapter(bag,bag.jobs);
+  const make=value=>row({links:{directlink:'https://jobs.admin.ch/offene-stellen/wissenschaftliche-mitarbeit/123-abc'},
+    attributes:{lohnklasse:value,verwaltungseinheit_1083352:['Bundesamt für Gesundheit BAG']}});
+  assert.equal(normalizeProspectivePayload(a,payload([make(['24'])],{medium_id:'1000624'}),bag).jobs[0].salary_hint,'Lohnklasse 24');
+  assert.equal(normalizeProspectivePayload(a,payload([make(['Keine Angabe'])],{medium_id:'1000624'}),bag).jobs[0].salary_hint,null);
+});

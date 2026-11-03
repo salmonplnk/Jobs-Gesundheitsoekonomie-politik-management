@@ -79,3 +79,41 @@ Betrieb und Datenadresse: [docs/JOBFEED.md](docs/JOBFEED.md).
 Nach erfolgreicher Testabnahme dieselbe Migration und dieselben Functions im Produktionsprojekt installieren, dann die statischen Dateien über das bestehende Hosting veröffentlichen. Falls GitHub Pages direkt aus `main` veröffentlicht, diese Reihenfolge vor dem Merge koordinieren. Eine kurze Suche, das erneute Speichern eines Profils und das erneute Laden eines Entwurfs nach dem Rollout kontrollieren.
 
 Bei einem Problem die Daten und Migration erhalten. Einen Frontend-Rollback nur zusammen mit der Kompatibilität seiner Favoriten-/Dokument-Schreibzugriffe beurteilen; das alte Frontend verwendet noch direkte Schreibzugriffe, die die neue Migration absichtlich ersetzt. Neue Tabellen oder bestehende Nutzerdateien nicht zur Fehlerbehebung löschen.
+
+## 7. E-Mail-Jobalarme (optional)
+
+Auch hier gilt: **Ein Commit oder Push deployt nichts.** Migration, Function, Secrets und Resend-Domain müssen manuell eingerichtet werden. Ohne GitHub-Secrets endet der Workflow `Send e-mail job alerts` mit einem Hinweis und Erfolg, ohne etwas zu versenden.
+
+1. **Migration:** `supabase/migrations/202611030001_job_alerts.sql` im SQL Editor ausführen (bestehende Installation) bzw. ist bei Neuinstallationen bereits am Ende von `supabase/schema.sql` enthalten (danach `supabase migration repair 202611030001 --status applied`, falls die CLI verwendet wird). Danach müssen `public.job_alerts`, `private.job_alert_deliveries` und die RPCs `unsubscribe_job_alert`, `claim_due_job_alerts`, `job_alert_delivered_ids`, `record_job_alert_delivery` existieren.
+2. **Resend:** Konto bei [resend.com](https://resend.com) anlegen, unter *Domains* die Absenderdomain (z. B. `mail.example.ch`) hinzufügen und die angezeigten DNS-Einträge (SPF/TXT, DKIM/CNAME bzw. TXT, empfohlen zusätzlich DMARC `_dmarc` TXT) beim DNS-Anbieter setzen, bis die Domain als *verified* gilt. Einen API-Key mit Berechtigung *Sending access* erstellen. Ohne verifizierte Domain stellt Resend nur an die eigene Kontoadresse zu.
+3. **Function-Secrets** (Dashboard → Edge Functions → Secrets oder `supabase secrets set --project-ref PROJECT_REF NAME=wert`):
+
+   | Secret | Inhalt |
+   |---|---|
+   | `JOB_ALERTS_CRON_SECRET` | Zufallswert, mindestens 16 Zeichen, z. B. `openssl rand -hex 32` |
+   | `RESEND_API_KEY` | Resend-API-Key |
+   | `ALERTS_FROM_EMAIL` | Absender auf der verifizierten Domain, z. B. `Gesundheitsjobs <alarm@mail.example.ch>` |
+   | `SITE_URL` | Öffentliche Adresse der Website ohne `#`, z. B. `https://salmonplnk.github.io/Jobs-Gesundheitsoekonomie-politik-management` |
+   | `JOB_FEED_INDEX_URL` | optional; Standard ist die `raw.githubusercontent.com`-Adresse des Branches `job-feed-data` |
+   | `JOB_ALERTS_MAX_PER_RUN` | optional; Alarme pro Aufruf (Standard 50, max. 200) |
+   | `JOB_ALERTS_MAX_JOBS_PER_MAIL` | optional; Stellen pro Mail (Standard 25, Rest als «und N weitere») |
+
+   `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY` stellt Supabase selbst bereit.
+4. **Function deployen** – ohne JWT-Prüfung durch Supabase, weil der Aufruf über `x-cron-secret` geschützt ist:
+
+   ```bash
+   supabase functions deploy send-job-alerts --project-ref PROJECT_REF --no-verify-jwt
+   ```
+
+5. **GitHub-Secrets** (Repository → Settings → Secrets and variables → Actions): `SUPABASE_FUNCTIONS_URL` = `https://PROJECT_REF.supabase.co/functions/v1` und `JOB_ALERTS_CRON_SECRET` = derselbe Wert wie in Supabase. Der Zeitplan (`47 5 * * *`, 30 Minuten nach dem morgendlichen Feed-Lauf) wird erst auf dem Hauptbranch aktiv.
+6. **Abnahme:** Workflow manuell mit `dry_run` starten – er zählt passende neue Stellen (`would_send`), ohne zu senden oder Alarme zu beanspruchen. Danach mit einem Testkonto einen Alarm anlegen, `last_sent_at` im SQL Editor testweise zurücksetzen, einen echten Lauf starten und prüfen: Betreff, Links zu den Originalinseraten, Abmeldelink (deaktiviert den Alarm ohne Login), keine zweite Mail bei erneutem Lauf, keine Mail ohne neue Stellen. Ein zweites Konto darf fremde Alarme weder lesen noch ändern; mehr als zehn Alarme werden abgewiesen.
+
+Direkter Testaufruf:
+
+```bash
+curl -sS -X POST "https://PROJECT_REF.supabase.co/functions/v1/send-job-alerts" \
+  -H "x-cron-secret: $JOB_ALERTS_CRON_SECRET" -H 'Content-Type: application/json' \
+  --data '{"dry_run": true}'
+```
+
+Hinweis: Die Mails enthalten einen `List-Unsubscribe`-Header mit dem Website-Link. Ein RFC-8058-One-Click-Endpunkt (`List-Unsubscribe-Post`) ist nicht eingerichtet; bei grösserem Versandvolumen an Gmail/Yahoo nachrüsten.

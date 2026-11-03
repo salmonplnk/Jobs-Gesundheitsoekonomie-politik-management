@@ -48,7 +48,7 @@
     job.role = roles.includes(raw.role) ? raw.role : roleMap[raw.role] || classifyRole(job);
     const languageMap = { DE: 'Deutsch', FR: 'Französisch', IT: 'Italienisch', EN: 'Englisch' };
     job.languages = job.languages.replace(/\b(DE|FR|IT|EN)\b/g, k => languageMap[k]);
-    const seniorityMap = { phd: 'PhD / Doktorat', entry: 'Berufseinstieg', junior: 'Junior', lead: 'Führung', senior: 'Senior' };
+    const seniorityMap = { phd: 'PhD / Doktorat', entry: 'Berufseinstieg', praktikum: 'Praktikum', trainee: 'Trainee', junior: 'Junior', lead: 'Leitung', senior: 'Senior' };
     job.seniority = seniorityMap[job.seniority] || job.seniority;
     const contractMap = { permanent: 'Unbefristet', temporary: 'Befristet', internship: 'Praktikum' };
     job.employment_type = contractMap[job.employment_type] || job.employment_type;

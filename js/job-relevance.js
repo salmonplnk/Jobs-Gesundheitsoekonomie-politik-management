@@ -5,7 +5,9 @@
   else root.HealthJobRelevance = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
-  const POLICY_VERSION = 1;
+  // 2: a catalogue organisation counts as health employer only for its own
+  // vacancies; postings of other employers found via job boards do not inherit it.
+  const POLICY_VERSION = 2;
   const CATEGORIES = Object.freeze([
     'Gesundheitsökonomie / HTA', 'Gesundheitspolitik / Tarife',
     'Versorgungsforschung / Public Health', 'Projektmanagement Gesundheit',
@@ -33,6 +35,39 @@
   const technicalRole = /(?:it|ict)[ -](?:support|service|system|infrastruktur)|service ?desk|help ?desk|desktop|network engineer|system engineer|systemadministrator|sysadmin|applikationsmanage|application manager|software (?:engineer|develop)|applikationsentwick|informatiker|datenbank[- ]spezialist|\bietl\b|identity and access|coredata automation|leitsystemtechnik|data platform engineer|technologie epic/;
   const juniorEducation = /\blehr(?:stelle|ling|beruf)|\blernende|\b(?:wms|hms)\b|schnupper|duales studium|dual study|ausbildungsplatz/;
   const unrelatedDomain = /allbranchenversicherung|sachversicherung|motorfahrzeug|landwirtschaft|gewasserschutz|strassenbau|verkehrsplanung|immobilienentwicklung|gebaudebau|bauprojekte|facility management|portfolio[- ]management[^.\n]{0,30}immobilien/;
+
+  // Words that alone do not identify one employer (legal forms, generic institution words).
+  const GENERIC_NAME = new Set(('ag sa gmbh sarl ltd inc llc plc kg se co und and et der die das des du de la le les of for fur the von vom im in am zu '
+    + 'schweiz schweizer schweizerische schweizerischer schweizerisches suisse svizzera swiss switzerland ch gruppe group holding '
+    + 'stiftung fondation foundation verein association genossenschaft kanton canton stadt ville gemeinde amt office bundesamt '
+    + 'departement department direktion institut institute zentrum centre center universitat universite university hochschule '
+    + 'spital hopital hospital klinik clinique clinic gesundheit sante health versicherung assurance insurance krankenkasse services').split(' '));
+  const nameTokens = value => clean(value).replace(/[^a-z0-9]+/g, ' ').split(' ').filter(word => word.length >= 2 && !GENERIC_NAME.has(word));
+  const compact = value => clean(value).replace(/[^a-z0-9]+/g, '');
+  /** True unless the named employer is clearly another organisation than `org`. */
+  function employerMatches(name, org = {}) {
+    const employer = nameTokens(name);
+    if (!employer.length) return true;
+    const hosts = [org.jobs, org.main].map(url => { try { return new URL(url).hostname; } catch { return ''; } })
+      .flatMap(host => host.split(/[.-]/)).filter(label => !/^(?:www|jobs?|careers?|karriere|apply|recruiting|ch|com|org|net|swiss|admin|de|fr|en)$/.test(label));
+    const identity = new Set([...nameTokens(org.name), ...nameTokens(org.id), ...hosts.flatMap(nameTokens),
+      ...(Array.isArray(org.employer_aliases) ? org.employer_aliases.flatMap(nameTokens) : [])]);
+    if (employer.some(word => identity.has(word))) return true;
+    const full = compact(name), names = [org.name, ...(Array.isArray(org.employer_aliases) ? org.employer_aliases : [])].map(compact).filter(value => value.length >= 3);
+    return names.some(value => full.includes(value) || value.includes(full)) || (compact(org.id).length >= 3 && full.includes(compact(org.id)));
+  }
+
+  const BOARD_HOST = /(?:^|\.)(?:jobs\.ch|jobup\.ch|jobscout24\.ch|jobwinner\.ch|topjobs\.ch|alpha\.ch|jobcloud\.(?:ch|io)|indeed\.(?:com|ch)|linkedin\.com|stepstone\.ch|monster\.ch|jobagent\.ch|jobalino\.ch|careerjet\.ch)$/;
+  const hostOf = value => { try { return new URL(value).hostname.toLowerCase(); } catch { return ''; } };
+  /** Vacancy published on the organisation's own career host (not a job board):
+   * group sub-units (clinics, offices) need not repeat the group name there. */
+  function ownCareerHost(url, org = {}) {
+    const host = hostOf(url);
+    if (!host || BOARD_HOST.test(host)) return false;
+    const roots = [org.jobs, org.main].map(hostOf).map(value => value.replace(/^www\./, '')).filter(Boolean);
+    return roots.some(root => host === root || host.endsWith('.' + root))
+      || (Array.isArray(org.allowed_hosts) && org.allowed_hosts.map(String).includes(host));
+  }
 
   function jobSections(job) {
     const full = clean(job.description);
@@ -68,7 +103,10 @@
     if (!title.trim()) return exclude('Kein prüfbarer Stellentitel vorhanden.');
     const { body, tasks, requirements } = jobSections(job);
     const employer = clean(job.organization) || clean(org.name);
-    const knownHealthEmployer = healthOrgs.has(job.org_id || org.id) || healthEmployer.test(employer);
+    // Only the job's actual employer counts: a board posting reached via a catalogue
+    // source (e.g. jobs.ch linked from kvg.org) is not a vacancy of that organisation.
+    const ownVacancy = ownCareerHost(job.url, org) || employerMatches(job.hiring_organization || job.organization, { ...org, id: job.org_id || org.id });
+    const knownHealthEmployer = (ownVacancy && healthOrgs.has(job.org_id || org.id)) || healthEmployer.test(employer);
     const titleEconomic = economic.test(title), titlePolicy = policy.test(title);
     const titleProject = projectRole.test(title), titleManagement = managementRole.test(title), titleData = dataRole.test(title);
     const roleText = title + '\n' + tasks;
@@ -128,5 +166,5 @@
       ? 'Gesundheitsarbeitgeber, aber keine ausreichend belegte Funktion im fachlichen Profil.'
       : 'Kein ausreichender Bezug der konkreten Funktion zu Gesundheitsökonomie, Gesundheitspolitik oder Gesundheitsmanagement.');
   }
-  return Object.freeze({ POLICY_VERSION, CATEGORIES, classify });
+  return Object.freeze({ POLICY_VERSION, CATEGORIES, classify, employerMatches });
 });
