@@ -26,11 +26,11 @@ function buildOrgModal() {
   modal.className = 'auth-modal';
   modal.innerHTML = `
     <div class="auth-backdrop" onclick="closeOrgModal()"></div>
-    <div class="profile-panel" style="max-width:540px;">
+    <div class="profile-panel community-panel" role="dialog" aria-modal="true" aria-labelledby="orgModalTitle">
       <div class="profile-header">
-        <h2>🏢 Unternehmen vorschlagen</h2>
+        <h2 id="orgModalTitle">Unternehmen vorschlagen</h2>
         <p>Schlage eine Organisation vor, die auf der Plattform fehlt. Dein Vorschlag wird nach Prüfung freigeschaltet.</p>
-        <button class="profile-close" onclick="closeOrgModal()" aria-label="Schliessen">✕</button>
+        <button class="profile-close" onclick="closeOrgModal()" aria-label="Schliessen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <form id="orgForm" class="profile-form" onsubmit="submitOrg(event)">
         <fieldset class="pf-field">
@@ -47,15 +47,15 @@ function buildOrgModal() {
         </fieldset>
         <fieldset class="pf-field">
           <legend>Kategorie *</legend>
-          <select class="pf-select" name="org_category" required style="width:100%;padding:.5rem;">
+          <select class="pf-select" name="org_category" required>
             <option value="">Bitte wählen...</option>
             ${CATEGORY_OPTIONS.map(c => `<option value="${c.key}">${c.label}</option>`).join('')}
           </select>
         </fieldset>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
+        <div class="pf-two">
           <fieldset class="pf-field">
             <legend>Kanton</legend>
-            <select class="pf-select" name="org_canton" style="width:100%;padding:.5rem;">
+            <select class="pf-select" name="org_canton">
               <option value="">Optional...</option>
               ${CANTON_OPTIONS.map(c => `<option value="${c}">${c}</option>`).join('')}
             </select>
@@ -78,7 +78,7 @@ function buildOrgModal() {
         <div class="auth-success" id="orgSuccess"></div>
         <div class="pf-actions">
           <button type="button" class="pf-btn-secondary" onclick="closeOrgModal()">Abbrechen</button>
-          <button type="submit" class="pf-btn-primary" id="orgSubmitBtn">📤 Vorschlag senden</button>
+          <button type="submit" class="pf-btn-primary" id="orgSubmitBtn">Vorschlag senden</button>
         </div>
       </form>
     </div>`;
@@ -148,7 +148,7 @@ async function submitOrg(e) {
     errEl.textContent = 'Fehler: ' + (err.message || 'Bitte versuche es erneut.');
   } finally {
     btn.disabled = false;
-    btn.textContent = '📤 Vorschlag senden';
+    btn.textContent = 'Vorschlag senden';
   }
 }
 
@@ -160,10 +160,10 @@ function buildCatModal() {
   modal.className = 'auth-modal';
   modal.innerHTML = `
     <div class="auth-backdrop" onclick="closeCatModal()"></div>
-    <div class="auth-panel" style="max-width:440px;">
-      <button class="profile-close" onclick="closeCatModal()" aria-label="Schliessen">✕</button>
-      <h2>📁 Kategorie vorschlagen</h2>
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;">
+    <div class="auth-panel" role="dialog" aria-modal="true" aria-labelledby="catModalTitle">
+      <button class="profile-close" onclick="closeCatModal()" aria-label="Schliessen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <h2 id="catModalTitle">Kategorie vorschlagen</h2>
+      <p class="auth-lead">
         Schlage eine neue Kategorie vor, die nach Prüfung im Community-Bereich erscheint.
       </p>
       <form id="catForm" onsubmit="submitCategory(event)">
@@ -171,8 +171,8 @@ function buildCatModal() {
         <input type="text" class="pf-input pf-mt" name="cat_desc" placeholder="Kurze Beschreibung (optional)">
         <div class="auth-error" id="catError"></div>
         <div class="auth-success" id="catSuccess"></div>
-        <button type="submit" class="pf-btn-primary" id="catSubmitBtn" style="width:100%;margin-top:.8rem;">
-          📤 Vorschlag senden
+        <button type="submit" class="pf-btn-primary" id="catSubmitBtn">
+          Vorschlag senden
         </button>
       </form>
     </div>`;
@@ -231,7 +231,7 @@ async function submitCategory(e) {
     errEl.textContent = err.message || 'Fehler beim Senden.';
   } finally {
     btn.disabled = false;
-    btn.textContent = '📤 Vorschlag senden';
+    btn.textContent = 'Vorschlag senden';
   }
 }
 
@@ -240,6 +240,7 @@ async function loadCommunityOrgs() {
   const container = document.getElementById('communitySection');
   if (!container) return;
 
+  if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
   try {
     const { data: orgs } = await supabaseClient
       .from('community_orgs')
@@ -252,36 +253,37 @@ async function loadCommunityOrgs() {
       return;
     }
 
-    const favs = getFavs();
-    const cards = orgs.map(o => `
-      <div class="org-card" data-id="community-${o.id}" data-loc="${o.canton || ''}" data-search="${(o.name + ' ' + (o.city || '') + ' ' + (o.description || '')).toLowerCase()}">
-        <div class="org-top">
+    const rows = orgs.map(o => {
+      const place = [o.city, o.canton].filter(Boolean).join(', ');
+      return `
+      <li class="org-row org-row-community" data-id="community-${escapeHtml(String(o.id))}">
+        <span class="org-avatar" aria-hidden="true">${escapeHtml(orgInitials(o.name))}</span>
+        <span class="org-main">
           <span class="org-name">${escapeHtml(o.name)}</span>
-          <span class="community-badge">Community</span>
-        </div>
-        ${o.city || o.canton ? `<span class="org-loc">📍 ${escapeHtml(o.city || '')}${o.city && o.canton ? ', ' : ''}${o.canton || ''}</span>` : ''}
-        ${o.description ? `<p class="org-desc">${escapeHtml(o.description)}</p>` : ''}
-        <div class="org-links">
-          <a class="org-link org-link-jobs" href="${escapeHtml(o.url)}" target="_blank" rel="noopener">💼 Karriereseite</a>
-        </div>
-      </div>
-    `).join('');
+          <span class="org-meta">${place ? escapeHtml(place) + ' · ' : ''}Community-Vorschlag</span>
+        </span>
+        <span class="org-jobs is-loading" aria-hidden="true">–</span>
+        ${o.url ? `<a class="org-career" href="${escapeHtml(o.url)}" target="_blank" rel="noopener">Karriereseite <span aria-hidden="true">↗</span></a>` : '<span class="org-career is-none">Kein Portal</span>'}
+        <span class="org-star-placeholder" aria-hidden="true"></span>
+      </li>`;
+    }).join('');
 
     container.innerHTML = `
-      <section class="category">
-        <div class="cat-header">
-          <span class="cat-emoji">🌐</span>
-          <span class="cat-title">Community-Vorschläge</span>
-          <span class="cat-count">${orgs.length}</span>
-        </div>
-        <p class="jw-small jw-muted" style="margin-bottom:1rem">Weitere Vorschläge aus der Community. Die Kartenfilter gelten für das Verzeichnis oben.</p>
-        <div class="card-grid">${cards}</div>
-      </section>`;
+      <details class="dir-group dir-group-community">
+        <summary><span class="dir-group-title">Community-Vorschläge</span><span class="dir-group-count">${orgs.length}</span></summary>
+        <p class="dir-group-note">Geprüfte Vorschläge aus der Community. Sie sind noch nicht im Stellenabruf; die Filter oben gelten für sie nicht.</p>
+        <ul class="dir-list" role="list">${rows}</ul>
+      </details>`;
   } catch (err) {
     console.warn('Failed to load community orgs:', err.message);
   }
 }
 
 /* ======== Init ======== */
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  if (document.getElementById('orgModal')?.classList.contains('open')) closeOrgModal();
+  if (document.getElementById('catModal')?.classList.contains('open')) closeCatModal();
+});
 loadCommunityOrgs();
 

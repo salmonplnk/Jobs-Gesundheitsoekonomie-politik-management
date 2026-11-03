@@ -111,7 +111,7 @@
             <div class="map-scroll" tabindex="0" role="region" aria-label="Interaktive Schweizer Standortkarte" aria-describedby="mapHint">
               <svg class="map-svg" id="swissMap" viewBox="0 0 900 560" role="group" aria-labelledby="swissMapTitle swissMapDesc" xmlns="http://www.w3.org/2000/svg">
                 <title id="swissMapTitle">Arbeitgeberstandorte in der Schweiz</title>
-                <desc id="swissMapDesc">Standorte mit der Maus, Enter oder Leertaste auswählen. Die Zahlen zeigen Organisationen nach Suchtext und Kategorie, keine offenen Stellen.</desc>
+                <desc id="swissMapDesc">Standorte mit der Maus, Enter oder Leertaste auswählen. Die Zahlen zeigen offene Stellen oder Organisationen je Standort.</desc>
                 <path class="ch-outline" id="swissMapOutline"/>
                 <g id="mapMarkers"></g>
               </svg>
@@ -142,21 +142,6 @@
         <p class="map-attribution">Kartengrundlage: <a href="https://www.naturalearthdata.com/about/terms-of-use/" target="_blank" rel="noopener">Natural Earth</a> · Orte: <a href="https://www.swisstopo.admin.ch/en/source-reference-ogd-swisstopo" target="_blank" rel="noopener">© swisstopo</a></p>
       </section>
 
-      <div class="stats">
-        <div class="stat"><div class="stat-val" id="statOrgs">0</div><div class="stat-lbl">Organisationen</div></div>
-        <div class="stat"><div class="stat-val" id="statCats">7</div><div class="stat-lbl">Kategorien</div></div>
-        <div class="stat"><div class="stat-val" id="statFavs">0</div><div class="stat-lbl">Favoriten</div></div>
-      </div>
-
-      <div class="onboarding-hint" id="onboardingHint" style="display:none;">
-        <span><strong>Tipp:</strong> Markiere Organisationen mit dem Stern, wähle Standorte auf der Karte und starte deine Suche.</span>
-        <button class="onboarding-dismiss" onclick="dismissOnboarding()" aria-label="Hinweis schliessen">✕</button>
-      </div>
-
-      <section id="fav-sec">
-        <h2>Meine Favoriten</h2>
-        <div class="card-grid" id="fav-grid"></div>
-      </section>
 
       <div id="categories"></div>
 

@@ -163,7 +163,7 @@ function buildAuthModal() {
     <div class="auth-backdrop" onclick="closeAuthModal()"></div>
     <div class="auth-panel">
       <button class="profile-close" onclick="closeAuthModal()" aria-label="Schliessen">✕</button>
-      <h2 id="authTitle">🔐 Anmelden</h2>
+      <h2 id="authTitle">Anmelden</h2>
       <form id="authForm" onsubmit="handleAuthSubmit(event)">
         <input type="email" class="pf-input" id="authEmail" placeholder="E-Mail-Adresse" required>
         <input type="password" class="pf-input pf-mt" id="authPassword" placeholder="Passwort" required minlength="6">
@@ -221,14 +221,14 @@ function updateAuthModalMode() {
   const forgot = document.getElementById('authForgot');
 
   if (authMode === 'register') {
-    title.textContent = '📝 Registrieren';
+    title.textContent = 'Registrieren';
     btn.textContent = 'Konto erstellen';
     confirm.style.display = '';
     confirm.required = true;
     toggle.innerHTML = 'Bereits ein Konto? <a onclick="toggleAuthMode()">Anmelden</a>';
     forgot.style.display = 'none';
   } else {
-    title.textContent = '🔐 Anmelden';
+    title.textContent = 'Anmelden';
     btn.textContent = 'Anmelden';
     confirm.style.display = 'none';
     confirm.required = false;
